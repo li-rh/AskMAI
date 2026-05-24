@@ -1,0 +1,104 @@
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../models/exports.dart';
+
+/// SharedPreferences管理服务
+class PreferencesService {
+  static const String _tabUrlsKey = 'tab_urls';
+  static const String _activeTabIdKey = 'active_tab_id';
+
+  late SharedPreferences _prefs;
+
+  /// 初始化服务
+  Future<void> init() async {
+    _prefs = await SharedPreferences.getInstance();
+  }
+
+  /// 保存所有标签页
+  Future<void> saveTabUrls(List<LLMTab> tabs) async {
+    try {
+      final jsonList = tabs.map((tab) => tab.toJson()).toList();
+      final jsonString = jsonEncode(jsonList);
+      await _prefs.setString(_tabUrlsKey, jsonString);
+    } catch (e) {
+      print('Error saving tab URLs: $e');
+    }
+  }
+
+  /// 读取所有标签页
+  Future<List<LLMTab>> getTabUrls() async {
+    try {
+      final jsonString = _prefs.getString(_tabUrlsKey);
+      if (jsonString == null || jsonString.isEmpty) {
+        return [];
+      }
+
+      final decoded = jsonDecode(jsonString) as List;
+      return decoded
+          .map((tab) => LLMTab.fromJson(tab as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      print('Error reading tab URLs: $e');
+      return [];
+    }
+  }
+
+  /// 保存活跃标签页ID
+  Future<void> saveActiveTabId(String tabId) async {
+    try {
+      await _prefs.setString(_activeTabIdKey, tabId);
+    } catch (e) {
+      print('Error saving active tab ID: $e');
+    }
+  }
+
+  /// 读取活跃标签页ID
+  Future<String?> getActiveTabId() async {
+    try {
+      return _prefs.getString(_activeTabIdKey);
+    } catch (e) {
+      print('Error reading active tab ID: $e');
+      return null;
+    }
+  }
+
+  /// 保存单个标签页
+  Future<void> saveSingleTab(LLMTab tab) async {
+    try {
+      final tabs = await getTabUrls();
+      tabs.removeWhere((t) => t.id == tab.id);
+      tabs.add(tab);
+      await saveTabUrls(tabs);
+    } catch (e) {
+      print('Error saving single tab: $e');
+    }
+  }
+
+  /// 删除单个标签页
+  Future<void> removeTab(String tabId) async {
+    try {
+      final tabs = await getTabUrls();
+      tabs.removeWhere((t) => t.id == tabId);
+      await saveTabUrls(tabs);
+    } catch (e) {
+      print('Error removing tab: $e');
+    }
+  }
+
+  /// 清空所有数据
+  Future<void> clearAll() async {
+    try {
+      await _prefs.clear();
+    } catch (e) {
+      print('Error clearing preferences: $e');
+    }
+  }
+
+  /// 获取所有keys
+  Set<String> getKeys() {
+    return _prefs.getKeys();
+  }
+
+  @override
+  String toString() => 'PreferencesService()';
+}

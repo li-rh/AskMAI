@@ -1,0 +1,56 @@
+name: askmai
+description: "Multi-LLM Chat Client - Flutter. Send queries to multiple LLMs simultaneously and compare responses."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.8.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # WebView & 自动化
+  webview_flutter: ^4.0.0
+
+  # 状态管理
+  provider: ^6.0.0
+
+  # 数据持久化
+  shared_preferences: ^2.1.0
+
+  # JSON序列化
+  json_serializable: ^6.0.0
+  json_annotation: ^4.8.0
+
+  # 工具
+  http: ^1.1.0
+  uuid: ^4.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^2.0.0
+  build_runner: ^2.4.0
+  json_serializable: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/site_config.json
+
+  # 取消注释以下行以使用自定义字体
+  # fonts:
+  #   - family: Schyler
+  #     fonts:
+  #       - asset: assets/fonts/Schyler-Regular.ttf
+  #       - asset: assets/fonts/Schyler-Italic.ttf
+  #         style: italic
+  #       - family: Trajan Pro
+  #     fonts:
+  #       - asset: assets/fonts/TrajanPro.ttf
+  #       - asset: assets/fonts/TrajanPro_Bold.ttf
+  #         weight: 700

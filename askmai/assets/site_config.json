@@ -1,0 +1,28 @@
+{
+  "sites": {
+    "chatgpt": {
+      "urlPattern": "^https://chat\\.openai\\.com",
+      "inputXPath": "//textarea[@placeholder='Message ChatGPT']",
+      "submitXPath": "//button[@data-testid='send-button']",
+      "displayName": "ChatGPT"
+    },
+    "claude": {
+      "urlPattern": "^https://claude\\.ai",
+      "inputXPath": "//textarea[@placeholder='Message Claude']",
+      "submitXPath": "//button[contains(@aria-label, 'Send')]",
+      "displayName": "Claude"
+    },
+    "gemini": {
+      "urlPattern": "^https://gemini\\.google\\.com",
+      "inputXPath": "//textarea[@aria-label='Message Gemini']",
+      "submitXPath": "//button[@aria-label='Send']",
+      "displayName": "Google Gemini"
+    },
+    "doubao": {
+      "urlPattern": "^https://www\\.doubao\\.com",
+      "inputXPath": "//textarea[@placeholder='输入你的问题...']",
+      "submitXPath": "//button[contains(@class, 'submit')]",
+      "displayName": "Doubao"
+    }
+  }
+}
