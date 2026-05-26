@@ -18,6 +18,18 @@ class LLMTab {
   /// 创建时间
   final DateTime createdAt;
 
+  /// 是否启用此标签页（用于广播时是否发送消息）
+  final bool isEnabled;
+
+  /// 是否显示此标签页（用于UI中是否显示）
+  final bool isDisplayed;
+
+  /// 自定义输入框XPath（为空时使用site_config中的配置）
+  final String? customInputXPath;
+
+  /// 自定义提交按钮XPath（为空时使用site_config中的配置）
+  final String? customSubmitXPath;
+
   /// WebView控制器（不序列化）
   @JsonKey(ignore: true)
   WebViewController? webViewController;
@@ -27,6 +39,10 @@ class LLMTab {
     required this.url,
     required this.displayName,
     required this.createdAt,
+    this.isEnabled = true,
+    this.isDisplayed = true,
+    this.customInputXPath,
+    this.customSubmitXPath,
     this.webViewController,
   });
 
@@ -43,6 +59,10 @@ class LLMTab {
     String? url,
     String? displayName,
     DateTime? createdAt,
+    bool? isEnabled,
+    bool? isDisplayed,
+    String? customInputXPath,
+    String? customSubmitXPath,
     WebViewController? webViewController,
   }) {
     return LLMTab(
@@ -50,13 +70,17 @@ class LLMTab {
       url: url ?? this.url,
       displayName: displayName ?? this.displayName,
       createdAt: createdAt ?? this.createdAt,
+      isEnabled: isEnabled ?? this.isEnabled,
+      isDisplayed: isDisplayed ?? this.isDisplayed,
+      customInputXPath: customInputXPath ?? this.customInputXPath,
+      customSubmitXPath: customSubmitXPath ?? this.customSubmitXPath,
       webViewController: webViewController ?? this.webViewController,
     );
   }
 
   @override
   String toString() =>
-      'LLMTab(id: $id, url: $url, displayName: $displayName, createdAt: $createdAt)';
+      'LLMTab(id: $id, url: $url, displayName: $displayName, isEnabled: $isEnabled, isDisplayed: $isDisplayed, createdAt: $createdAt)';
 
   @override
   bool operator ==(Object other) =>
@@ -65,9 +89,11 @@ class LLMTab {
           runtimeType == other.runtimeType &&
           id == other.id &&
           url == other.url &&
-          displayName == other.displayName;
+          displayName == other.displayName &&
+          isEnabled == other.isEnabled &&
+          isDisplayed == other.isDisplayed;
 
   @override
   int get hashCode =>
-      id.hashCode ^ url.hashCode ^ displayName.hashCode;
+      id.hashCode ^ url.hashCode ^ displayName.hashCode ^ isEnabled.hashCode ^ isDisplayed.hashCode;
 }

@@ -56,10 +56,15 @@ class _InputAreaState extends State<InputArea> {
       return;
     }
 
-    if (tabManagerVM.tabs.isEmpty) {
+    // 检查是否有显示和启用的tab
+    final enabledTabs = tabManagerVM.tabs
+        .where((tab) => tab.isDisplayed && tab.isEnabled)
+        .toList();
+
+    if (enabledTabs.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please add at least one tab'),
+          content: Text('Please enable at least one tab'),
           duration: Duration(seconds: 2),
         ),
       );
@@ -100,215 +105,217 @@ class _InputAreaState extends State<InputArea> {
   Widget build(BuildContext context) {
     return Consumer2<InputDistributorVM, TabManagerVM>(
       builder: (context, distributorVM, tabManagerVM, _) {
-        final isDisabled =
-            distributorVM.isSubmitting || tabManagerVM.tabs.isEmpty;
+        // 计算显示的和启用的tab数量
+        final displayedTabs = tabManagerVM.tabs
+            .where((tab) => tab.isDisplayed)
+            .toList();
+        final enabledTabs = displayedTabs
+            .where((tab) => tab.isEnabled)
+            .toList();
+
+        final isDisabled = distributorVM.isSubmitting || enabledTabs.isEmpty;
         final theme = Theme.of(context);
         final colorScheme = theme.colorScheme;
 
         return Container(
-          decoration: BoxDecoration(
-            color: theme.scaffoldBackgroundColor,
-          ),
+          decoration: BoxDecoration(color: theme.scaffoldBackgroundColor),
           child: Padding(
-            padding: MediaQuery.of(context).viewInsets,
-            child: Padding(
-              padding: const EdgeInsets.only(
-                left: 16,
-                right: 16,
-                top: 4,
-                bottom: 16,
-              ),
-              child: IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // 左侧"新建对话"和"设置"按钮，上下布局，与输入框等高
-                    SizedBox(
-                      width: 44,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Expanded(
-                            child: _CompactIconButton(
-                              icon: Icons.add_comment_rounded,
-                              onPressed: widget.onNewChat,
-                              theme: theme,
-                              width: double.infinity,
-                              height: double.infinity,
-                            ),
+            padding: const EdgeInsets.only(
+              left: 16,
+              right: 16,
+              top: 4,
+              bottom: 16,
+            ),
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // 左侧"新建对话"和"设置"按钮，上下布局，与输入框等高
+                  SizedBox(
+                    width: 44,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: _CompactIconButton(
+                            icon: Icons.add_comment_rounded,
+                            onPressed: widget.onNewChat,
+                            theme: theme,
+                            width: double.infinity,
+                            height: double.infinity,
                           ),
-                          const SizedBox(height: 6),
-                          Expanded(
-                            child: _CompactIconButton(
-                              icon: Icons.settings_rounded,
-                              onPressed: widget.onSettings,
-                              theme: theme,
-                              width: double.infinity,
-                              height: double.infinity,
-                            ),
+                        ),
+                        const SizedBox(height: 6),
+                        Expanded(
+                          child: _CompactIconButton(
+                            icon: Icons.settings_rounded,
+                            onPressed: widget.onSettings,
+                            theme: theme,
+                            width: double.infinity,
+                            height: double.infinity,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+
+                  // 中间输入框
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(width: 12),
-
-                    // 中间输入框
-                    Expanded(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.05),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
+                      child: TextField(
+                        controller: _controller,
+                        focusNode: _focusNode,
+                        enabled: !isDisabled,
+                        maxLines: null,
+                        minLines: 2,
+                        textInputAction: TextInputAction.send,
+                        onSubmitted: (_) {
+                          if (!isDisabled) {
+                            _handleSend(distributorVM, tabManagerVM);
+                          }
+                        },
+                        decoration: InputDecoration(
+                          hintText: enabledTabs.isEmpty
+                              ? 'Enable a tab first...'
+                              : 'Ask ${enabledTabs.length} LLM${enabledTabs.length != 1 ? 's' : ''}...',
+                          hintStyle: TextStyle(
+                            color:
+                                theme.textTheme.bodySmall?.color ??
+                                Colors.grey[400],
+                            fontSize: 14,
+                          ),
+                          filled: true,
+                          fillColor: colorScheme.surface,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: theme.dividerColor,
+                              width: 1,
                             ),
-                          ],
-                        ),
-                        child: TextField(
-                          controller: _controller,
-                          focusNode: _focusNode,
-                          enabled: !isDisabled,
-                          maxLines: null,
-                          minLines: 2,
-                          textInputAction: TextInputAction.send,
-                          onSubmitted: (_) {
-                            if (!isDisabled) {
-                              _handleSend(distributorVM, tabManagerVM);
-                            }
-                          },
-                          decoration: InputDecoration(
-                            hintText: tabManagerVM.tabs.isEmpty
-                                ? 'Add a tab first...'
-                                : 'Ask all ${tabManagerVM.tabs.length} LLMs...',
-                            hintStyle: TextStyle(
-                              color:
-                                  theme.textTheme.bodySmall?.color ??
-                                  Colors.grey[400],
-                              fontSize: 14,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: theme.dividerColor,
+                              width: 1,
                             ),
-                            filled: true,
-                            fillColor: colorScheme.surface,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 14,
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: colorScheme.primary,
+                              width: 2,
                             ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(
-                                color: theme.dividerColor,
-                                width: 1,
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(
-                                color: theme.dividerColor,
-                                width: 1,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(
-                                color: colorScheme.primary,
-                                width: 2,
-                              ),
-                            ),
-                            disabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(
-                                color: theme.dividerColor,
-                                width: 1,
-                              ),
+                          ),
+                          disabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: theme.dividerColor,
+                              width: 1,
                             ),
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                  ),
+                  const SizedBox(width: 12),
 
-                    // 右侧发送按钮，居底对齐以保持原有 48x48 比例
-                    Align(
-                      alignment: Alignment.bottomCenter,
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: Container(
-                            height: 48,
-                            width: 48,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              gradient: isDisabled
-                                  ? LinearGradient(
-                                      colors: [
-                                        colorScheme.onSurface.withValues(
-                                          alpha: 0.2,
-                                        ),
-                                        colorScheme.onSurface.withValues(
-                                          alpha: 0.3,
-                                        ),
-                                      ],
-                                    )
-                                  : LinearGradient(
-                                      colors: [
-                                        colorScheme.primary,
-                                        colorScheme.primary.withValues(
-                                          alpha: 0.8,
-                                        ),
-                                      ],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color:
-                                      (isDisabled
-                                              ? colorScheme.onSurface
-                                              : colorScheme.primary)
-                                          .withValues(alpha: 0.3),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                onTap: isDisabled
-                                    ? null
-                                    : () => _handleSend(
-                                        distributorVM,
-                                        tabManagerVM,
+                  // 右侧发送按钮，居底对齐以保持原有 48x48 比例
+                  Align(
+                    alignment: Alignment.bottomCenter,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: Container(
+                          height: 48,
+                          width: 48,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            gradient: isDisabled
+                                ? LinearGradient(
+                                    colors: [
+                                      colorScheme.onSurface.withValues(
+                                        alpha: 0.2,
                                       ),
-                                borderRadius: BorderRadius.circular(12),
-                                child: Center(
-                                  child: distributorVM.isSubmitting
-                                      ? SizedBox(
-                                          width: 24,
-                                          height: 24,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2.5,
-                                            valueColor:
-                                                AlwaysStoppedAnimation<Color>(
-                                                  colorScheme.onPrimary,
-                                                ),
-                                          ),
-                                        )
-                                      : Icon(
-                                          Icons.send_rounded,
-                                          color: colorScheme.onPrimary,
-                                          size: 22,
+                                      colorScheme.onSurface.withValues(
+                                        alpha: 0.3,
+                                      ),
+                                    ],
+                                  )
+                                : LinearGradient(
+                                    colors: [
+                                      colorScheme.primary,
+                                      colorScheme.primary.withValues(
+                                        alpha: 0.8,
+                                      ),
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                            boxShadow: [
+                              BoxShadow(
+                                color:
+                                    (isDisabled
+                                            ? colorScheme.onSurface
+                                            : colorScheme.primary)
+                                        .withValues(alpha: 0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: isDisabled
+                                  ? null
+                                  : () => _handleSend(
+                                      distributorVM,
+                                      tabManagerVM,
+                                    ),
+                              borderRadius: BorderRadius.circular(12),
+                              child: Center(
+                                child: distributorVM.isSubmitting
+                                    ? SizedBox(
+                                        width: 24,
+                                        height: 24,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2.5,
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                colorScheme.onPrimary,
+                                              ),
                                         ),
-                                ),
+                                      )
+                                    : Icon(
+                                        Icons.send_rounded,
+                                        color: colorScheme.onPrimary,
+                                        size: 22,
+                                      ),
                               ),
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),

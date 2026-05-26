@@ -5,9 +5,18 @@ class InputFocusManager extends ChangeNotifier {
   FocusNode? _inputFocusNode;
 
   FocusNode? get inputFocusNode => _inputFocusNode;
+  bool get hasFocus => _inputFocusNode?.hasFocus ?? false;
 
   void setInputFocusNode(FocusNode focusNode) {
+    if (_inputFocusNode != null) {
+      _inputFocusNode!.removeListener(_onFocusChanged);
+    }
     _inputFocusNode = focusNode;
+    _inputFocusNode!.addListener(_onFocusChanged);
+  }
+
+  void _onFocusChanged() {
+    notifyListeners();
   }
 
   void restoreFocus() {
@@ -16,5 +25,11 @@ class InputFocusManager extends ChangeNotifier {
 
   void removeFocus() {
     _inputFocusNode?.unfocus();
+  }
+
+  @override
+  void dispose() {
+    _inputFocusNode?.removeListener(_onFocusChanged);
+    super.dispose();
   }
 }

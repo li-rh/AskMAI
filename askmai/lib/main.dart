@@ -48,6 +48,9 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider<InputFocusManager>(
           create: (_) => InputFocusManager(),
         ),
+        ChangeNotifierProvider<KeyboardVisibilityManager>(
+          create: (_) => KeyboardVisibilityManager(),
+        ),
 
         // ViewModels (使用Services)
         ChangeNotifierProvider<TabManagerVM>(

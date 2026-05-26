@@ -41,68 +41,152 @@ class _ChatScreenState extends State<ChatScreen> {
   void _showAddTabDialog() {
     final urlController = TextEditingController();
     final nameController = TextEditingController();
+    final inputXPathController = TextEditingController();
+    final submitXPathController = TextEditingController();
+    bool isEnabled = true;
+    bool isDisplayed = true;
 
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: const Text('Add New Tab'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: urlController,
-                decoration: const InputDecoration(
-                  labelText: 'URL',
-                  hintText: 'https://chat.openai.com',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.url,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Display Name',
-                  hintText: 'ChatGPT',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final url = urlController.text.trim();
-                final name = nameController.text.trim();
-
-                if (url.isEmpty || name.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please fill in all fields')),
-                  );
-                  return;
-                }
-
-                // 验证URL格式
-                if (!url.startsWith('http://') && !url.startsWith('https://')) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('URL must start with http:// or https://'),
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Add New Tab'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: urlController,
+                      decoration: const InputDecoration(
+                        labelText: 'URL',
+                        hintText: 'https://chat.openai.com',
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.url,
                     ),
-                  );
-                  return;
-                }
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Display Name',
+                        hintText: 'ChatGPT',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: inputXPathController,
+                      decoration: const InputDecoration(
+                        labelText: 'Input XPath (Optional)',
+                        hintText: '//textarea[@placeholder="..."]',
+                        border: OutlineInputBorder(),
+                      ),
+                      minLines: 2,
+                      maxLines: 3,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: submitXPathController,
+                      decoration: const InputDecoration(
+                        labelText: 'Submit Button XPath (Optional)',
+                        hintText: '//button[@id="send"]',
+                        border: OutlineInputBorder(),
+                      ),
+                      minLines: 2,
+                      maxLines: 3,
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Checkbox(
+                                value: isEnabled,
+                                onChanged: (value) {
+                                  setState(() {
+                                    isEnabled = value ?? true;
+                                  });
+                                },
+                              ),
+                              const Text('Enabled'),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Checkbox(
+                                value: isDisplayed,
+                                onChanged: (value) {
+                                  setState(() {
+                                    isDisplayed = value ?? true;
+                                  });
+                                },
+                              ),
+                              const Text('Display'),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    final url = urlController.text.trim();
+                    final name = nameController.text.trim();
 
-                context.read<TabManagerVM>().addTab(url, name);
-                Navigator.pop(context);
-              },
-              child: const Text('Add'),
-            ),
-          ],
+                    if (url.isEmpty || name.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please fill in URL and Display Name'),
+                        ),
+                      );
+                      return;
+                    }
+
+                    // 验证URL格式
+                    if (!url.startsWith('http://') &&
+                        !url.startsWith('https://')) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'URL must start with http:// or https://',
+                          ),
+                        ),
+                      );
+                      return;
+                    }
+
+                    context.read<TabManagerVM>().addTab(
+                      url,
+                      name,
+                      customInputXPath: inputXPathController.text.trim().isEmpty
+                          ? null
+                          : inputXPathController.text.trim(),
+                      customSubmitXPath:
+                          submitXPathController.text.trim().isEmpty
+                          ? null
+                          : submitXPathController.text.trim(),
+                      isEnabled: isEnabled,
+                      isDisplayed: isDisplayed,
+                    );
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Add'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -207,11 +291,16 @@ class _ChatScreenState extends State<ChatScreen> {
           body: SafeArea(
             child: Consumer3<TabManagerVM, WebViewService, InputDistributorVM>(
               builder: (context, tabManagerVM, webViewService, distributorVM, _) {
+                // 过滤只显示isDisplayed=true的tab
+                final displayedTabs = tabManagerVM.tabs
+                    .where((tab) => tab.isDisplayed)
+                    .toList();
+
                 return Column(
                   children: [
                     // WebView容器
                     Expanded(
-                      child: tabManagerVM.tabs.isEmpty
+                      child: displayedTabs.isEmpty
                           ? Center(
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
@@ -247,11 +336,11 @@ class _ChatScreenState extends State<ChatScreen> {
                             )
                           : IndexedStack(
                               index: tabManagerVM.activeTab != null
-                                  ? tabManagerVM.tabs
+                                  ? displayedTabs
                                         .indexOf(tabManagerVM.activeTab!)
-                                        .clamp(0, tabManagerVM.tabs.length - 1)
+                                        .clamp(0, displayedTabs.length - 1)
                                   : 0,
-                              children: tabManagerVM.tabs.map((tab) {
+                              children: displayedTabs.map((tab) {
                                 return WebViewContainer(
                                   key: ValueKey(tab.id),
                                   tab: tab,
@@ -262,19 +351,39 @@ class _ChatScreenState extends State<ChatScreen> {
                             ),
                     ),
 
-                    // 标签栏
-                    LLMTabBar(
-                      tabs: tabManagerVM.tabs,
-                      tabManagerVM: tabManagerVM,
-                      submissionStatus: distributorVM.submissionStatus,
-                      onAddTab: _showAddTabDialog,
-                      onRefreshTab: _onRefreshTab,
-                    ),
+                    // 底部区域: 用户向网页输入时隐藏 (输入框无焦点 + 软键盘弹出)
+                    Consumer2<InputFocusManager, KeyboardVisibilityManager>(
+                      builder: (context, focusManager, keyboardManager, _) {
+                        final isFlutterInputFocused = focusManager.hasFocus;
+                        final isKeyboardVisible = keyboardManager.isVisible;
+                        final shouldHide = isKeyboardVisible && !isFlutterInputFocused;
 
-                    // 输入框
-                    InputArea(
-                      onNewChat: _handleNewChat,
-                      onSettings: _handleSettings,
+                        return Visibility(
+                          visible: !shouldHide,
+                          maintainState: true,
+                          maintainAnimation: false,
+                          maintainSize: false,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // 标签栏
+                              LLMTabBar(
+                                tabs: displayedTabs,
+                                tabManagerVM: tabManagerVM,
+                                submissionStatus:
+                                    distributorVM.submissionStatus,
+                                onAddTab: _showAddTabDialog,
+                                onRefreshTab: _onRefreshTab,
+                              ),
+                              // 输入框
+                              InputArea(
+                                onNewChat: _handleNewChat,
+                                onSettings: _handleSettings,
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
                   ],
                 );

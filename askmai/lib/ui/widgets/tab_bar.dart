@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../models/exports.dart';
 import '../../viewmodels/exports.dart';
 
@@ -126,7 +127,7 @@ class _ModernTabButtonState extends State<_ModernTabButton> {
     final tabSize = renderBox.size;
     final tabOffset = renderBox.localToGlobal(Offset.zero);
 
-    const menuWidth = 160.0;
+    const menuWidth = 180.0;
     const arrowHeight = 6.0;
     const borderRadius = 12.0;
     const arrowWidth = 10.0;
@@ -195,34 +196,52 @@ class _ModernTabButtonState extends State<_ModernTabButton> {
                   width: menuWidth,
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(borderRadius),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // Refresh option
-                        _MenuOption(
-                          icon: Icons.refresh,
-                          label: 'Refresh Page',
-                          iconColor: colorScheme.primary,
-                          backgroundColor: colorScheme.primary.withValues(alpha: 0.1),
-                          onTap: () {
-                            _closeMenu();
-                            widget.onRefresh();
-                          },
-                        ),
-                        // Close option
-                        _MenuOption(
-                          icon: Icons.close,
-                          label: 'Close Tab',
-                          iconColor: Colors.redAccent,
-                          backgroundColor: Colors.redAccent.withValues(alpha: 0.1),
-                          onTap: () {
-                            _closeMenu();
-                            widget.onClose();
-                          },
-                          isLast: true,
-                        ),
-                      ],
+                    child: Consumer<TabManagerVM>(
+                      builder: (context, tabManagerVM, _) {
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // Refresh option - 第一
+                            _MenuOption(
+                              icon: Icons.refresh,
+                              label: 'Refresh Page',
+                              iconColor: colorScheme.primary,
+                              backgroundColor: colorScheme.primary.withValues(alpha: 0.1),
+                              onTap: () {
+                                _closeMenu();
+                                widget.onRefresh();
+                              },
+                            ),
+                            // Enable/Disable option - 第二
+                            _MenuOption(
+                              icon: widget.tab.isEnabled ? Icons.check_circle : Icons.radio_button_unchecked,
+                              label: widget.tab.isEnabled ? 'Disable Tab' : 'Enable Tab',
+                              iconColor: widget.tab.isEnabled ? Colors.orange : Colors.grey,
+                              backgroundColor: (widget.tab.isEnabled ? Colors.orange : Colors.grey)
+                                  .withValues(alpha: 0.1),
+                              onTap: () {
+                                _closeMenu();
+                                final updatedTab = widget.tab.copyWith(isEnabled: !widget.tab.isEnabled);
+                                tabManagerVM.updateTab(updatedTab);
+                              },
+                            ),
+                            // Hide option - 第三
+                            _MenuOption(
+                              icon: Icons.visibility_off,
+                              label: 'Hide Tab',
+                              iconColor: Colors.redAccent,
+                              backgroundColor: Colors.redAccent.withValues(alpha: 0.1),
+                              onTap: () {
+                                _closeMenu();
+                                final updatedTab = widget.tab.copyWith(isDisplayed: false);
+                                tabManagerVM.updateTab(updatedTab);
+                              },
+                              isLast: true,
+                            ),
+                          ],
+                        );
+                      },
                     ),
                   ),
                 ),
@@ -278,8 +297,10 @@ class _ModernTabButtonState extends State<_ModernTabButton> {
             border: Border.all(
               color: widget.isActive
                   ? colorScheme.primary.withValues(alpha: 0.3)
-                  : theme.dividerColor.withValues(alpha: 0.4), // Subtle border
-              width: 1,
+                  : widget.tab.isEnabled
+                      ? theme.dividerColor.withValues(alpha: 0.4)
+                      : Colors.grey.withValues(alpha: 0.4), // Gray border when disabled
+              width: 1.5,
             ),
           ),
           child: Padding(
@@ -296,9 +317,11 @@ class _ModernTabButtonState extends State<_ModernTabButton> {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: widget.isActive ? FontWeight.w600 : FontWeight.w500,
-                      color: widget.isActive
-                          ? colorScheme.primary
-                          : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                      color: widget.tab.isEnabled
+                          ? (widget.isActive
+                              ? colorScheme.primary
+                              : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7))
+                          : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.4), // Faded when disabled
                     ),
                   ),
                 ),
@@ -309,10 +332,15 @@ class _ModernTabButtonState extends State<_ModernTabButton> {
                   height: 8,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: _getStatusColor(),
+                    color: !widget.tab.isEnabled
+                        ? Colors.grey[400]!
+                        : _getStatusColor(),
                     boxShadow: [
                       BoxShadow(
-                        color: _getStatusColor().withValues(alpha: 0.4),
+                        color: (!widget.tab.isEnabled
+                                ? Colors.grey[400]!
+                                : _getStatusColor())
+                            .withValues(alpha: 0.4),
                         blurRadius: 3,
                         spreadRadius: 0,
                       ),

@@ -22,12 +22,23 @@ class TabManagerVM extends ChangeNotifier {
   int get tabCount => _tabs.length;
 
   /// 添加新标签页
-  void addTab(String url, String displayName) {
+  void addTab(
+    String url,
+    String displayName, {
+    String? customInputXPath,
+    String? customSubmitXPath,
+    bool isEnabled = true,
+    bool isDisplayed = true,
+  }) {
     final newTab = LLMTab(
       id: const Uuid().v4(),
       url: url,
       displayName: displayName,
       createdAt: DateTime.now(),
+      isEnabled: isEnabled,
+      isDisplayed: isDisplayed,
+      customInputXPath: customInputXPath,
+      customSubmitXPath: customSubmitXPath,
     );
 
     _tabs.add(newTab);
@@ -73,6 +84,13 @@ class TabManagerVM extends ChangeNotifier {
     final index = _tabs.indexWhere((tab) => tab.id == updatedTab.id);
     if (index != -1) {
       _tabs[index] = updatedTab;
+      
+      // 如果正在隐藏活跃的标签页，自动切换到第一个可见的标签页
+      if (_activeTabId == updatedTab.id && !updatedTab.isDisplayed) {
+        final firstVisibleTab = _tabs.firstWhereOrNull((tab) => tab.isDisplayed);
+        _activeTabId = firstVisibleTab?.id;
+      }
+      
       notifyListeners();
       _persistTabs();
     }
