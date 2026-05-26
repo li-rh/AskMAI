@@ -1,4 +1,3 @@
-import 'dart:math';
 
 /// String扩展方法
 extension StringExtension on String {

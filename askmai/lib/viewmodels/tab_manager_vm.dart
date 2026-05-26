@@ -15,9 +15,8 @@ class TabManagerVM extends ChangeNotifier {
 
   // Getters
   List<LLMTab> get tabs => _tabs;
-  LLMTab? get activeTab => _tabs.firstWhereOrNull(
-        (tab) => tab.id == _activeTabId,
-      );
+  LLMTab? get activeTab =>
+      _tabs.firstWhereOrNull((tab) => tab.id == _activeTabId);
   String? get activeTabId => _activeTabId;
   bool get isLoading => _isLoading;
   int get tabCount => _tabs.length;
@@ -34,9 +33,7 @@ class TabManagerVM extends ChangeNotifier {
     _tabs.add(newTab);
 
     // 如果是第一个标签页，设置为活跃
-    if (_activeTabId == null) {
-      _activeTabId = newTab.id;
-    }
+    _activeTabId ??= newTab.id;
 
     notifyListeners();
     _persistTabs();
@@ -68,6 +65,16 @@ class TabManagerVM extends ChangeNotifier {
     final index = _tabs.indexWhere((tab) => tab.id == tabId);
     if (index != -1) {
       _tabs[index].webViewController = controller;
+    }
+  }
+
+  /// 更新标签页
+  void updateTab(LLMTab updatedTab) {
+    final index = _tabs.indexWhere((tab) => tab.id == updatedTab.id);
+    if (index != -1) {
+      _tabs[index] = updatedTab;
+      notifyListeners();
+      _persistTabs();
     }
   }
 
@@ -157,6 +164,11 @@ class TabManagerVM extends ChangeNotifier {
     if (_activeTabId != null) {
       await _prefs.saveActiveTabId(_activeTabId!);
     }
+  }
+
+  /// 公共方法：持久化tabs（供外部调用）
+  Future<void> persistTabs() async {
+    await _persistTabs();
   }
 
   @override

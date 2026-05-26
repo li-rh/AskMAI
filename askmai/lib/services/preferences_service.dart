@@ -99,6 +99,49 @@ class PreferencesService {
     return _prefs.getKeys();
   }
 
+  // ==================== 主题和设置管理 ====================
+
+  static const String _themeModeKey = 'theme_mode';
+  static const String _showAppBarKey = 'show_app_bar';
+
+  /// 保存主题模式
+  Future<void> setThemeMode(String mode) async {
+    try {
+      await _prefs.setString(_themeModeKey, mode);
+    } catch (e) {
+      print('Error saving theme mode: $e');
+    }
+  }
+
+  /// 读取主题模式
+  String? getThemeMode() {
+    try {
+      return _prefs.getString(_themeModeKey);
+    } catch (e) {
+      print('Error reading theme mode: $e');
+      return null;
+    }
+  }
+
+  /// 保存 AppBar 可见性
+  Future<void> setShowAppBar(bool show) async {
+    try {
+      await _prefs.setBool(_showAppBarKey, show);
+    } catch (e) {
+      print('Error saving show app bar: $e');
+    }
+  }
+
+  /// 读取 AppBar 可见性
+  bool? getShowAppBar() {
+    try {
+      return _prefs.getBool(_showAppBarKey);
+    } catch (e) {
+      print('Error reading show app bar: $e');
+      return null;
+    }
+  }
+
   @override
   String toString() => 'PreferencesService()';
 }

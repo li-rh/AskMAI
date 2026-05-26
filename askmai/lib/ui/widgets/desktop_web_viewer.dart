@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -24,7 +23,7 @@ class MobileWebViewOperator implements WebViewOperator {
   @override
   Future<String?> executeJavaScript(String javaScript) async {
     final result = await _controller.runJavaScriptReturningResult(javaScript);
-    return result?.toString();
+    return result.toString();
   }
 
   @override

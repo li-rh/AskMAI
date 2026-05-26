@@ -8,7 +8,7 @@ class InputDistributorVM extends ChangeNotifier {
   final AutomationVM _automationVM;
   final TabManagerVM _tabManagerVM;
 
-  Map<String, SubmissionResult> _submissionStatus = {};
+  final Map<String, SubmissionResult> _submissionStatus = {};
   bool _isSubmitting = false;
 
   InputDistributorVM(this._automationVM, this._tabManagerVM);

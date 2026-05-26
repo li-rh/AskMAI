@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import '../../models/exports.dart';
 import '../../services/exports.dart';
 import '../../viewmodels/exports.dart';
 import '../widgets/exports.dart';
@@ -14,6 +14,14 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
+  // 默认的 LLM 标签页配置
+  static const List<Map<String, String>> _defaultTabs = [
+    {'url': 'https://www.doubao.com/chat/', 'name': '豆包'},
+    {'url': 'https://chat.deepseek.com/', 'name': 'DeepSeek'},
+    {'url': 'https://www.qianwen.com/', 'name': '千问'},
+    {'url': 'https://yuanbao.tencent.com/', 'name': '元宝'},
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -23,10 +31,9 @@ class _ChatScreenState extends State<ChatScreen> {
       final tabVM = context.read<TabManagerVM>();
       await tabVM.restoreTabs();
       if (tabVM.tabs.isEmpty) {
-        tabVM.addTab('https://www.doubao.com/chat/', '豆包');
-        tabVM.addTab('https://chat.deepseek.com/', 'DeepSeek');
-        tabVM.addTab('https://www.qianwen.com/', '千问');
-        tabVM.addTab('https://yuanbao.tencent.com/', '元宝');
+        for (final config in _defaultTabs) {
+          tabVM.addTab(config['url']!, config['name']!);
+        }
       }
     });
   }
@@ -45,20 +52,20 @@ class _ChatScreenState extends State<ChatScreen> {
             children: [
               TextField(
                 controller: urlController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'URL',
                   hintText: 'https://chat.openai.com',
-                  border: const OutlineInputBorder(),
+                  border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.url,
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: nameController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Display Name',
                   hintText: 'ChatGPT',
-                  border: const OutlineInputBorder(),
+                  border: OutlineInputBorder(),
                 ),
               ),
             ],
@@ -75,16 +82,13 @@ class _ChatScreenState extends State<ChatScreen> {
 
                 if (url.isEmpty || name.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Please fill in all fields'),
-                    ),
+                    const SnackBar(content: Text('Please fill in all fields')),
                   );
                   return;
                 }
 
                 // 验证URL格式
-                if (!url.startsWith('http://') &&
-                    !url.startsWith('https://')) {
+                if (!url.startsWith('http://') && !url.startsWith('https://')) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('URL must start with http:// or https://'),
@@ -108,142 +112,177 @@ class _ChatScreenState extends State<ChatScreen> {
     context.read<WebViewService>().reloadWebView(tabId);
   }
 
+  /// 新建对话 - 重置所有tabs的URL为默认值，并重新加载
+  Future<void> _handleNewChat() async {
+    // 确认对话框
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('新建对话'),
+          content: const Text('是否要重置所有标签页并开始新对话？'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('取消'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('确定'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) return;
+
+    final tabVM = context.read<TabManagerVM>();
+    final webViewService = context.read<WebViewService>();
+
+    // 重置所有tabs的URL为默认值
+    for (int i = 0; i < tabVM.tabs.length && i < _defaultTabs.length; i++) {
+      final tab = tabVM.tabs[i];
+      final defaultUrl = _defaultTabs[i]['url']!;
+
+      // 更新tab的URL
+      final updatedTab = tab.copyWith(url: defaultUrl);
+      tabVM.updateTab(updatedTab);
+
+      // 重新加载页面
+      webViewService.reloadWebView(tab.id);
+    }
+
+    // 保存更新
+    await tabVM.persistTabs();
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('已开始新对话'), duration: Duration(seconds: 2)),
+      );
+    }
+  }
+
+  /// 打开设置界面
+  void _handleSettings() {
+    showSettingsBottomSheet(context);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 确保系统状态栏始终显示
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.edgeToEdge,
+      overlays: [SystemUiOverlay.top, SystemUiOverlay.bottom],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('AskMAI - Multi-LLM Chat'),
-        elevation: 1,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Center(
-              child: Consumer<TabManagerVM>(
-                builder: (context, tabVM, _) {
-                  return Text(
-                    '${tabVM.tabCount} tab${tabVM.tabCount != 1 ? "s" : ""}',
-                    style: const TextStyle(fontSize: 14),
-                  );
-                },
-              ),
-            ),
-          ),
-        ],
-      ),
-      body: Consumer3<TabManagerVM, WebViewService, InputDistributorVM>(
-        builder: (context, tabManagerVM, webViewService, distributorVM, _) {
-          return Column(
-            children: [
-              // 标签栏
-              LLMTabBar(
-                tabs: tabManagerVM.tabs,
-                tabManagerVM: tabManagerVM,
-                onAddTab: _showAddTabDialog,
-                onRefreshTab: _onRefreshTab,
-              ),
-
-              // WebView容器
-              Expanded(
-                child: tabManagerVM.tabs.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.language,
-                              size: 64,
-                              color: Colors.grey[400],
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No tabs added yet',
-                              style:
-                                  Theme.of(context).textTheme.titleLarge,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Click the + button to add your first LLM',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.copyWith(color: Colors.grey),
-                            ),
-                            const SizedBox(height: 24),
-                            ElevatedButton.icon(
-                              onPressed: _showAddTabDialog,
-                              icon: const Icon(Icons.add),
-                              label: const Text('Add Tab'),
-                            ),
-                          ],
+    return Consumer<AppSettingsVM>(
+      builder: (context, settingsVM, _) {
+        return Scaffold(
+          appBar: settingsVM.showAppBar
+              ? AppBar(
+                  title: const Text('AskMAI - Multi-LLM Chat'),
+                  elevation: 0,
+                  actions: [
+                    Padding(
+                      padding: const EdgeInsets.only(right: 16),
+                      child: Center(
+                        child: Consumer<TabManagerVM>(
+                          builder: (context, tabVM, _) {
+                            return Text(
+                              '${tabVM.tabCount} tab${tabVM.tabCount != 1 ? "s" : ""}',
+                              style: const TextStyle(fontSize: 14),
+                            );
+                          },
                         ),
-                      )
-                    : IndexedStack(
-                        index: tabManagerVM.activeTab != null
-                            ? tabManagerVM.tabs.indexOf(tabManagerVM.activeTab!).clamp(0, tabManagerVM.tabs.length - 1)
-                            : 0,
-                        children: tabManagerVM.tabs.map((tab) {
-                          return WebViewContainer(
-                            key: ValueKey(tab.id),
-                            tab: tab,
-                            webViewService: webViewService,
-                            tabManagerVM: tabManagerVM,
-                          );
-                        }).toList(),
                       ),
-              ),
-
-              // 显示提交状态反馈
-              if (distributorVM.hasRecentSubmissions())
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  color: Colors.grey[100],
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        for (var entry in distributorVM.submissionStatus.entries)
-                          Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 4),
-                            child: Chip(
-                              label: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                    ),
+                  ],
+                )
+              : null,
+          body: SafeArea(
+            child: Consumer3<TabManagerVM, WebViewService, InputDistributorVM>(
+              builder: (context, tabManagerVM, webViewService, distributorVM, _) {
+                return Column(
+                  children: [
+                    // WebView容器
+                    Expanded(
+                      child: tabManagerVM.tabs.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Text(
-                                    tabManagerVM.getTab(entry.key)?.displayName ?? entry.key,
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                                  Icon(
+                                    Icons.language,
+                                    size: 64,
+                                    color: Colors.grey[400],
                                   ),
-                                  if (!entry.value.success && entry.value.error != null)
-                                    Text(
-                                      entry.value.error!,
-                                      style: const TextStyle(fontSize: 10),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'No tabs added yet',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleLarge,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Click the + button to add your first LLM',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(color: Colors.grey),
+                                  ),
+                                  const SizedBox(height: 24),
+                                  ElevatedButton.icon(
+                                    onPressed: _showAddTabDialog,
+                                    icon: const Icon(Icons.add),
+                                    label: const Text('Add Tab'),
+                                  ),
                                 ],
                               ),
-                              backgroundColor: entry.value.success
-                                  ? Colors.green[200]
-                                  : Colors.red[200],
-                              avatar: entry.value.success
-                                  ? const Icon(Icons.check,
-                                      size: 16, color: Colors.green)
-                                  : const Icon(Icons.close,
-                                      size: 16, color: Colors.red),
+                            )
+                          : IndexedStack(
+                              index: tabManagerVM.activeTab != null
+                                  ? tabManagerVM.tabs
+                                        .indexOf(tabManagerVM.activeTab!)
+                                        .clamp(0, tabManagerVM.tabs.length - 1)
+                                  : 0,
+                              children: tabManagerVM.tabs.map((tab) {
+                                return WebViewContainer(
+                                  key: ValueKey(tab.id),
+                                  tab: tab,
+                                  webViewService: webViewService,
+                                  tabManagerVM: tabManagerVM,
+                                );
+                              }).toList(),
                             ),
-                          ),
-                      ],
                     ),
-                  ),
-                ),
 
-              // 输入框
-              const InputArea(),
-            ],
-          );
-        },
-      ),
+                    // 标签栏
+                    LLMTabBar(
+                      tabs: tabManagerVM.tabs,
+                      tabManagerVM: tabManagerVM,
+                      submissionStatus: distributorVM.submissionStatus,
+                      onAddTab: _showAddTabDialog,
+                      onRefreshTab: _onRefreshTab,
+                    ),
+
+                    // 输入框
+                    InputArea(
+                      onNewChat: _handleNewChat,
+                      onSettings: _handleSettings,
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 }

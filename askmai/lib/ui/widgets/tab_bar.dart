@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import '../../models/exports.dart';
 import '../../viewmodels/exports.dart';
 
-/// 标签栏组件 - 显示和管理多个标签页
+/// 标签栏组件 - 显示和管理多个标签页，集成状态指示
 class LLMTabBar extends StatelessWidget {
   final List<LLMTab> tabs;
   final TabManagerVM tabManagerVM;
+  final Map<String, SubmissionResult> submissionStatus;
   final VoidCallback onAddTab;
   final void Function(String tabId) onRefreshTab;
 
@@ -13,32 +14,39 @@ class LLMTabBar extends StatelessWidget {
     Key? key,
     required this.tabs,
     required this.tabManagerVM,
+    required this.submissionStatus,
     required this.onAddTab,
     required this.onRefreshTab,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Container(
-      height: 56,
+      height: 50,
       decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(
-            color: Colors.grey[300]!,
-            width: 1,
+          top: BorderSide(
+            color: theme.dividerColor.withValues(alpha: 0.5),
+            width: 0.5,
           ),
         ),
-        color: Colors.grey[50],
+        color: theme.scaffoldBackgroundColor,
       ),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
+            const SizedBox(width: 8),
             // 标签页列表
             ...tabs.map((tab) {
-              return _TabButton(
+              final status = submissionStatus[tab.id];
+              return _ModernTabButton(
                 tab: tab,
                 isActive: tab.id == tabManagerVM.activeTabId,
+                status: status,
                 onTap: () => tabManagerVM.switchTab(tab.id),
                 onClose: () => tabManagerVM.removeTab(tab.id),
                 onRefresh: () => onRefreshTab(tab.id),
@@ -47,26 +55,32 @@ class LLMTabBar extends StatelessWidget {
 
             // 添加标签页按钮
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Material(
                 color: Colors.transparent,
                 child: Tooltip(
                   message: 'Add new tab',
                   child: InkWell(
                     onTap: onAddTab,
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(8),
                     child: Container(
-                      padding: const EdgeInsets.all(8),
-                      child: const Icon(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        color: colorScheme.primary.withValues(alpha: 0.1),
+                      ),
+                      child: Icon(
                         Icons.add,
-                        size: 20,
-                        color: Colors.blue,
+                        size: 18,
+                        color: colorScheme.primary,
                       ),
                     ),
                   ),
                 ),
               ),
             ),
+            const SizedBox(width: 8),
           ],
         ),
       ),
@@ -74,115 +88,370 @@ class LLMTabBar extends StatelessWidget {
   }
 }
 
-/// 单个标签页按钮
-class _TabButton extends StatelessWidget {
+/// 现代化单个标签页按钮 - 支持状态指示点与无死角自适应气泡菜单
+class _ModernTabButton extends StatefulWidget {
   final LLMTab tab;
   final bool isActive;
+  final SubmissionResult? status;
   final VoidCallback onTap;
   final VoidCallback onClose;
   final VoidCallback onRefresh;
 
-  const _TabButton({
+  const _ModernTabButton({
     required this.tab,
     required this.isActive,
+    required this.status,
     required this.onTap,
     required this.onClose,
     required this.onRefresh,
   });
 
-  void _showContextMenu(BuildContext context, Offset position) {
-    showMenu<String>(
-      context: context,
-      position: RelativeRect.fromLTRB(
-        position.dx,
-        position.dy,
-        position.dx,
-        position.dy,
+  @override
+  State<_ModernTabButton> createState() => _ModernTabButtonState();
+}
+
+class _ModernTabButtonState extends State<_ModernTabButton> {
+  OverlayEntry? _overlayEntry;
+  final LayerLink _layerLink = LayerLink();
+
+  void _showContextMenu(BuildContext context) {
+    if (_overlayEntry != null) return; // 避免重复显示菜单
+
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final screenSize = MediaQuery.of(context).size;
+
+    // 获取当前 Tab 按钮的尺寸和在屏幕上的绝对位置
+    final RenderBox renderBox = context.findRenderObject() as RenderBox;
+    final tabSize = renderBox.size;
+    final tabOffset = renderBox.localToGlobal(Offset.zero);
+
+    const menuWidth = 160.0;
+    const arrowHeight = 6.0;
+    const borderRadius = 12.0;
+    const arrowWidth = 10.0;
+
+    // 计算相对于 Tab 左上角的 X 偏移量，以使菜单居中
+    final double defaultOffsetX = tabSize.width / 2 - menuWidth / 2;
+    // 菜单在屏幕上的默认全局 X 坐标
+    final double menuGlobalX = tabOffset.dx + defaultOffsetX;
+    // 限制菜单在屏幕范围内（左右留出 16.0 间距）
+    final double finalGlobalX = menuGlobalX.clamp(16.0, screenSize.width - menuWidth - 16.0);
+    // 菜单实际发生的水平位移（向右为正，向左为负）
+    final double shift = finalGlobalX - menuGlobalX;
+
+    // 最终应用到 CompositedTransformFollower 的偏移量
+    final double finalOffsetX = defaultOffsetX + shift;
+    // 气泡箭头的横坐标（相对于菜单左侧的偏移量），并进行边界限制防止箭头画到卡片圆角外部
+    final double arrowX = (menuWidth / 2 - shift).clamp(
+      borderRadius + arrowWidth / 2,
+      menuWidth - borderRadius - arrowWidth / 2,
+    );
+
+    // 使用单个 OverlayEntry，内置 GestureDetector 遮罩和 CompositedTransformFollower
+    _overlayEntry = OverlayEntry(
+      builder: (context) => Stack(
+        children: [
+          // 全屏无色背景遮罩，点击时关闭菜单
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: _closeMenu,
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                color: Colors.transparent,
+              ),
+            ),
+          ),
+          // 紧密跟随 Tab 按钮的悬浮菜单
+          CompositedTransformFollower(
+            link: _layerLink,
+            showWhenUnlinked: false,
+            // 将菜单的 bottom-left 锚定在 Tab 的 top-left
+            targetAnchor: Alignment.topLeft,
+            followerAnchor: Alignment.bottomLeft,
+            // 传入水平和垂直的偏移量，高度留出 6dp 气泡微小间距
+            offset: Offset(finalOffsetX, -6.0),
+            child: Material(
+              color: Colors.transparent,
+              elevation: 0,
+              child: Container(
+                decoration: ShapeDecoration(
+                  color: colorScheme.surface, // 主题自适应背景色
+                  shape: BubbleShapeBorder(
+                    arrowX: arrowX,
+                    arrowHeight: arrowHeight,
+                    borderRadius: borderRadius,
+                  ),
+                  shadows: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.12),
+                      blurRadius: 10,
+                      spreadRadius: 0,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: SizedBox(
+                  width: menuWidth,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(borderRadius),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Refresh option
+                        _MenuOption(
+                          icon: Icons.refresh,
+                          label: 'Refresh Page',
+                          iconColor: colorScheme.primary,
+                          backgroundColor: colorScheme.primary.withValues(alpha: 0.1),
+                          onTap: () {
+                            _closeMenu();
+                            widget.onRefresh();
+                          },
+                        ),
+                        // Close option
+                        _MenuOption(
+                          icon: Icons.close,
+                          label: 'Close Tab',
+                          iconColor: Colors.redAccent,
+                          backgroundColor: Colors.redAccent.withValues(alpha: 0.1),
+                          onTap: () {
+                            _closeMenu();
+                            widget.onClose();
+                          },
+                          isLast: true,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
-      items: [
-        const PopupMenuItem<String>(
-          value: 'refresh',
-          child: Row(
-            children: [
-              Icon(Icons.refresh, size: 20),
-              SizedBox(width: 8),
-              Text('Refresh Page'),
-            ],
-          ),
-        ),
-        const PopupMenuItem<String>(
-          value: 'close',
-          child: Row(
-            children: [
-              Icon(Icons.close, size: 20),
-              SizedBox(width: 8),
-              Text('Close Tab'),
-            ],
-          ),
-        ),
-      ],
-    ).then((value) {
-      if (value == 'refresh') {
-        onRefresh();
-      } else if (value == 'close') {
-        onClose();
-      }
-    });
+    );
+
+    final overlay = Overlay.of(context);
+    overlay.insert(_overlayEntry!);
+  }
+
+  void _closeMenu() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+
+  @override
+  void dispose() {
+    _overlayEntry?.remove();
+    super.dispose();
+  }
+
+  Color _getStatusColor() {
+    if (widget.status == null) return Colors.grey[300]!;
+    return widget.status!.success ? Colors.green : Colors.red;
   }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      onLongPressStart: (details) {
-        _showContextMenu(context, details.globalPosition);
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(
-              color: isActive ? Colors.blue : Colors.transparent,
-              width: 3,
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return CompositedTransformTarget(
+      link: _layerLink,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        onLongPress: () {
+          _showContextMenu(context);
+        },
+        onSecondaryTap: () {
+          _showContextMenu(context);
+        },
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            color: widget.isActive
+                ? colorScheme.primary.withValues(alpha: 0.1)
+                : colorScheme.surface, // Clean white (surface) for inactive tabs!
+            border: Border.all(
+              color: widget.isActive
+                  ? colorScheme.primary.withValues(alpha: 0.3)
+                  : theme.dividerColor.withValues(alpha: 0.4), // Subtle border
+              width: 1,
             ),
           ),
-          color: isActive ? Colors.white : Colors.grey[50],
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 标签页标题
+                Flexible(
+                  child: Text(
+                    widget.tab.displayName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: widget.isActive ? FontWeight.w600 : FontWeight.w500,
+                      color: widget.isActive
+                          ? colorScheme.primary
+                          : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                // 状态指示点
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _getStatusColor(),
+                    boxShadow: [
+                      BoxShadow(
+                        color: _getStatusColor().withValues(alpha: 0.4),
+                        blurRadius: 3,
+                        spreadRadius: 0,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
+      ),
+    );
+  }
+}
+
+/// 菜单选项小部件
+class _MenuOption extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color iconColor;
+  final Color backgroundColor;
+  final VoidCallback onTap;
+  final bool isLast;
+
+  const _MenuOption({
+    required this.icon,
+    required this.label,
+    required this.iconColor,
+    required this.backgroundColor,
+    required this.onTap,
+    this.isLast = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        splashColor: Colors.blue.withValues(alpha: 0.1),
+        highlightColor: Colors.blue.withValues(alpha: 0.05),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // 标签页标题
-              Flexible(
-                child: Text(
-                  tab.displayName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                    color: isActive ? Colors.black : Colors.grey[600],
-                  ),
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: backgroundColor,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(
+                  icon,
+                  size: 18,
+                  color: iconColor,
                 ),
               ),
-              const SizedBox(width: 8),
-              // 关闭按钮
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: onClose,
-                  borderRadius: BorderRadius.circular(12),
-                  child: Icon(
-                    Icons.close,
-                    size: 16,
-                    color: Colors.grey[600],
-                  ),
+              const SizedBox(width: 12),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: iconColor,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+/// 气泡背景 ShapeBorder - 绘制带向下三角箭头的圆角矩形
+class BubbleShapeBorder extends ShapeBorder {
+  final double arrowX;
+  final double arrowWidth;
+  final double arrowHeight;
+  final double borderRadius;
+
+  const BubbleShapeBorder({
+    required this.arrowX,
+    this.arrowWidth = 10.0,
+    this.arrowHeight = 6.0,
+    this.borderRadius = 12.0,
+  });
+
+  @override
+  EdgeInsetsGeometry get dimensions => EdgeInsets.only(bottom: arrowHeight);
+
+  @override
+  Path getInnerPath(Rect rect, {TextDirection? textDirection}) {
+    return Path();
+  }
+
+  @override
+  Path getOuterPath(Rect rect, {TextDirection? textDirection}) {
+    final path = Path();
+    final double w = rect.width;
+    final double h = rect.height - arrowHeight;
+    final double r = borderRadius;
+    
+    // 气泡下方向下箭头的顶点横坐标，并进行边界夹紧防止超出圆角矩形范围
+    final double ax = arrowX.clamp(r + arrowWidth / 2, w - r - arrowWidth / 2);
+    final double ay = rect.bottom;
+
+    // 顺时针绘制带下箭头的圆角气泡路径
+    path.moveTo(r, 0);
+    path.lineTo(w - r, 0);
+    path.arcToPoint(Offset(w, r), radius: Radius.circular(r));
+    path.lineTo(w, h - r);
+    path.arcToPoint(Offset(w - r, h), radius: Radius.circular(r));
+    
+    // 底边及指向 Tab 的小三角箭头
+    path.lineTo(ax + arrowWidth / 2, h);
+    path.lineTo(ax, ay);
+    path.lineTo(ax - arrowWidth / 2, h);
+    
+    path.lineTo(r, h);
+    path.arcToPoint(Offset(0, h - r), radius: Radius.circular(r));
+    path.lineTo(0, r);
+    path.arcToPoint(Offset(r, 0), radius: Radius.circular(r));
+    path.close();
+    
+    return path;
+  }
+
+  @override
+  void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {}
+
+  @override
+  ShapeBorder scale(double t) {
+    return BubbleShapeBorder(
+      arrowX: arrowX * t,
+      arrowWidth: arrowWidth * t,
+      arrowHeight: arrowHeight * t,
+      borderRadius: borderRadius * t,
     );
   }
 }

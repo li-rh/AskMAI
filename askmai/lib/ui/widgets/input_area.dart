@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../services/exports.dart';
 import '../../viewmodels/exports.dart';
 
 /// 输入框区域 - 用户输入和发送按钮
 class InputArea extends StatefulWidget {
-  const InputArea({Key? key}) : super(key: key);
+  final VoidCallback onNewChat;
+  final VoidCallback onSettings;
+
+  const InputArea({Key? key, required this.onNewChat, required this.onSettings})
+    : super(key: key);
 
   @override
   State<InputArea> createState() => _InputAreaState();
@@ -19,6 +24,13 @@ class _InputAreaState extends State<InputArea> {
     super.initState();
     _controller = TextEditingController();
     _focusNode = FocusNode();
+
+    // 注册焦点节点到全局InputFocusManager
+    Future.microtask(() {
+      if (mounted) {
+        context.read<InputFocusManager>().setInputFocusNode(_focusNode);
+      }
+    });
   }
 
   @override
@@ -28,8 +40,10 @@ class _InputAreaState extends State<InputArea> {
     super.dispose();
   }
 
-  void _handleSend(InputDistributorVM distributorVM,
-      TabManagerVM tabManagerVM) async {
+  void _handleSend(
+    InputDistributorVM distributorVM,
+    TabManagerVM tabManagerVM,
+  ) async {
     final message = _controller.text.trim();
 
     if (message.isEmpty) {
@@ -86,105 +100,302 @@ class _InputAreaState extends State<InputArea> {
   Widget build(BuildContext context) {
     return Consumer2<InputDistributorVM, TabManagerVM>(
       builder: (context, distributorVM, tabManagerVM, _) {
-        final isDisabled = distributorVM.isSubmitting ||
-            tabManagerVM.tabs.isEmpty;
+        final isDisabled =
+            distributorVM.isSubmitting || tabManagerVM.tabs.isEmpty;
+        final theme = Theme.of(context);
+        final colorScheme = theme.colorScheme;
 
         return Container(
           decoration: BoxDecoration(
-            border: Border(
-              top: BorderSide(
-                color: Colors.grey[300]!,
-                width: 1,
-              ),
-            ),
-            color: Colors.white,
+            color: theme.scaffoldBackgroundColor,
           ),
           child: Padding(
             padding: MediaQuery.of(context).viewInsets,
             child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _controller,
-                      focusNode: _focusNode,
-                      enabled: !isDisabled,
-                      maxLines: null,
-                      minLines: 1,
-                      textInputAction: TextInputAction.send,
-                      onSubmitted: (_) {
-                        if (!isDisabled) {
-                          _handleSend(distributorVM, tabManagerVM);
-                        }
-                      },
-                      decoration: InputDecoration(
-                        hintText: tabManagerVM.tabs.isEmpty
-                            ? 'Add a tab first...'
-                            : 'Ask all ${tabManagerVM.tabs.length} LLMs...',
-                        hintStyle: TextStyle(
-                          color: Colors.grey[500],
-                        ),
-                        filled: true,
-                        fillColor: Colors.grey[100],
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide.none,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(
-                            color: Colors.grey[300]!,
-                            width: 1,
+              padding: const EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top: 4,
+                bottom: 16,
+              ),
+              child: IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // 左侧"新建对话"和"设置"按钮，上下布局，与输入框等高
+                    SizedBox(
+                      width: 44,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: _CompactIconButton(
+                              icon: Icons.add_comment_rounded,
+                              onPressed: widget.onNewChat,
+                              theme: theme,
+                              width: double.infinity,
+                              height: double.infinity,
+                            ),
                           ),
+                          const SizedBox(height: 6),
+                          Expanded(
+                            child: _CompactIconButton(
+                              icon: Icons.settings_rounded,
+                              onPressed: widget.onSettings,
+                              theme: theme,
+                              width: double.infinity,
+                              height: double.infinity,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+
+                    // 中间输入框
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(
-                            color: Colors.blue,
-                            width: 2,
+                        child: TextField(
+                          controller: _controller,
+                          focusNode: _focusNode,
+                          enabled: !isDisabled,
+                          maxLines: null,
+                          minLines: 2,
+                          textInputAction: TextInputAction.send,
+                          onSubmitted: (_) {
+                            if (!isDisabled) {
+                              _handleSend(distributorVM, tabManagerVM);
+                            }
+                          },
+                          decoration: InputDecoration(
+                            hintText: tabManagerVM.tabs.isEmpty
+                                ? 'Add a tab first...'
+                                : 'Ask all ${tabManagerVM.tabs.length} LLMs...',
+                            hintStyle: TextStyle(
+                              color:
+                                  theme.textTheme.bodySmall?.color ??
+                                  Colors.grey[400],
+                              fontSize: 14,
+                            ),
+                            filled: true,
+                            fillColor: colorScheme.surface,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: theme.dividerColor,
+                                width: 1,
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: theme.dividerColor,
+                                width: 1,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: colorScheme.primary,
+                                width: 2,
+                              ),
+                            ),
+                            disabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: theme.dividerColor,
+                                width: 1,
+                              ),
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    child: FloatingActionButton(
-                      onPressed: isDisabled
-                          ? null
-                          : () => _handleSend(distributorVM, tabManagerVM),
-                      backgroundColor: isDisabled ? Colors.grey : Colors.blue,
-                      disabledElevation: 0,
-                      elevation: 2,
-                      child: distributorVM.isSubmitting
-                          ? SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
+                    const SizedBox(width: 12),
+
+                    // 右侧发送按钮，居底对齐以保持原有 48x48 比例
+                    Align(
+                      alignment: Alignment.bottomCenter,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: Container(
+                            height: 48,
+                            width: 48,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              gradient: isDisabled
+                                  ? LinearGradient(
+                                      colors: [
+                                        colorScheme.onSurface.withValues(
+                                          alpha: 0.2,
+                                        ),
+                                        colorScheme.onSurface.withValues(
+                                          alpha: 0.3,
+                                        ),
+                                      ],
+                                    )
+                                  : LinearGradient(
+                                      colors: [
+                                        colorScheme.primary,
+                                        colorScheme.primary.withValues(
+                                          alpha: 0.8,
+                                        ),
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color:
+                                      (isDisabled
+                                              ? colorScheme.onSurface
+                                              : colorScheme.primary)
+                                          .withValues(alpha: 0.3),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: isDisabled
+                                    ? null
+                                    : () => _handleSend(
+                                        distributorVM,
+                                        tabManagerVM,
+                                      ),
+                                borderRadius: BorderRadius.circular(12),
+                                child: Center(
+                                  child: distributorVM.isSubmitting
+                                      ? SizedBox(
+                                          width: 24,
+                                          height: 24,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2.5,
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                                  colorScheme.onPrimary,
+                                                ),
+                                          ),
+                                        )
+                                      : Icon(
+                                          Icons.send_rounded,
+                                          color: colorScheme.onPrimary,
+                                          size: 22,
+                                        ),
                                 ),
                               ),
-                            )
-                          : Icon(
-                              Icons.send,
-                              color: isDisabled ? Colors.grey[600] : Colors.white,
                             ),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
         );
       },
+    );
+  }
+}
+
+/// 紧凑的图标按钮，仅显示图标
+class _CompactIconButton extends StatefulWidget {
+  final IconData icon;
+  final VoidCallback onPressed;
+  final ThemeData theme;
+  final double? width;
+  final double? height;
+
+  const _CompactIconButton({
+    required this.icon,
+    required this.onPressed,
+    required this.theme,
+    this.width,
+    this.height,
+  });
+
+  @override
+  State<_CompactIconButton> createState() => _CompactIconButtonState();
+}
+
+class _CompactIconButtonState extends State<_CompactIconButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 150),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.9).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  void _handlePressed() {
+    _animationController.forward().then((_) {
+      _animationController.reverse();
+    });
+    widget.onPressed();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = widget.theme.colorScheme;
+
+    return ScaleTransition(
+      scale: _scaleAnimation,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _handlePressed,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            height: widget.height ?? 36,
+            width: widget.width ?? 36,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              color: colorScheme.primary.withValues(alpha: 0.1),
+              border: Border.all(
+                color: colorScheme.primary.withValues(alpha: 0.3),
+                width: 1,
+              ),
+            ),
+            child: Center(
+              child: Icon(widget.icon, color: colorScheme.primary, size: 20),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
