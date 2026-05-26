@@ -7,12 +7,14 @@ class LLMTabBar extends StatelessWidget {
   final List<LLMTab> tabs;
   final TabManagerVM tabManagerVM;
   final VoidCallback onAddTab;
+  final void Function(String tabId) onRefreshTab;
 
   const LLMTabBar({
     Key? key,
     required this.tabs,
     required this.tabManagerVM,
     required this.onAddTab,
+    required this.onRefreshTab,
   }) : super(key: key);
 
   @override
@@ -39,6 +41,7 @@ class LLMTabBar extends StatelessWidget {
                 isActive: tab.id == tabManagerVM.activeTabId,
                 onTap: () => tabManagerVM.switchTab(tab.id),
                 onClose: () => tabManagerVM.removeTab(tab.id),
+                onRefresh: () => onRefreshTab(tab.id),
               );
             }).toList(),
 
@@ -77,18 +80,63 @@ class _TabButton extends StatelessWidget {
   final bool isActive;
   final VoidCallback onTap;
   final VoidCallback onClose;
+  final VoidCallback onRefresh;
 
   const _TabButton({
     required this.tab,
     required this.isActive,
     required this.onTap,
     required this.onClose,
+    required this.onRefresh,
   });
+
+  void _showContextMenu(BuildContext context, Offset position) {
+    showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        position.dx,
+        position.dy,
+        position.dx,
+        position.dy,
+      ),
+      items: [
+        const PopupMenuItem<String>(
+          value: 'refresh',
+          child: Row(
+            children: [
+              Icon(Icons.refresh, size: 20),
+              SizedBox(width: 8),
+              Text('Refresh Page'),
+            ],
+          ),
+        ),
+        const PopupMenuItem<String>(
+          value: 'close',
+          child: Row(
+            children: [
+              Icon(Icons.close, size: 20),
+              SizedBox(width: 8),
+              Text('Close Tab'),
+            ],
+          ),
+        ),
+      ],
+    ).then((value) {
+      if (value == 'refresh') {
+        onRefresh();
+      } else if (value == 'close') {
+        onClose();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
+      onLongPressStart: (details) {
+        _showContextMenu(context, details.globalPosition);
+      },
       child: Container(
         decoration: BoxDecoration(
           border: Border(

@@ -18,9 +18,16 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
 
-    // 应用启动时恢复标签页
-    Future.microtask(() {
-      context.read<TabManagerVM>().restoreTabs();
+    // 应用启动时恢复标签页，如果没有则添加默认标签页
+    Future.microtask(() async {
+      final tabVM = context.read<TabManagerVM>();
+      await tabVM.restoreTabs();
+      if (tabVM.tabs.isEmpty) {
+        tabVM.addTab('https://www.doubao.com/chat/', '豆包');
+        tabVM.addTab('https://chat.deepseek.com/', 'DeepSeek');
+        tabVM.addTab('https://www.qianwen.com/', '千问');
+        tabVM.addTab('https://yuanbao.tencent.com/', '元宝');
+      }
     });
   }
 
@@ -97,6 +104,10 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  void _onRefreshTab(String tabId) {
+    context.read<WebViewService>().reloadWebView(tabId);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -128,6 +139,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 tabs: tabManagerVM.tabs,
                 tabManagerVM: tabManagerVM,
                 onAddTab: _showAddTabDialog,
+                onRefreshTab: _onRefreshTab,
               ),
 
               // WebView容器
@@ -165,10 +177,18 @@ class _ChatScreenState extends State<ChatScreen> {
                           ],
                         ),
                       )
-                    : WebViewContainer(
-                        tab: tabManagerVM.activeTab,
-                        webViewService: webViewService,
-                        tabManagerVM: tabManagerVM,
+                    : IndexedStack(
+                        index: tabManagerVM.activeTab != null
+                            ? tabManagerVM.tabs.indexOf(tabManagerVM.activeTab!).clamp(0, tabManagerVM.tabs.length - 1)
+                            : 0,
+                        children: tabManagerVM.tabs.map((tab) {
+                          return WebViewContainer(
+                            key: ValueKey(tab.id),
+                            tab: tab,
+                            webViewService: webViewService,
+                            tabManagerVM: tabManagerVM,
+                          );
+                        }).toList(),
                       ),
               ),
 
@@ -186,7 +206,23 @@ class _ChatScreenState extends State<ChatScreen> {
                             padding:
                                 const EdgeInsets.symmetric(horizontal: 4),
                             child: Chip(
-                              label: Text(entry.key),
+                              label: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    tabManagerVM.getTab(entry.key)?.displayName ?? entry.key,
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                                  ),
+                                  if (!entry.value.success && entry.value.error != null)
+                                    Text(
+                                      entry.value.error!,
+                                      style: const TextStyle(fontSize: 10),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                ],
+                              ),
                               backgroundColor: entry.value.success
                                   ? Colors.green[200]
                                   : Colors.red[200],

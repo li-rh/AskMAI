@@ -20,9 +20,27 @@
     },
     "doubao": {
       "urlPattern": "^https://www\\.doubao\\.com",
-      "inputXPath": "//textarea[@placeholder='输入你的问题...']",
-      "submitXPath": "//button[contains(@class, 'submit')]",
-      "displayName": "Doubao"
+      "inputXPath": "//textarea[@data-testid='chat_input_input'] | //textarea[contains(@class, 'semi-input-textarea')]",
+      "submitXPath": "//button[@id='flow-end-msg-send']",
+      "displayName": "豆包"
+    },
+    "deepseek": {
+      "urlPattern": "^https://chat\\.deepseek\\.com",
+      "inputXPath": "//textarea[@placeholder='给 DeepSeek 发送消息 ']",
+      "submitXPath": "div[role=\"button\"][aria-disabled=\"false\"].ds-icon-button [d*=\"M8.3125\"]",
+      "displayName": "DeepSeek"
+    },
+    "qianwen": {
+      "urlPattern": "^https://www\\.qianwen\\.com",
+      "inputXPath": "div[role=\"textbox\"][aria-multiline=\"true\"][data-slate-editor]",
+      "submitXPath": "//button[@aria-label='发送消息']",
+      "displayName": "千问"
+    },
+    "yuanbao": {
+      "urlPattern": "^https://yuanbao\\.tencent\\.com",
+      "inputXPath": "//div[contains(@class, 'ql-editor') and @contenteditable='true']",
+      "submitXPath": "//*[@id='yuanbao-send-btn']",
+      "displayName": "元宝"
     }
   }
 }

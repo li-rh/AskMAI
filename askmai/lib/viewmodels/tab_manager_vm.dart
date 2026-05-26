@@ -105,15 +105,42 @@ class TabManagerVM extends ChangeNotifier {
       _tabs = await _prefs.getTabUrls();
       final activeTabId = await _prefs.getActiveTabId();
 
-      if (_tabs.isNotEmpty) {
+      if (_tabs.isEmpty) {
+        _initDefaultTabs();
+      } else {
         _activeTabId = activeTabId ?? _tabs.first.id;
       }
     } catch (e) {
       print('Error restoring tabs: $e');
+      if (_tabs.isEmpty) {
+        _initDefaultTabs();
+      }
     } finally {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  /// 初始化默认标签页（豆包、DeepSeek、元宝）
+  void _initDefaultTabs() {
+    const defaults = [
+      ('https://www.doubao.com', '豆包'),
+      ('https://chat.deepseek.com', 'DeepSeek'),
+      ('https://yuanbao.tencent.com', '元宝'),
+    ];
+
+    for (final (url, name) in defaults) {
+      final newTab = LLMTab(
+        id: const Uuid().v4(),
+        url: url,
+        displayName: name,
+        createdAt: DateTime.now(),
+      );
+      _tabs.add(newTab);
+    }
+
+    _activeTabId = _tabs.first.id;
+    _persistTabs();
   }
 
   /// 清空所有标签页

@@ -50,6 +50,14 @@ class WebViewService {
   /// 获取WebView数量
   int get webViewCount => _webViewControllers.length;
 
+  /// 刷新指定tab的WebView
+  Future<void> reloadWebView(String tabId) async {
+    final controller = _webViewControllers[tabId];
+    if (controller != null) {
+      await controller.reload();
+    }
+  }
+
   @override
   String toString() => 'WebViewService(count: $webViewCount)';
 }
