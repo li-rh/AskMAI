@@ -20,12 +20,28 @@ class SiteConfig {
   /// 显示名称
   final String displayName;
 
+  /// 视口上边距 (px)，用于调整网页显示区域
+  final int viewportTop;
+
+  /// 视口下边距 (px)
+  final int viewportBottom;
+
+  /// 视口左边距 (px)
+  final int viewportLeft;
+
+  /// 视口右边距 (px)
+  final int viewportRight;
+
   SiteConfig({
     required this.id,
     required this.urlPattern,
     required this.inputXPath,
     required this.submitXPath,
     required this.displayName,
+    this.viewportTop = 0,
+    this.viewportBottom = 0,
+    this.viewportLeft = 0,
+    this.viewportRight = 0,
   });
 
   /// 从JSON创建SiteConfig

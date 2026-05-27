@@ -12,6 +12,10 @@ SiteConfig _$SiteConfigFromJson(Map<String, dynamic> json) => SiteConfig(
   inputXPath: json['inputXPath'] as String,
   submitXPath: json['submitXPath'] as String,
   displayName: json['displayName'] as String,
+  viewportTop: (json['viewportTop'] as num?)?.toInt() ?? 0,
+  viewportBottom: (json['viewportBottom'] as num?)?.toInt() ?? 0,
+  viewportLeft: (json['viewportLeft'] as num?)?.toInt() ?? 0,
+  viewportRight: (json['viewportRight'] as num?)?.toInt() ?? 0,
 );
 
 Map<String, dynamic> _$SiteConfigToJson(SiteConfig instance) =>
@@ -21,4 +25,8 @@ Map<String, dynamic> _$SiteConfigToJson(SiteConfig instance) =>
       'inputXPath': instance.inputXPath,
       'submitXPath': instance.submitXPath,
       'displayName': instance.displayName,
+      'viewportTop': instance.viewportTop,
+      'viewportBottom': instance.viewportBottom,
+      'viewportLeft': instance.viewportLeft,
+      'viewportRight': instance.viewportRight,
     };

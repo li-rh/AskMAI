@@ -96,6 +96,15 @@ class TabManagerVM extends ChangeNotifier {
     }
   }
 
+  /// 预览更新标签页的视口设置（不持久化，用于对话框实时预览）
+  void updateTabPreview(LLMTab updatedTab) {
+    final index = _tabs.indexWhere((tab) => tab.id == updatedTab.id);
+    if (index != -1) {
+      _tabs[index] = updatedTab;
+      notifyListeners();
+    }
+  }
+
   /// 获取标签页
   LLMTab? getTab(String tabId) {
     try {

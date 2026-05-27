@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/exports.dart';
 import '../../viewmodels/exports.dart';
+import 'viewport_adjust_dialog.dart';
 
 /// 输入框区域 - 用户输入和发送按钮
 class InputArea extends StatefulWidget {
@@ -99,6 +100,17 @@ class _InputAreaState extends State<InputArea> {
         );
       }
     }
+  }
+
+  void _showViewportAdjustDialog(TabManagerVM tabManagerVM) {
+    final activeTab = tabManagerVM.activeTab;
+    if (activeTab == null) return;
+    showDialog(
+      context: context,
+      builder: (_) => ViewportAdjustDialog(
+        tab: activeTab,
+      ),
+    );
   }
 
   @override
@@ -233,86 +245,104 @@ class _InputAreaState extends State<InputArea> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
 
-                  // 右侧发送按钮，居底对齐以保持原有 48x48 比例
-                  Align(
-                    alignment: Alignment.bottomCenter,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: Container(
-                          height: 48,
-                          width: 48,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            gradient: isDisabled
-                                ? LinearGradient(
-                                    colors: [
-                                      colorScheme.onSurface.withValues(
-                                        alpha: 0.2,
-                                      ),
-                                      colorScheme.onSurface.withValues(
-                                        alpha: 0.3,
-                                      ),
-                                    ],
-                                  )
-                                : LinearGradient(
-                                    colors: [
-                                      colorScheme.primary,
-                                      colorScheme.primary.withValues(
-                                        alpha: 0.8,
-                                      ),
-                                    ],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                            boxShadow: [
-                              BoxShadow(
-                                color:
-                                    (isDisabled
-                                            ? colorScheme.onSurface
-                                            : colorScheme.primary)
-                                        .withValues(alpha: 0.3),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
+                  // 右侧操作按钮列：视图调整按钮在上，发送按钮在下
+                  SizedBox(
+                    width: 48,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // 视图调整按钮
+                        Align(
+                          alignment: Alignment.topCenter,
+                          child: _ViewportButton(
+                            tabManagerVM: tabManagerVM,
+                            theme: theme,
                           ),
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              onTap: isDisabled
-                                  ? null
-                                  : () => _handleSend(
-                                      distributorVM,
-                                      tabManagerVM,
-                                    ),
-                              borderRadius: BorderRadius.circular(12),
-                              child: Center(
-                                child: distributorVM.isSubmitting
-                                    ? SizedBox(
-                                        width: 24,
-                                        height: 24,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2.5,
-                                          valueColor:
-                                              AlwaysStoppedAnimation<Color>(
-                                                colorScheme.onPrimary,
-                                              ),
+                        ),
+                        const Spacer(),
+                        // 发送按钮
+                        Align(
+                          alignment: Alignment.bottomCenter,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: Container(
+                                height: 48,
+                                width: 48,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  gradient: isDisabled
+                                      ? LinearGradient(
+                                          colors: [
+                                            colorScheme.onSurface.withValues(
+                                              alpha: 0.2,
+                                            ),
+                                            colorScheme.onSurface.withValues(
+                                              alpha: 0.3,
+                                            ),
+                                          ],
+                                        )
+                                      : LinearGradient(
+                                          colors: [
+                                            colorScheme.primary,
+                                            colorScheme.primary.withValues(
+                                              alpha: 0.8,
+                                            ),
+                                          ],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
                                         ),
-                                      )
-                                    : Icon(
-                                        Icons.send_rounded,
-                                        color: colorScheme.onPrimary,
-                                        size: 22,
-                                      ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color:
+                                          (isDisabled
+                                                  ? colorScheme.onSurface
+                                                  : colorScheme.primary)
+                                              .withValues(alpha: 0.3),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    onTap: isDisabled
+                                        ? null
+                                        : () => _handleSend(
+                                            distributorVM,
+                                            tabManagerVM,
+                                          ),
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Center(
+                                      child: distributorVM.isSubmitting
+                                          ? SizedBox(
+                                              width: 24,
+                                              height: 24,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2.5,
+                                                valueColor:
+                                                    AlwaysStoppedAnimation<
+                                                      Color
+                                                    >(colorScheme.onPrimary),
+                                              ),
+                                            )
+                                          : Icon(
+                                              Icons.send_rounded,
+                                              color: colorScheme.onPrimary,
+                                              size: 22,
+                                            ),
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
+                      ],
                     ),
                   ),
                 ],
@@ -399,6 +429,63 @@ class _CompactIconButtonState extends State<_CompactIconButton>
             ),
             child: Center(
               child: Icon(widget.icon, color: colorScheme.primary, size: 20),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 紧凑的视图调整按钮 - 点击弹出视图调整对话框
+class _ViewportButton extends StatelessWidget {
+  final TabManagerVM tabManagerVM;
+  final ThemeData theme;
+
+  const _ViewportButton({required this.tabManagerVM, required this.theme});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = theme.colorScheme;
+    final activeTab = tabManagerVM.activeTab;
+    final hasAdjustment =
+        activeTab != null &&
+        (activeTab.viewportTop > 0 ||
+            activeTab.viewportBottom > 0 ||
+            activeTab.viewportLeft > 0 ||
+            activeTab.viewportRight > 0);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          // Find the _InputAreaState to call _showViewportAdjustDialog
+          final state = context.findAncestorStateOfType<_InputAreaState>();
+          state?._showViewportAdjustDialog(tabManagerVM);
+        },
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          height: 32,
+          width: 32,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            color: hasAdjustment
+                ? colorScheme.primary.withValues(alpha: 0.15)
+                : Colors.transparent,
+            border: Border.all(
+              color: hasAdjustment
+                  ? colorScheme.primary.withValues(alpha: 0.4)
+                  : colorScheme.onSurface.withValues(alpha: 0.15),
+              width: 1,
+            ),
+          ),
+          child: Center(
+            child: Icon(
+              Icons.view_quilt_rounded,
+              color: hasAdjustment
+                  ? colorScheme.primary
+                  : colorScheme.onSurface.withValues(alpha: 0.4),
+              size: 18,
             ),
           ),
         ),

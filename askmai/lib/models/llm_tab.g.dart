@@ -15,6 +15,10 @@ LLMTab _$LLMTabFromJson(Map<String, dynamic> json) => LLMTab(
   isDisplayed: json['isDisplayed'] as bool? ?? true,
   customInputXPath: json['customInputXPath'] as String?,
   customSubmitXPath: json['customSubmitXPath'] as String?,
+  viewportTop: (json['viewportTop'] as num?)?.toInt() ?? 0,
+  viewportBottom: (json['viewportBottom'] as num?)?.toInt() ?? 0,
+  viewportLeft: (json['viewportLeft'] as num?)?.toInt() ?? 0,
+  viewportRight: (json['viewportRight'] as num?)?.toInt() ?? 0,
 );
 
 Map<String, dynamic> _$LLMTabToJson(LLMTab instance) => <String, dynamic>{
@@ -26,4 +30,8 @@ Map<String, dynamic> _$LLMTabToJson(LLMTab instance) => <String, dynamic>{
   'isDisplayed': instance.isDisplayed,
   'customInputXPath': instance.customInputXPath,
   'customSubmitXPath': instance.customSubmitXPath,
+  'viewportTop': instance.viewportTop,
+  'viewportBottom': instance.viewportBottom,
+  'viewportLeft': instance.viewportLeft,
+  'viewportRight': instance.viewportRight,
 };

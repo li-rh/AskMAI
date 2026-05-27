@@ -30,6 +30,18 @@ class LLMTab {
   /// 自定义提交按钮XPath（为空时使用site_config中的配置）
   final String? customSubmitXPath;
 
+  /// 视口上边距 (px)，用于调整当前tab的网页显示区域
+  final int viewportTop;
+
+  /// 视口下边距 (px)
+  final int viewportBottom;
+
+  /// 视口左边距 (px)
+  final int viewportLeft;
+
+  /// 视口右边距 (px)
+  final int viewportRight;
+
   /// WebView控制器（不序列化）
   @JsonKey(ignore: true)
   WebViewController? webViewController;
@@ -43,12 +55,15 @@ class LLMTab {
     this.isDisplayed = true,
     this.customInputXPath,
     this.customSubmitXPath,
+    this.viewportTop = 0,
+    this.viewportBottom = 0,
+    this.viewportLeft = 0,
+    this.viewportRight = 0,
     this.webViewController,
   });
 
   /// 从JSON创建LLMTab
-  factory LLMTab.fromJson(Map<String, dynamic> json) =>
-      _$LLMTabFromJson(json);
+  factory LLMTab.fromJson(Map<String, dynamic> json) => _$LLMTabFromJson(json);
 
   /// 转换为JSON
   Map<String, dynamic> toJson() => _$LLMTabToJson(this);
@@ -63,6 +78,10 @@ class LLMTab {
     bool? isDisplayed,
     String? customInputXPath,
     String? customSubmitXPath,
+    int? viewportTop,
+    int? viewportBottom,
+    int? viewportLeft,
+    int? viewportRight,
     WebViewController? webViewController,
   }) {
     return LLMTab(
@@ -74,6 +93,10 @@ class LLMTab {
       isDisplayed: isDisplayed ?? this.isDisplayed,
       customInputXPath: customInputXPath ?? this.customInputXPath,
       customSubmitXPath: customSubmitXPath ?? this.customSubmitXPath,
+      viewportTop: viewportTop ?? this.viewportTop,
+      viewportBottom: viewportBottom ?? this.viewportBottom,
+      viewportLeft: viewportLeft ?? this.viewportLeft,
+      viewportRight: viewportRight ?? this.viewportRight,
       webViewController: webViewController ?? this.webViewController,
     );
   }
@@ -95,5 +118,9 @@ class LLMTab {
 
   @override
   int get hashCode =>
-      id.hashCode ^ url.hashCode ^ displayName.hashCode ^ isEnabled.hashCode ^ isDisplayed.hashCode;
+      id.hashCode ^
+      url.hashCode ^
+      displayName.hashCode ^
+      isEnabled.hashCode ^
+      isDisplayed.hashCode;
 }

@@ -6,7 +6,11 @@
       "inputXPath": "//textarea[@placeholder='Message ChatGPT']",
       "submitXPath": "//button[@data-testid='send-button']",
       "displayName": "ChatGPT",
-      "isDisplay": true
+      "isDisplay": true,
+      "viewportTop": 0,
+      "viewportBottom": 0,
+      "viewportLeft": 0,
+      "viewportRight": 0
     },
     "claude": {
       "id": "claude",
@@ -14,7 +18,11 @@
       "inputXPath": "//textarea[@placeholder='Message Claude']",
       "submitXPath": "//button[contains(@aria-label, 'Send')]",
       "displayName": "Claude",
-      "isDisplay": true
+      "isDisplay": true,
+      "viewportTop": 0,
+      "viewportBottom": 0,
+      "viewportLeft": 0,
+      "viewportRight": 0
     },
     "gemini": {
       "id": "gemini",
@@ -22,7 +30,11 @@
       "inputXPath": "//textarea[@aria-label='Message Gemini']",
       "submitXPath": "//button[@aria-label='Send']",
       "displayName": "Google Gemini",
-      "isDisplay": true
+      "isDisplay": true,
+      "viewportTop": 0,
+      "viewportBottom": 0,
+      "viewportLeft": 0,
+      "viewportRight": 0
     },
     "doubao": {
       "id": "doubao",
@@ -30,7 +42,11 @@
       "inputXPath": "//textarea[@data-testid='chat_input_input'] | //textarea[contains(@class, 'semi-input-textarea')]",
       "submitXPath": "//button[@id='flow-end-msg-send']",
       "displayName": "豆包",
-      "isDisplay": true
+      "isDisplay": true,
+      "viewportTop": 0,
+      "viewportBottom": 0,
+      "viewportLeft": 0,
+      "viewportRight": 0
     },
     "deepseek": {
       "id": "deepseek",
@@ -38,7 +54,11 @@
       "inputXPath": "//textarea[@placeholder='给 DeepSeek 发送消息 ']",
       "submitXPath": "div[role=\"button\"][aria-disabled=\"false\"].ds-icon-button [d*=\"M8.3125\"]",
       "displayName": "DeepSeek",
-      "isDisplay": true
+      "isDisplay": true,
+      "viewportTop": 0,
+      "viewportBottom": 0,
+      "viewportLeft": 0,
+      "viewportRight": 0
     },
     "qianwen": {
       "id": "qianwen",
@@ -46,7 +66,11 @@
       "inputXPath": "div[role=\"textbox\"][aria-multiline=\"true\"][data-slate-editor]",
       "submitXPath": "//button[@aria-label='发送消息']",
       "displayName": "千问",
-      "isDisplay": true
+      "isDisplay": true,
+      "viewportTop": 0,
+      "viewportBottom": 0,
+      "viewportLeft": 0,
+      "viewportRight": 0
     },
     "yuanbao": {
       "id": "yuanbao",
@@ -54,7 +78,11 @@
       "inputXPath": "//div[contains(@class, 'ql-editor') and @contenteditable='true']",
       "submitXPath": "//*[@id='yuanbao-send-btn']",
       "displayName": "元宝",
-      "isDisplay": true
+      "isDisplay": true,
+      "viewportTop": 0,
+      "viewportBottom": 0,
+      "viewportLeft": 0,
+      "viewportRight": 0
     }
   }
 }

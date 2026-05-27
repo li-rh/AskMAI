@@ -31,7 +31,6 @@ class _WebViewContainerState extends State<WebViewContainer> {
   late WebViewController _controller;
   bool _isLoading = false;
   bool _hasError = false;
-  String _errorMessage = '';
 
   @override
   void initState() {
@@ -52,7 +51,6 @@ class _WebViewContainerState extends State<WebViewContainer> {
             setState(() {
               _isLoading = true;
               _hasError = false;
-              _errorMessage = '';
             });
           },
           onPageFinished: (String url) {
@@ -61,15 +59,10 @@ class _WebViewContainerState extends State<WebViewContainer> {
             });
           },
           onWebResourceError: (WebResourceError error) {
-            print(
-              'WebView error: ${error.description} (isForMainFrame: ${error.isForMainFrame}, url: ${error.url})',
-            );
-            // 只对主页加载失败处理，忽略子资源 (JS/CSS/图片/埋点) 的错误
             if (error.isForMainFrame == true && mounted) {
               setState(() {
                 _hasError = true;
                 _isLoading = false;
-                _errorMessage = error.description;
               });
             }
           },
@@ -77,10 +70,7 @@ class _WebViewContainerState extends State<WebViewContainer> {
       )
       ..loadRequest(Uri.parse(tab.url));
 
-    // 注册到WebViewService
     widget.webViewService.addWebView(tab.id, _controller);
-
-    // 更新TabManagerVM中的controller
     widget.tabManagerVM.setWebViewController(tab.id, _controller);
   }
 
@@ -113,7 +103,6 @@ class _WebViewContainerState extends State<WebViewContainer> {
       );
     }
 
-    // Desktop平台显示占位符，使用外部浏览器
     if (!_isMobilePlatform) {
       return DesktopWebViewPlaceholder(
         url: tab.url,
@@ -122,7 +111,6 @@ class _WebViewContainerState extends State<WebViewContainer> {
       );
     }
 
-    // 加载失败时显示错误页面
     if (_hasError) {
       return Container(
         color: theme.scaffoldBackgroundColor,
@@ -166,7 +154,6 @@ class _WebViewContainerState extends State<WebViewContainer> {
                   const SizedBox(width: 16),
                   OutlinedButton.icon(
                     onPressed: () {
-                      // 不显示此tab
                       final updatedTab = tab.copyWith(isDisplayed: false);
                       widget.tabManagerVM.updateTab(updatedTab);
                     },
@@ -181,31 +168,68 @@ class _WebViewContainerState extends State<WebViewContainer> {
       );
     }
 
-    return Stack(
-      children: [
-        Listener(
+    final viewportTop = widget.tab?.viewportTop ?? 0;
+    final viewportBottom = widget.tab?.viewportBottom ?? 0;
+    final viewportLeft = widget.tab?.viewportLeft ?? 0;
+    final viewportRight = widget.tab?.viewportRight ?? 0;
+    final extraWidth = viewportLeft + viewportRight;
+    final extraHeight = viewportTop + viewportBottom;
+    final hasViewportAdjust = extraWidth > 0 || extraHeight > 0;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.maxWidth;
+        final availableHeight = constraints.maxHeight;
+
+        Widget webViewChild = Listener(
           onPointerDown: (_) {
             FocusManager.instance.primaryFocus?.unfocus();
           },
           child: WebViewWidget(controller: _controller),
-        ),
-        if (_isLoading)
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: LinearProgressIndicator(
-              backgroundColor: Colors.transparent,
-              valueColor: AlwaysStoppedAnimation<Color>(theme.primaryColor),
-            ),
-          ),
-      ],
-    );
-  }
+        );
 
-  @override
-  void dispose() {
-    // 不在这里清理controller，因为其他地方可能需要用它
-    super.dispose();
+        if (hasViewportAdjust) {
+          final expandedWidth = availableWidth + extraWidth;
+          final expandedHeight = availableHeight + extraHeight;
+
+          webViewChild = ClipRect(
+            child: SizedBox(
+              width: availableWidth,
+              height: availableHeight,
+              child: OverflowBox(
+                alignment: Alignment.topLeft,
+                minWidth: expandedWidth,
+                maxWidth: expandedWidth,
+                minHeight: expandedHeight,
+                maxHeight: expandedHeight,
+                child: Transform.translate(
+                  offset: Offset(
+                    -viewportLeft.toDouble(),
+                    -viewportTop.toDouble(),
+                  ),
+                  child: webViewChild,
+                ),
+              ),
+            ),
+          );
+        }
+
+        return Stack(
+          children: [
+            webViewChild,
+            if (_isLoading)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: LinearProgressIndicator(
+                  backgroundColor: Colors.transparent,
+                  valueColor: AlwaysStoppedAnimation<Color>(theme.primaryColor),
+                ),
+              ),
+          ],
+        );
+      },
+    );
   }
 }
