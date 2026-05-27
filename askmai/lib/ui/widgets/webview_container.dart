@@ -31,6 +31,8 @@ class _WebViewContainerState extends State<WebViewContainer> {
   late WebViewController _controller;
   bool _isLoading = false;
   bool _hasError = false;
+  Offset? _pointerDownPosition;
+  bool _isScrolling = false;
 
   @override
   void initState() {
@@ -183,8 +185,28 @@ class _WebViewContainerState extends State<WebViewContainer> {
         final availableHeight = constraints.maxHeight;
 
         Widget webViewChild = Listener(
-          onPointerDown: (_) {
-            FocusManager.instance.primaryFocus?.unfocus();
+          onPointerDown: (event) {
+            _pointerDownPosition = event.position;
+            _isScrolling = false;
+          },
+          onPointerMove: (event) {
+            if (_pointerDownPosition != null) {
+              final delta = event.position - _pointerDownPosition!;
+              if (delta.distance > 8.0) {
+                _isScrolling = true;
+              }
+            }
+          },
+          onPointerUp: (_) {
+            if (!_isScrolling) {
+              FocusManager.instance.primaryFocus?.unfocus();
+            }
+            _pointerDownPosition = null;
+            _isScrolling = false;
+          },
+          onPointerCancel: (_) {
+            _pointerDownPosition = null;
+            _isScrolling = false;
           },
           child: WebViewWidget(controller: _controller),
         );
