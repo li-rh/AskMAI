@@ -189,14 +189,9 @@ class _InputAreaState extends State<InputArea> {
                         controller: _controller,
                         focusNode: _focusNode,
                         enabled: !isDisabled,
-                        maxLines: null,
+                        maxLines: 5,
                         minLines: 2,
-                        textInputAction: TextInputAction.send,
-                        onSubmitted: (_) {
-                          if (!isDisabled) {
-                            _handleSend(distributorVM, tabManagerVM);
-                          }
-                        },
+                        textInputAction: TextInputAction.newline,
                         decoration: InputDecoration(
                           hintText: enabledTabs.isEmpty
                               ? 'Enable a tab first...'

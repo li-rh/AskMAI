@@ -26,15 +26,10 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
 
-    // 应用启动时恢复标签页，如果没有则添加默认标签页
+    // 应用启动时恢复标签页，ViewModel内部会处理初始化默认标签页
     Future.microtask(() async {
       final tabVM = context.read<TabManagerVM>();
       await tabVM.restoreTabs();
-      if (tabVM.tabs.isEmpty) {
-        for (final config in _defaultTabs) {
-          tabVM.addTab(config['url']!, config['name']!);
-        }
-      }
     });
   }
 
@@ -233,8 +228,8 @@ class _ChatScreenState extends State<ChatScreen> {
       final updatedTab = tab.copyWith(url: defaultUrl);
       tabVM.updateTab(updatedTab);
 
-      // 重新加载页面
-      webViewService.reloadWebView(tab.id);
+      // 使用新URL加载WebView（而非仅刷新）
+      webViewService.navigateWebView(tab.id, defaultUrl);
     }
 
     // 保存更新

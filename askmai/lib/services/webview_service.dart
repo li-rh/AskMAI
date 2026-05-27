@@ -58,6 +58,14 @@ class WebViewService {
     }
   }
 
+  /// 导航指定tab的WebView到新URL
+  Future<void> navigateWebView(String tabId, String url) async {
+    final controller = _webViewControllers[tabId];
+    if (controller != null) {
+      await controller.loadRequest(Uri.parse(url));
+    }
+  }
+
   @override
   String toString() => 'WebViewService(count: $webViewCount)';
 }

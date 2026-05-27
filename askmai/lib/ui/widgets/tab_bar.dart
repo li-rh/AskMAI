@@ -203,7 +203,7 @@ class _ModernTabButtonState extends State<_ModernTabButton> {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             // Refresh option - 第一
-                            _MenuOption(
+                            MenuOption(
                               icon: Icons.refresh,
                               label: 'Refresh Page',
                               iconColor: colorScheme.primary,
@@ -214,7 +214,7 @@ class _ModernTabButtonState extends State<_ModernTabButton> {
                               },
                             ),
                             // Enable/Disable option - 第二
-                            _MenuOption(
+                            MenuOption(
                               icon: widget.tab.isEnabled ? Icons.check_circle : Icons.radio_button_unchecked,
                               label: widget.tab.isEnabled ? 'Disable Tab' : 'Enable Tab',
                               iconColor: widget.tab.isEnabled ? Colors.orange : Colors.grey,
@@ -222,19 +222,26 @@ class _ModernTabButtonState extends State<_ModernTabButton> {
                                   .withValues(alpha: 0.1),
                               onTap: () {
                                 _closeMenu();
-                                final updatedTab = widget.tab.copyWith(isEnabled: !widget.tab.isEnabled);
+                                final willBeEnabled = !widget.tab.isEnabled;
+                                final updatedTab = widget.tab.copyWith(
+                                  isEnabled: willBeEnabled,
+                                  isDisplayed: willBeEnabled ? true : widget.tab.isDisplayed,
+                                );
                                 tabManagerVM.updateTab(updatedTab);
                               },
                             ),
                             // Hide option - 第三
-                            _MenuOption(
+                            MenuOption(
                               icon: Icons.visibility_off,
                               label: 'Hide Tab',
                               iconColor: Colors.redAccent,
                               backgroundColor: Colors.redAccent.withValues(alpha: 0.1),
                               onTap: () {
                                 _closeMenu();
-                                final updatedTab = widget.tab.copyWith(isDisplayed: false);
+                                final updatedTab = widget.tab.copyWith(
+                                  isDisplayed: false,
+                                  isEnabled: false,
+                                );
                                 tabManagerVM.updateTab(updatedTab);
                               },
                               isLast: true,
@@ -356,8 +363,8 @@ class _ModernTabButtonState extends State<_ModernTabButton> {
   }
 }
 
-/// 菜单选项小部件
-class _MenuOption extends StatelessWidget {
+/// 菜单选项小部件 - 公开以供复用
+class MenuOption extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color iconColor;
@@ -365,14 +372,15 @@ class _MenuOption extends StatelessWidget {
   final VoidCallback onTap;
   final bool isLast;
 
-  const _MenuOption({
+  const MenuOption({
+    Key? key,
     required this.icon,
     required this.label,
     required this.iconColor,
     required this.backgroundColor,
     required this.onTap,
     this.isLast = false,
-  });
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -416,7 +424,7 @@ class _MenuOption extends StatelessWidget {
   }
 }
 
-/// 气泡背景 ShapeBorder - 绘制带向下三角箭头的圆角矩形
+/// 气泡背景 ShapeBorder - 绘制带向下三角箭头的圆角矩形 - 公开以供复用
 class BubbleShapeBorder extends ShapeBorder {
   final double arrowX;
   final double arrowWidth;

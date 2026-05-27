@@ -154,7 +154,8 @@ class _WebViewContainerState extends State<WebViewContainer> {
                   const SizedBox(width: 16),
                   OutlinedButton.icon(
                     onPressed: () {
-                      final updatedTab = tab.copyWith(isDisplayed: false);
+                      // 不显示此tab
+                      final updatedTab = tab.copyWith(isDisplayed: false, isEnabled: false);
                       widget.tabManagerVM.updateTab(updatedTab);
                     },
                     icon: const Icon(Icons.close),

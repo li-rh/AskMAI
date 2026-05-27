@@ -11,7 +11,7 @@ class KeyboardVisibilityManager extends ChangeNotifier {
   KeyboardVisibilityManager() {
     _check();
     final viewport = html.window.visualViewport;
-    viewport?.onResize?.listen((_) => _check());
+    viewport?.onResize.listen((_) => _check());
     html.window.onResize.listen((_) => _check());
   }
 

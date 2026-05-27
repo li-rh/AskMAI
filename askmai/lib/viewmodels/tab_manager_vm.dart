@@ -137,6 +137,19 @@ class TabManagerVM extends ChangeNotifier {
       notifyListeners();
 
       _tabs = await _prefs.getTabUrls();
+
+      // 迁移：隐藏的标签页必须同时禁用（兼容旧数据）
+      bool needsPersist = false;
+      for (int i = 0; i < _tabs.length; i++) {
+        if (!_tabs[i].isDisplayed && _tabs[i].isEnabled) {
+          _tabs[i] = _tabs[i].copyWith(isEnabled: false);
+          needsPersist = true;
+        }
+      }
+      if (needsPersist) {
+        await _prefs.saveTabUrls(_tabs);
+      }
+
       final activeTabId = await _prefs.getActiveTabId();
 
       if (_tabs.isEmpty) {
@@ -155,11 +168,12 @@ class TabManagerVM extends ChangeNotifier {
     }
   }
 
-  /// 初始化默认标签页（豆包、DeepSeek、元宝）
+  /// 初始化默认标签页（豆包、DeepSeek、千问、元宝）
   void _initDefaultTabs() {
     const defaults = [
       ('https://www.doubao.com', '豆包'),
       ('https://chat.deepseek.com', 'DeepSeek'),
+      ('https://www.qianwen.com', '千问'),
       ('https://yuanbao.tencent.com', '元宝'),
     ];
 

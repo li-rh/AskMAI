@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/exports.dart';
 import '../../viewmodels/exports.dart';
+import 'tab_bar.dart';
 
 /// 设置界面 - 使用 BottomSheet 显示
 void showSettingsBottomSheet(BuildContext context) {
@@ -171,86 +172,10 @@ class _SettingsBottomSheet extends StatelessWidget {
                               children: [
                                 const SizedBox(height: 8),
                                 ...tabManagerVM.tabs.map((tab) {
-                                  return Padding(
-                                    padding: const EdgeInsets.only(bottom: 8),
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: colorScheme.surface,
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(
-                                          color: tab.isEnabled
-                                              ? colorScheme.primary.withValues(alpha: 0.3)
-                                              : Colors.grey.withValues(alpha: 0.3),
-                                        ),
-                                      ),
-                                      padding: const EdgeInsets.all(8),
-                                      child: Row(
-                                        children: [
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  tab.displayName,
-                                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                                    fontWeight: FontWeight.w600,
-                                                    color: tab.isEnabled
-                                                        ? theme.textTheme.bodyMedium?.color
-                                                        : Colors.grey,
-                                                  ),
-                                                  maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
-                                                ),
-                                                const SizedBox(height: 4),
-                                                Text(
-                                                  tab.url,
-                                                  style: theme.textTheme.bodySmall?.copyWith(
-                                                    color: Colors.grey,
-                                                  ),
-                                                  maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Column(
-                                            children: [
-                                              Tooltip(
-                                                message: tab.isEnabled ? 'Disable' : 'Enable',
-                                                child: IconButton(
-                                                  icon: Icon(
-                                                    tab.isEnabled ? Icons.check_circle : Icons.radio_button_unchecked,
-                                                    color: tab.isEnabled ? Colors.orange : Colors.grey,
-                                                  ),
-                                                  onPressed: () {
-                                                    tabManagerVM.updateTab(tab.copyWith(isEnabled: !tab.isEnabled));
-                                                  },
-                                                  iconSize: 20,
-                                                  padding: EdgeInsets.zero,
-                                                  visualDensity: VisualDensity.compact,
-                                                ),
-                                              ),
-                                              Tooltip(
-                                                message: tab.isDisplayed ? 'Hide' : 'Show',
-                                                child: IconButton(
-                                                  icon: Icon(
-                                                    tab.isDisplayed ? Icons.visibility : Icons.visibility_off,
-                                                    color: tab.isDisplayed ? Colors.blue : Colors.grey,
-                                                  ),
-                                                  onPressed: () {
-                                                    tabManagerVM.updateTab(tab.copyWith(isDisplayed: !tab.isDisplayed));
-                                                  },
-                                                  iconSize: 20,
-                                                  padding: EdgeInsets.zero,
-                                                  visualDensity: VisualDensity.compact,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ),
+                                  return _SettingsTabItem(
+                                    key: ValueKey(tab.id),
+                                    tab: tab,
+                                    tabManagerVM: tabManagerVM,
                                   );
                                 }).toList(),
                               ],
@@ -402,6 +327,436 @@ class _ThemeOption extends StatelessWidget {
   }
 }
 
+/// 设置页面的 AI Tab 列表项 - 支持长按菜单（编辑/删除）
+class _SettingsTabItem extends StatefulWidget {
+  final LLMTab tab;
+  final TabManagerVM tabManagerVM;
+
+  const _SettingsTabItem({
+    Key? key,
+    required this.tab,
+    required this.tabManagerVM,
+  }) : super(key: key);
+
+  @override
+  State<_SettingsTabItem> createState() => _SettingsTabItemState();
+}
+
+class _SettingsTabItemState extends State<_SettingsTabItem> {
+  OverlayEntry? _overlayEntry;
+  final LayerLink _layerLink = LayerLink();
+
+  @override
+  void dispose() {
+    _overlayEntry?.remove();
+    super.dispose();
+  }
+
+  void _showContextMenu(BuildContext context) {
+    if (_overlayEntry != null) return;
+
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final screenSize = MediaQuery.of(context).size;
+
+    final RenderBox renderBox = context.findRenderObject() as RenderBox;
+    final tabSize = renderBox.size;
+    final tabOffset = renderBox.localToGlobal(Offset.zero);
+
+    const menuWidth = 160.0;
+    const arrowHeight = 6.0;
+    const borderRadius = 12.0;
+    const arrowWidth = 10.0;
+
+    final double defaultOffsetX = tabSize.width / 2 - menuWidth / 2;
+    final double menuGlobalX = tabOffset.dx + defaultOffsetX;
+    final double finalGlobalX = menuGlobalX.clamp(16.0, screenSize.width - menuWidth - 16.0);
+    final double shift = finalGlobalX - menuGlobalX;
+    final double finalOffsetX = defaultOffsetX + shift;
+    final double arrowX = (menuWidth / 2 - shift).clamp(
+      borderRadius + arrowWidth / 2,
+      menuWidth - borderRadius - arrowWidth / 2,
+    );
+
+    _overlayEntry = OverlayEntry(
+      builder: (context) => Stack(
+        children: [
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: _closeMenu,
+              behavior: HitTestBehavior.opaque,
+              child: Container(color: Colors.transparent),
+            ),
+          ),
+          CompositedTransformFollower(
+            link: _layerLink,
+            showWhenUnlinked: false,
+            targetAnchor: Alignment.topLeft,
+            followerAnchor: Alignment.bottomLeft,
+            offset: Offset(finalOffsetX, -6.0),
+            child: Material(
+              color: Colors.transparent,
+              elevation: 0,
+              child: Container(
+                decoration: ShapeDecoration(
+                  color: colorScheme.surface,
+                  shape: BubbleShapeBorder(
+                    arrowX: arrowX,
+                    arrowHeight: arrowHeight,
+                    borderRadius: borderRadius,
+                  ),
+                  shadows: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.12),
+                      blurRadius: 10,
+                      spreadRadius: 0,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: SizedBox(
+                  width: menuWidth,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(borderRadius),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // 编辑
+                        MenuOption(
+                          icon: Icons.edit,
+                          label: '编辑',
+                          iconColor: Colors.blue,
+                          backgroundColor: Colors.blue.withValues(alpha: 0.1),
+                          onTap: () {
+                            _closeMenu();
+                            _showEditTabDialog(context);
+                          },
+                        ),
+                        // 删除
+                        MenuOption(
+                          icon: Icons.delete,
+                          label: '删除',
+                          iconColor: Colors.redAccent,
+                          backgroundColor: Colors.redAccent.withValues(alpha: 0.1),
+                          onTap: () {
+                            _closeMenu();
+                            _showDeleteConfirmDialog(context);
+                          },
+                          isLast: true,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    final overlay = Overlay.of(context);
+    overlay.insert(_overlayEntry!);
+  }
+
+  void _closeMenu() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+
+  /// 显示编辑 AI Tab 对话框（复用添加标签页的 UI 模式）
+  void _showEditTabDialog(BuildContext context) {
+    final urlController = TextEditingController(text: widget.tab.url);
+    final nameController = TextEditingController(text: widget.tab.displayName);
+    final inputXPathController = TextEditingController(
+      text: widget.tab.customInputXPath ?? '',
+    );
+    final submitXPathController = TextEditingController(
+      text: widget.tab.customSubmitXPath ?? '',
+    );
+    bool isEnabled = widget.tab.isEnabled;
+    bool isDisplayed = widget.tab.isDisplayed;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('编辑 AI Tab'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: urlController,
+                      decoration: const InputDecoration(
+                        labelText: 'URL',
+                        hintText: 'https://chat.openai.com',
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.url,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(
+                        labelText: '显示名称',
+                        hintText: 'ChatGPT',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: inputXPathController,
+                      decoration: const InputDecoration(
+                        labelText: '输入框 XPath（可选）',
+                        hintText: '//textarea[@placeholder="..."]',
+                        border: OutlineInputBorder(),
+                      ),
+                      minLines: 2,
+                      maxLines: 3,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: submitXPathController,
+                      decoration: const InputDecoration(
+                        labelText: '提交按钮 XPath（可选）',
+                        hintText: '//button[@id="send"]',
+                        border: OutlineInputBorder(),
+                      ),
+                      minLines: 2,
+                      maxLines: 3,
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Checkbox(
+                                value: isEnabled,
+                                onChanged: (value) {
+                                  setState(() {
+                                    isEnabled = value ?? true;
+                                  });
+                                },
+                              ),
+                              const Text('启用'),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Checkbox(
+                                value: isDisplayed,
+                                onChanged: (value) {
+                                  setState(() {
+                                    isDisplayed = value ?? true;
+                                  });
+                                },
+                              ),
+                              const Text('显示'),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('取消'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    final url = urlController.text.trim();
+                    final name = nameController.text.trim();
+
+                    if (url.isEmpty || name.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('请填写 URL 和显示名称'),
+                        ),
+                      );
+                      return;
+                    }
+
+                    if (!url.startsWith('http://') &&
+                        !url.startsWith('https://')) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('URL 必须以 http:// 或 https:// 开头'),
+                        ),
+                      );
+                      return;
+                    }
+
+                    // 用更新后的配置替换原标签页
+                    widget.tabManagerVM.updateTab(widget.tab.copyWith(
+                      url: url,
+                      displayName: name,
+                      customInputXPath: inputXPathController.text.trim().isEmpty
+                          ? null
+                          : inputXPathController.text.trim(),
+                      customSubmitXPath: submitXPathController.text.trim().isEmpty
+                          ? null
+                          : submitXPathController.text.trim(),
+                      isEnabled: isEnabled,
+                      isDisplayed: isDisplayed,
+                    ));
+                    Navigator.pop(context);
+                  },
+                  child: const Text('保存'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// 显示删除确认对话框
+  void _showDeleteConfirmDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('删除 AI Tab'),
+          content: Text('确定要删除 "${widget.tab.displayName}" 吗？'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('取消'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                widget.tabManagerVM.removeTab(widget.tab.id);
+                Navigator.pop(context);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('删除'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: CompositedTransformTarget(
+        link: _layerLink,
+        child: GestureDetector(
+          onLongPress: () {
+            _showContextMenu(context);
+          },
+          onSecondaryTap: () {
+            _showContextMenu(context);
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: colorScheme.surface,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: widget.tab.isEnabled
+                    ? colorScheme.primary.withValues(alpha: 0.3)
+                    : Colors.grey.withValues(alpha: 0.3),
+              ),
+            ),
+            padding: const EdgeInsets.all(8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.tab.displayName,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: widget.tab.isEnabled
+                              ? theme.textTheme.bodyMedium?.color
+                              : Colors.grey,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        widget.tab.url,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.grey,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // 启用/禁用切换
+                Tooltip(
+                  message: widget.tab.isEnabled ? '禁用' : '启用',
+                  child: IconButton(
+                    icon: Icon(
+                      widget.tab.isEnabled ? Icons.check_circle : Icons.radio_button_unchecked,
+                      color: widget.tab.isEnabled ? Colors.orange : Colors.grey,
+                    ),
+                    onPressed: () {
+                      final willBeEnabled = !widget.tab.isEnabled;
+                      widget.tabManagerVM.updateTab(widget.tab.copyWith(
+                        isEnabled: willBeEnabled,
+                        isDisplayed: willBeEnabled ? true : widget.tab.isDisplayed,
+                      ));
+                    },
+                    iconSize: 20,
+                    padding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+                // 显示/隐藏切换
+                Tooltip(
+                  message: widget.tab.isDisplayed ? '隐藏' : '显示',
+                  child: IconButton(
+                    icon: Icon(
+                      widget.tab.isDisplayed ? Icons.visibility : Icons.visibility_off,
+                      color: widget.tab.isDisplayed ? Colors.blue : Colors.grey,
+                    ),
+                    onPressed: () {
+                      final willBeHidden = widget.tab.isDisplayed;
+                      widget.tabManagerVM.updateTab(widget.tab.copyWith(
+                        isDisplayed: !widget.tab.isDisplayed,
+                        isEnabled: willBeHidden ? false : widget.tab.isEnabled,
+                      ));
+                    },
+                    iconSize: 20,
+                    padding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// 显示标签页JSON编辑器
 void _showTabsJsonEditor(BuildContext context, TabManagerVM tabManagerVM) {
   final jsonController = TextEditingController();
@@ -470,7 +825,7 @@ void _showTabsJsonEditor(BuildContext context, TabManagerVM tabManagerVM) {
 /// 美化打印JSON
 String _prettyPrintJson(dynamic json) {
   try {
-    final encoder = JsonEncoder.withIndent('  ');
+    const encoder = JsonEncoder.withIndent('  ');
     return encoder.convert(json);
   } catch (e) {
     return json.toString();
