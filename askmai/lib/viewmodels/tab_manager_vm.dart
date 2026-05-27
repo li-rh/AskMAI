@@ -128,6 +128,19 @@ class TabManagerVM extends ChangeNotifier {
       notifyListeners();
 
       _tabs = await _prefs.getTabUrls();
+
+      // 迁移：隐藏的标签页必须同时禁用（兼容旧数据）
+      bool needsPersist = false;
+      for (int i = 0; i < _tabs.length; i++) {
+        if (!_tabs[i].isDisplayed && _tabs[i].isEnabled) {
+          _tabs[i] = _tabs[i].copyWith(isEnabled: false);
+          needsPersist = true;
+        }
+      }
+      if (needsPersist) {
+        await _prefs.saveTabUrls(_tabs);
+      }
+
       final activeTabId = await _prefs.getActiveTabId();
 
       if (_tabs.isEmpty) {

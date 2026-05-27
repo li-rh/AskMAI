@@ -222,7 +222,11 @@ class _ModernTabButtonState extends State<_ModernTabButton> {
                                   .withValues(alpha: 0.1),
                               onTap: () {
                                 _closeMenu();
-                                final updatedTab = widget.tab.copyWith(isEnabled: !widget.tab.isEnabled);
+                                final willBeEnabled = !widget.tab.isEnabled;
+                                final updatedTab = widget.tab.copyWith(
+                                  isEnabled: willBeEnabled,
+                                  isDisplayed: willBeEnabled ? true : widget.tab.isDisplayed,
+                                );
                                 tabManagerVM.updateTab(updatedTab);
                               },
                             ),
@@ -234,7 +238,10 @@ class _ModernTabButtonState extends State<_ModernTabButton> {
                               backgroundColor: Colors.redAccent.withValues(alpha: 0.1),
                               onTap: () {
                                 _closeMenu();
-                                final updatedTab = widget.tab.copyWith(isDisplayed: false);
+                                final updatedTab = widget.tab.copyWith(
+                                  isDisplayed: false,
+                                  isEnabled: false,
+                                );
                                 tabManagerVM.updateTab(updatedTab);
                               },
                               isLast: true,

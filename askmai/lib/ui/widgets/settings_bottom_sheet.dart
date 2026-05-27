@@ -224,7 +224,11 @@ class _SettingsBottomSheet extends StatelessWidget {
                                                     color: tab.isEnabled ? Colors.orange : Colors.grey,
                                                   ),
                                                   onPressed: () {
-                                                    tabManagerVM.updateTab(tab.copyWith(isEnabled: !tab.isEnabled));
+                                                    final willBeEnabled = !tab.isEnabled;
+                                                    tabManagerVM.updateTab(tab.copyWith(
+                                                      isEnabled: willBeEnabled,
+                                                      isDisplayed: willBeEnabled ? true : tab.isDisplayed,
+                                                    ));
                                                   },
                                                   iconSize: 20,
                                                   padding: EdgeInsets.zero,
@@ -239,7 +243,11 @@ class _SettingsBottomSheet extends StatelessWidget {
                                                     color: tab.isDisplayed ? Colors.blue : Colors.grey,
                                                   ),
                                                   onPressed: () {
-                                                    tabManagerVM.updateTab(tab.copyWith(isDisplayed: !tab.isDisplayed));
+                                                    final willBeHidden = tab.isDisplayed; // 当前显示 → 点击后隐藏
+                                                    tabManagerVM.updateTab(tab.copyWith(
+                                                      isDisplayed: !tab.isDisplayed,
+                                                      isEnabled: willBeHidden ? false : tab.isEnabled,
+                                                    ));
                                                   },
                                                   iconSize: 20,
                                                   padding: EdgeInsets.zero,
