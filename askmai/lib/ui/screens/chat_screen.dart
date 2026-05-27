@@ -228,8 +228,8 @@ class _ChatScreenState extends State<ChatScreen> {
       final updatedTab = tab.copyWith(url: defaultUrl);
       tabVM.updateTab(updatedTab);
 
-      // 重新加载页面
-      webViewService.reloadWebView(tab.id);
+      // 使用新URL加载WebView（而非仅刷新）
+      webViewService.navigateWebView(tab.id, defaultUrl);
     }
 
     // 保存更新
