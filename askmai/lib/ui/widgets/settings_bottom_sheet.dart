@@ -470,7 +470,7 @@ void _showTabsJsonEditor(BuildContext context, TabManagerVM tabManagerVM) {
 /// 美化打印JSON
 String _prettyPrintJson(dynamic json) {
   try {
-    final encoder = JsonEncoder.withIndent('  ');
+    const encoder = JsonEncoder.withIndent('  ');
     return encoder.convert(json);
   } catch (e) {
     return json.toString();

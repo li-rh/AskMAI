@@ -146,11 +146,12 @@ class TabManagerVM extends ChangeNotifier {
     }
   }
 
-  /// 初始化默认标签页（豆包、DeepSeek、元宝）
+  /// 初始化默认标签页（豆包、DeepSeek、千问、元宝）
   void _initDefaultTabs() {
     const defaults = [
       ('https://www.doubao.com', '豆包'),
       ('https://chat.deepseek.com', 'DeepSeek'),
+      ('https://www.qianwen.com', '千问'),
       ('https://yuanbao.tencent.com', '元宝'),
     ];
 
