@@ -9,7 +9,35 @@ import 'tab_bar.dart';
 void showSettingsBottomSheet(BuildContext context) {
   showModalBottomSheet(
     context: context,
-    builder: (context) => const _SettingsBottomSheet(),
+    builder: (context) => DraggableScrollableSheet(
+      initialChildSize: 2 / 3,
+      maxChildSize: 2 / 3,
+      minChildSize: 0.1,
+      expand: false,
+      builder: (context, scrollController) {
+        final colorScheme = Theme.of(context).colorScheme;
+        return Column(
+          children: [
+            // 拖动条 - 固定在顶部，拖动可关闭
+            Padding(
+              padding: const EdgeInsets.only(top: 12, bottom: 8),
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: colorScheme.outline.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            // 可滚动内容
+            Expanded(
+              child: _SettingsBottomSheet(scrollController: scrollController),
+            ),
+          ],
+        );
+      },
+    ),
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
     ),
@@ -18,7 +46,9 @@ void showSettingsBottomSheet(BuildContext context) {
 }
 
 class _SettingsBottomSheet extends StatelessWidget {
-  const _SettingsBottomSheet();
+  final ScrollController scrollController;
+
+  const _SettingsBottomSheet({required this.scrollController});
 
   @override
   Widget build(BuildContext context) {
@@ -28,21 +58,10 @@ class _SettingsBottomSheet extends StatelessWidget {
         final colorScheme = theme.colorScheme;
 
         return SingleChildScrollView(
+          controller: scrollController,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // 拖动条
-              Padding(
-                padding: const EdgeInsets.only(top: 12, bottom: 16),
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: colorScheme.outline.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
 
               // 标题
               Padding(
