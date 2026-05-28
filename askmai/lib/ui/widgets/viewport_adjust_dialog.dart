@@ -20,6 +20,7 @@ class _ViewportAdjustDialogState extends State<ViewportAdjustDialog> {
   late int _bottom;
   late int _left;
   late int _right;
+  bool _isDisabled = false;
 
   @override
   void initState() {
@@ -28,6 +29,7 @@ class _ViewportAdjustDialogState extends State<ViewportAdjustDialog> {
     _bottom = widget.tab.viewportBottom;
     _left = widget.tab.viewportLeft;
     _right = widget.tab.viewportRight;
+    _isDisabled = widget.tab.viewportDisabled;
   }
 
   void _applyPreview(int top, int bottom, int left, int right) {
@@ -48,6 +50,7 @@ class _ViewportAdjustDialogState extends State<ViewportAdjustDialog> {
       viewportBottom: _bottom,
       viewportLeft: _left,
       viewportRight: _right,
+      viewportDisabled: _isDisabled,
     );
     tabManagerVM.updateTab(updatedTab);
     Navigator.pop(context);
@@ -62,6 +65,23 @@ class _ViewportAdjustDialogState extends State<ViewportAdjustDialog> {
     });
     _applyPreview(0, 0, 0, 0);
   }
+
+  void _toggleDisabled() {
+    setState(() {
+      if (_isDisabled) {
+        _isDisabled = false;
+        _applyPreview(_top, _bottom, _left, _right);
+      } else {
+        _isDisabled = true;
+        _applyPreview(0, 0, 0, 0);
+      }
+    });
+  }
+
+  int get _effectiveTop => _isDisabled ? 0 : _top;
+  int get _effectiveBottom => _isDisabled ? 0 : _bottom;
+  int get _effectiveLeft => _isDisabled ? 0 : _left;
+  int get _effectiveRight => _isDisabled ? 0 : _right;
 
   @override
   Widget build(BuildContext context) {
@@ -80,21 +100,37 @@ class _ViewportAdjustDialogState extends State<ViewportAdjustDialog> {
               children: [
                 Icon(
                   Icons.view_quilt_rounded,
-                  color: colorScheme.primary,
+                  color: _isDisabled ? Colors.grey : colorScheme.primary,
                   size: 24,
                 ),
                 const SizedBox(width: 8),
-                Text(
-                  '视图调整 - ${widget.tab.displayName}',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
+                Expanded(
+                  child: Text(
+                    '视图调整 - ${widget.tab.displayName}',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: _isDisabled ? Colors.grey : null,
+                    ),
+                  ),
+                ),
+                Tooltip(
+                  message: _isDisabled ? '启用视口调整' : '临时禁用视口调整',
+                  child: IconButton(
+                    onPressed: _toggleDisabled,
+                    icon: Icon(
+                      _isDisabled ? Icons.toggle_off : Icons.toggle_on,
+                      color: _isDisabled ? Colors.grey : colorScheme.primary,
+                    ),
+                    tooltip: _isDisabled ? '启用' : '禁用',
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 4),
             Text(
-              '拖动滑块实时调整网页视口边距，隐藏顶部工具栏和底部输入框',
+              _isDisabled
+                  ? '视口调整已临时禁用，配置值已保留'
+                  : '拖动滑块实时调整网页视口边距，隐藏顶部工具栏和底部输入框',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.7),
               ),
@@ -104,7 +140,8 @@ class _ViewportAdjustDialogState extends State<ViewportAdjustDialog> {
             _ViewportSlider(
               label: '隐藏顶部',
               icon: Icons.arrow_upward,
-              value: _top,
+              value: _effectiveTop,
+              enabled: !_isDisabled,
               onChanged: (v) {
                 setState(() => _top = v);
                 _applyPreview(_top, _bottom, _left, _right);
@@ -116,7 +153,8 @@ class _ViewportAdjustDialogState extends State<ViewportAdjustDialog> {
             _ViewportSlider(
               label: '隐藏底部',
               icon: Icons.arrow_downward,
-              value: _bottom,
+              value: _effectiveBottom,
+              enabled: !_isDisabled,
               onChanged: (v) {
                 setState(() => _bottom = v);
                 _applyPreview(_top, _bottom, _left, _right);
@@ -128,7 +166,8 @@ class _ViewportAdjustDialogState extends State<ViewportAdjustDialog> {
             _ViewportSlider(
               label: '隐藏左侧',
               icon: Icons.arrow_back,
-              value: _left,
+              value: _effectiveLeft,
+              enabled: !_isDisabled,
               onChanged: (v) {
                 setState(() => _left = v);
                 _applyPreview(_top, _bottom, _left, _right);
@@ -140,7 +179,8 @@ class _ViewportAdjustDialogState extends State<ViewportAdjustDialog> {
             _ViewportSlider(
               label: '隐藏右侧',
               icon: Icons.arrow_forward,
-              value: _right,
+              value: _effectiveRight,
+              enabled: !_isDisabled,
               onChanged: (v) {
                 setState(() => _right = v);
                 _applyPreview(_top, _bottom, _left, _right);
@@ -182,6 +222,7 @@ class _ViewportSlider extends StatelessWidget {
   final String label;
   final IconData icon;
   final int value;
+  final bool enabled;
   final ValueChanged<int> onChanged;
   final ColorScheme colorScheme;
 
@@ -189,35 +230,44 @@ class _ViewportSlider extends StatelessWidget {
     required this.label,
     required this.icon,
     required this.value,
+    required this.enabled,
     required this.onChanged,
     required this.colorScheme,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: colorScheme.primary),
-        const SizedBox(width: 8),
-        SizedBox(
-          width: 60,
-          child: Text(
-            '$label: $value',
-            style: const TextStyle(fontSize: 13),
+    final effectiveColor = enabled ? colorScheme.primary : Colors.grey;
+
+    return Opacity(
+      opacity: enabled ? 1.0 : 0.5,
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: effectiveColor),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 60,
+            child: Text(
+              '$label: $value',
+              style: TextStyle(
+                fontSize: 13,
+                color: enabled ? null : Colors.grey,
+              ),
+            ),
           ),
-        ),
-        Expanded(
-          child: Slider(
-            value: value.toDouble(),
-            min: 0,
-            max: 300,
-            divisions: 300,
-            activeColor: colorScheme.primary,
-            inactiveColor: colorScheme.primary.withValues(alpha: 0.2),
-            onChanged: (v) => onChanged(v.round()),
+          Expanded(
+            child: Slider(
+              value: value.toDouble(),
+              min: 0,
+              max: 300,
+              divisions: 300,
+              activeColor: effectiveColor,
+              inactiveColor: effectiveColor.withValues(alpha: 0.2),
+              onChanged: enabled ? (v) => onChanged(v.round()) : null,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

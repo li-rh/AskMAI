@@ -19,6 +19,7 @@ LLMTab _$LLMTabFromJson(Map<String, dynamic> json) => LLMTab(
   viewportBottom: (json['viewportBottom'] as num?)?.toInt() ?? 0,
   viewportLeft: (json['viewportLeft'] as num?)?.toInt() ?? 0,
   viewportRight: (json['viewportRight'] as num?)?.toInt() ?? 0,
+  viewportDisabled: json['viewportDisabled'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$LLMTabToJson(LLMTab instance) => <String, dynamic>{
@@ -34,4 +35,5 @@ Map<String, dynamic> _$LLMTabToJson(LLMTab instance) => <String, dynamic>{
   'viewportBottom': instance.viewportBottom,
   'viewportLeft': instance.viewportLeft,
   'viewportRight': instance.viewportRight,
+  'viewportDisabled': instance.viewportDisabled,
 };

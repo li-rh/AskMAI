@@ -771,6 +771,11 @@ void _showTabsJsonEditor(BuildContext context, TabManagerVM tabManagerVM) {
       'isDisplayed': tab.isDisplayed,
       'customInputXPath': tab.customInputXPath,
       'customSubmitXPath': tab.customSubmitXPath,
+      'viewportTop': tab.viewportTop,
+      'viewportBottom': tab.viewportBottom,
+      'viewportLeft': tab.viewportLeft,
+      'viewportRight': tab.viewportRight,
+      'viewportDisabled': tab.viewportDisabled,
       'createdAt': tab.createdAt.toIso8601String(),
     };
   }).toList();
@@ -853,6 +858,11 @@ void _applyTabsJson(BuildContext context, String jsonStr, TabManagerVM tabManage
         isDisplayed: item['isDisplayed'] ?? true,
         customInputXPath: item['customInputXPath'],
         customSubmitXPath: item['customSubmitXPath'],
+        viewportTop: (item['viewportTop'] as num?)?.toInt() ?? 0,
+        viewportBottom: (item['viewportBottom'] as num?)?.toInt() ?? 0,
+        viewportLeft: (item['viewportLeft'] as num?)?.toInt() ?? 0,
+        viewportRight: (item['viewportRight'] as num?)?.toInt() ?? 0,
+        viewportDisabled: item['viewportDisabled'] as bool? ?? false,
       );
       newTabs.add(tab);
     }
