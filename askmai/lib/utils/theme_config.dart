@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 /// 应用主题配置 - 支持浅色和深色主题
 class AppThemeConfig {
   // 浅色主题颜色
-  static const Color lightBackground = Color(0xFFF5F7FA);
+  static const Color lightBackground = Color(0xFFF5F5F5);
   static const Color lightSurface = Color(0xFFFFFFFF);
   static const Color lightPrimary = Color(0xFF5B77D2);
   static const Color lightPrimaryLight = Color(0xFF7A92E8);
@@ -71,15 +71,15 @@ class AppThemeConfig {
         fillColor: lightSurface,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(24),
           borderSide: const BorderSide(color: lightBorder, width: 1),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(24),
           borderSide: const BorderSide(color: lightBorder, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(24),
           borderSide: const BorderSide(color: lightPrimary, width: 2),
         ),
         hintStyle: const TextStyle(color: lightTextSecondary, fontSize: 14),
@@ -192,15 +192,15 @@ class AppThemeConfig {
         fillColor: darkSurface,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(24),
           borderSide: const BorderSide(color: darkBorder, width: 1),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(24),
           borderSide: const BorderSide(color: darkBorder, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(24),
           borderSide: const BorderSide(color: darkPrimary, width: 2),
         ),
         hintStyle: const TextStyle(color: darkTextSecondary, fontSize: 14),

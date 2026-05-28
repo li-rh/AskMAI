@@ -516,8 +516,12 @@ class _SettingsTabItemState extends State<_SettingsTabItem> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: const Text('编辑 AI Tab'),
+              title: const Text(
+                '编辑 AI Tab',
+                style: TextStyle(fontSize: 16),
+              ),
               content: SingleChildScrollView(
+                padding: const EdgeInsets.only(top: 8),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [

@@ -271,7 +271,7 @@ class _InputAreaState extends State<InputArea> {
                                 height: 48,
                                 width: 48,
                                 decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(24),
                                   gradient: isDisabled
                                       ? LinearGradient(
                                           colors: [
@@ -314,7 +314,7 @@ class _InputAreaState extends State<InputArea> {
                                             distributorVM,
                                             tabManagerVM,
                                           ),
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(24),
                                     child: Center(
                                       child: distributorVM.isSubmitting
                                           ? SizedBox(
