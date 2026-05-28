@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 
 /// 应用主题配置 - 支持浅色和深色主题
 class AppThemeConfig {
-  // 浅色主题颜色
-  static const Color lightBackground = Color(0xFFF5F7FA);
+  // 浅色主题颜色 - 黑白灰浅色系
+  static const Color lightBackground = Color(0xFFF5F5F5);
   static const Color lightSurface = Color(0xFFFFFFFF);
   static const Color lightPrimary = Color(0xFF5B77D2);
   static const Color lightPrimaryLight = Color(0xFF7A92E8);
-  static const Color lightText = Color(0xFF1A1A1A);
-  static const Color lightTextSecondary = Color(0xFF808080);
-  static const Color lightDivider = Color(0xFFE5E7EB);
-  static const Color lightBorder = Color(0xFFDCDCDC);
+  static const Color lightText = Color(0xFF2D2D2D);
+  static const Color lightTextSecondary = Color(0xFF757575);
+  static const Color lightDivider = Color(0xFFE0E0E0);
+  static const Color lightBorder = Color(0xFFD0D0D0);
 
   // 深色主题颜色
   static const Color darkBackground = Color(0xFF121212);

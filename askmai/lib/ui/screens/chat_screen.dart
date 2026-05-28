@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../services/exports.dart';
 import '../../viewmodels/exports.dart';
 import '../widgets/exports.dart';
+import '../widgets/viewport_adjust_dialog.dart';
 
 /// 主聊天屏幕
 class ChatScreen extends StatefulWidget {
@@ -31,6 +32,16 @@ class _ChatScreenState extends State<ChatScreen> {
       final tabVM = context.read<TabManagerVM>();
       await tabVM.restoreTabs();
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 确保系统状态栏始终显示
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.edgeToEdge,
+      overlays: [SystemUiOverlay.top, SystemUiOverlay.bottom],
+    );
   }
 
   void _showAddTabDialog() {
@@ -170,8 +181,8 @@ class _ChatScreenState extends State<ChatScreen> {
                           : inputXPathController.text.trim(),
                       customSubmitXPath:
                           submitXPathController.text.trim().isEmpty
-                          ? null
-                          : submitXPathController.text.trim(),
+                              ? null
+                              : submitXPathController.text.trim(),
                       isEnabled: isEnabled,
                       isDisplayed: isDisplayed,
                     );
@@ -247,13 +258,14 @@ class _ChatScreenState extends State<ChatScreen> {
     showSettingsBottomSheet(context);
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // 确保系统状态栏始终显示
-    SystemChrome.setEnabledSystemUIMode(
-      SystemUiMode.edgeToEdge,
-      overlays: [SystemUiOverlay.top, SystemUiOverlay.bottom],
+  void _showViewportAdjustDialog(TabManagerVM tabManagerVM) {
+    final activeTabId = tabManagerVM.activeTabId;
+    if (activeTabId == null) return;
+    final activeTab = tabManagerVM.getTab(activeTabId);
+    if (activeTab == null) return;
+    showDialog(
+      context: context,
+      builder: (_) => ViewportAdjustDialog(tab: activeTab),
     );
   }
 
@@ -332,33 +344,25 @@ class _ChatScreenState extends State<ChatScreen> {
                           : Builder(
                               builder: (context) {
                                 final activeTabId = tabManagerVM.activeTabId;
-                                // 使用 activeTabId 构建每个 WebViewContainer，而不是依赖 displayedTabs 中的 tab 对象
-                                // 这样每个 WebViewContainer 都能获取到最新的预览状态
                                 return IndexedStack(
                                   index: activeTabId != null
                                       ? displayedTabs
-                                            .indexWhere(
-                                              (tab) => tab.id == activeTabId,
-                                            )
-                                            .clamp(0, displayedTabs.length - 1)
+                                              .indexWhere(
+                                                (tab) => tab.id == activeTabId,
+                                              )
+                                              .clamp(0, displayedTabs.length - 1)
                                       : 0,
                                   children: displayedTabs.map((tab) {
-                                    // 直接使用 tabManagerVM 获取最新的 tab 状态（包含预览）
-                                    final currentTab = tabManagerVM.getTab(
-                                      tab.id,
-                                    );
-                                    // 通过 Consumer 监听 tabManagerVM 的变化
+                                    final currentTab = tabManagerVM.getTab(tab.id);
                                     return Consumer<TabManagerVM>(
                                       key: ValueKey(tab.id),
                                       builder: (context, vm, _) {
-                                        final activeTabWithPreview =
-                                            vm.activeTab;
+                                        final activeTabWithPreview = vm.activeTab;
                                         final tabToUse =
                                             (activeTabWithPreview != null &&
-                                                activeTabWithPreview.id ==
-                                                    tab.id)
-                                            ? activeTabWithPreview
-                                            : tab;
+                                                    activeTabWithPreview.id == tab.id)
+                                                ? activeTabWithPreview
+                                                : tab;
                                         return WebViewContainer(
                                           tab: tabToUse,
                                           webViewService: webViewService,
@@ -372,7 +376,7 @@ class _ChatScreenState extends State<ChatScreen> {
                             ),
                     ),
 
-                    // 底部区域: 用户向网页输入时隐藏 (输入框无焦点 + 软键盘弹出)
+                    // 底部区域: 用户向网页输入时隐藏
                     Consumer2<InputFocusManager, KeyboardVisibilityManager>(
                       builder: (context, focusManager, keyboardManager, _) {
                         final isFlutterInputFocused = focusManager.hasFocus;
@@ -385,24 +389,50 @@ class _ChatScreenState extends State<ChatScreen> {
                           maintainState: true,
                           maintainAnimation: false,
                           maintainSize: false,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // 标签栏
-                              LLMTabBar(
-                                tabs: displayedTabs,
-                                tabManagerVM: tabManagerVM,
-                                submissionStatus:
-                                    distributorVM.submissionStatus,
-                                onAddTab: _showAddTabDialog,
-                                onRefreshTab: _onRefreshTab,
-                              ),
-                              // 输入框
-                              InputArea(
-                                onNewChat: _handleNewChat,
-                                onSettings: _handleSettings,
-                              ),
-                            ],
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).scaffoldBackgroundColor,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.08),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, -2),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // 左侧按钮列 + AI tab + 输入框
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _LeftButtonColumn(
+                                      onNewChat: _handleNewChat,
+                                      onSettings: _handleSettings,
+                                    ),
+                                    Expanded(
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          LLMTabBar(
+                                            tabs: displayedTabs,
+                                            tabManagerVM: tabManagerVM,
+                                            submissionStatus: distributorVM.submissionStatus,
+                                            onAddTab: _showAddTabDialog,
+                                            onRefreshTab: _onRefreshTab,
+                                          ),
+                                          InputArea(
+                                            onNewChat: _handleNewChat,
+                                            onSettings: _handleSettings,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                         );
                       },
@@ -414,6 +444,146 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         );
       },
+    );
+  }
+}
+
+/// 左侧功能按钮列，独立于输入框
+class _LeftButtonColumn extends StatelessWidget {
+  final VoidCallback onNewChat;
+  final VoidCallback onSettings;
+
+  const _LeftButtonColumn({
+    required this.onNewChat,
+    required this.onSettings,
+  });
+
+  static const double spacing = 6;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Consumer<TabManagerVM>(
+      builder: (context, tabManagerVM, _) {
+        final activeTab = tabManagerVM.activeTab;
+        final isViewportEnabled = activeTab != null && !activeTab.viewportDisabled;
+
+        return Container(
+          width: 52,
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _LeftIconButton(
+                icon: Icons.add_comment_rounded,
+                onTap: onNewChat,
+                theme: theme,
+              ),
+              const SizedBox(height: spacing),
+              _LeftIconButton(
+                icon: Icons.view_quilt_rounded,
+                onTap: () {
+                  final state = context.findAncestorStateOfType<_ChatScreenState>();
+                  state?._showViewportAdjustDialog(tabManagerVM);
+                },
+                theme: theme,
+                iconColor: isViewportEnabled
+                    ? colorScheme.primary
+                    : colorScheme.onSurface.withValues(alpha: 0.4),
+              ),
+              const SizedBox(height: spacing),
+              _LeftIconButton(
+                icon: Icons.settings_rounded,
+                onTap: onSettings,
+                theme: theme,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _LeftIconButton extends StatefulWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  final ThemeData theme;
+  final Color? iconColor;
+
+  const _LeftIconButton({
+    required this.icon,
+    required this.onTap,
+    required this.theme,
+    this.iconColor,
+  });
+
+  @override
+  State<_LeftIconButton> createState() => _LeftIconButtonState();
+}
+
+class _LeftIconButtonState extends State<_LeftIconButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 150),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.9).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleTap() {
+    _controller.forward().then((_) => _controller.reverse());
+    widget.onTap();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = widget.theme.colorScheme;
+
+    return ScaleTransition(
+      scale: _scaleAnimation,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _handleTap,
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              color: colorScheme.primary.withValues(alpha: 0.1),
+              border: Border.all(
+                color: colorScheme.primary.withValues(alpha: 0.3),
+                width: 1,
+              ),
+            ),
+            child: Center(
+              child: Icon(
+                widget.icon,
+                color: widget.iconColor ?? colorScheme.primary,
+                size: 20,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

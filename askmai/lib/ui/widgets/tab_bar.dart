@@ -28,12 +28,6 @@ class LLMTabBar extends StatelessWidget {
     return Container(
       height: 50,
       decoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(
-            color: theme.dividerColor.withValues(alpha: 0.5),
-            width: 0.5,
-          ),
-        ),
         color: theme.scaffoldBackgroundColor,
       ),
       child: SingleChildScrollView(
