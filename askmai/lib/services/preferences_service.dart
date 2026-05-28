@@ -142,6 +142,49 @@ class PreferencesService {
     }
   }
 
+  // ==================== 虚拟显示设置 ====================
+
+  static const String _virtualTopGapKey = 'virtual_top_gap';
+  static const String _virtualBottomGapKey = 'virtual_bottom_gap';
+
+  /// 保存虚拟显示顶部间距
+  Future<void> setVirtualTopGap(double gap) async {
+    try {
+      await _prefs.setDouble(_virtualTopGapKey, gap);
+    } catch (e) {
+      print('Error saving virtual top gap: $e');
+    }
+  }
+
+  /// 读取虚拟显示顶部间距
+  double getVirtualTopGap() {
+    try {
+      return _prefs.getDouble(_virtualTopGapKey) ?? 0.0;
+    } catch (e) {
+      print('Error reading virtual top gap: $e');
+      return 0.0;
+    }
+  }
+
+  /// 保存虚拟显示底部间距
+  Future<void> setVirtualBottomGap(double gap) async {
+    try {
+      await _prefs.setDouble(_virtualBottomGapKey, gap);
+    } catch (e) {
+      print('Error saving virtual bottom gap: $e');
+    }
+  }
+
+  /// 读取虚拟显示底部间距
+  double getVirtualBottomGap() {
+    try {
+      return _prefs.getDouble(_virtualBottomGapKey) ?? 0.0;
+    } catch (e) {
+      print('Error reading virtual bottom gap: $e');
+      return 0.0;
+    }
+  }
+
   @override
   String toString() => 'PreferencesService()';
 }

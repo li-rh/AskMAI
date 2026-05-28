@@ -103,7 +103,10 @@ class _InputAreaState extends State<InputArea> {
   }
 
   void _showViewportAdjustDialog(TabManagerVM tabManagerVM) {
-    final activeTab = tabManagerVM.activeTab;
+    final activeTabId = tabManagerVM.activeTabId;
+    if (activeTabId == null) return;
+    // 获取原始的 tab，而不是可能包含预览状态的 tab
+    final activeTab = tabManagerVM.getTab(activeTabId);
     if (activeTab == null) return;
     showDialog(
       context: context,
@@ -443,18 +446,14 @@ class _ViewportButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = theme.colorScheme;
     final activeTab = tabManagerVM.activeTab;
-    final hasAdjustment =
+    final isViewportEnabled =
         activeTab != null &&
-        (activeTab.viewportTop > 0 ||
-            activeTab.viewportBottom > 0 ||
-            activeTab.viewportLeft > 0 ||
-            activeTab.viewportRight > 0);
+        !activeTab.viewportDisabled;
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: () {
-          // Find the _InputAreaState to call _showViewportAdjustDialog
           final state = context.findAncestorStateOfType<_InputAreaState>();
           state?._showViewportAdjustDialog(tabManagerVM);
         },
@@ -464,11 +463,11 @@ class _ViewportButton extends StatelessWidget {
           width: 32,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
-            color: hasAdjustment
+            color: isViewportEnabled
                 ? colorScheme.primary.withValues(alpha: 0.15)
                 : Colors.transparent,
             border: Border.all(
-              color: hasAdjustment
+              color: isViewportEnabled
                   ? colorScheme.primary.withValues(alpha: 0.4)
                   : colorScheme.onSurface.withValues(alpha: 0.15),
               width: 1,
@@ -477,7 +476,7 @@ class _ViewportButton extends StatelessWidget {
           child: Center(
             child: Icon(
               Icons.view_quilt_rounded,
-              color: hasAdjustment
+              color: isViewportEnabled
                   ? colorScheme.primary
                   : colorScheme.onSurface.withValues(alpha: 0.4),
               size: 18,

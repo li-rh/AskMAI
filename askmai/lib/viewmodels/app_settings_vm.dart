@@ -13,6 +13,13 @@ class AppSettingsVM extends ChangeNotifier {
   String get themeMode => _themeMode;
   bool get showAppBar => _showAppBar;
 
+  // 虚拟显示设置
+  double _virtualTopGap = 0.0;
+  double _virtualBottomGap = 0.0;
+
+  double get virtualTopGap => _virtualTopGap;
+  double get virtualBottomGap => _virtualBottomGap;
+
   AppSettingsVM(this._prefsService) {
     _initSettings();
   }
@@ -21,6 +28,8 @@ class AppSettingsVM extends ChangeNotifier {
   Future<void> _initSettings() async {
     _themeMode = _prefsService.getThemeMode() ?? 'light';
     _showAppBar = _prefsService.getShowAppBar() ?? true;
+    _virtualTopGap = _prefsService.getVirtualTopGap();
+    _virtualBottomGap = _prefsService.getVirtualBottomGap();
     notifyListeners();
   }
 
@@ -36,6 +45,18 @@ class AppSettingsVM extends ChangeNotifier {
   Future<void> toggleAppBar() async {
     _showAppBar = !_showAppBar;
     await _prefsService.setShowAppBar(_showAppBar);
+    notifyListeners();
+  }
+
+  /// 设置虚拟显示间距
+  Future<void> setVirtualDisplay({
+    required double topGap,
+    required double bottomGap,
+  }) async {
+    _virtualTopGap = topGap;
+    _virtualBottomGap = bottomGap;
+    await _prefsService.setVirtualTopGap(topGap);
+    await _prefsService.setVirtualBottomGap(bottomGap);
     notifyListeners();
   }
 

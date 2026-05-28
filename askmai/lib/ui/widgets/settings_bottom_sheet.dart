@@ -475,8 +475,21 @@ class _SettingsTabItemState extends State<_SettingsTabItem> {
     final submitXPathController = TextEditingController(
       text: widget.tab.customSubmitXPath ?? '',
     );
+    final viewportTopController = TextEditingController(
+      text: widget.tab.viewportTop.toString(),
+    );
+    final viewportBottomController = TextEditingController(
+      text: widget.tab.viewportBottom.toString(),
+    );
+    final viewportLeftController = TextEditingController(
+      text: widget.tab.viewportLeft.toString(),
+    );
+    final viewportRightController = TextEditingController(
+      text: widget.tab.viewportRight.toString(),
+    );
     bool isEnabled = widget.tab.isEnabled;
     bool isDisplayed = widget.tab.isDisplayed;
+    bool viewportDisabled = widget.tab.viewportDisabled;
 
     showDialog(
       context: context,
@@ -564,6 +577,81 @@ class _SettingsTabItemState extends State<_SettingsTabItem> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      '视口边距设置 (px)',
+                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: viewportTopController,
+                            decoration: const InputDecoration(
+                              labelText: '上边距',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                            keyboardType: TextInputType.number,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            controller: viewportBottomController,
+                            decoration: const InputDecoration(
+                              labelText: '下边距',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                            keyboardType: TextInputType.number,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: viewportLeftController,
+                            decoration: const InputDecoration(
+                              labelText: '左边距',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                            keyboardType: TextInputType.number,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            controller: viewportRightController,
+                            decoration: const InputDecoration(
+                              labelText: '右边距',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                            keyboardType: TextInputType.number,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: viewportDisabled,
+                          onChanged: (value) {
+                            setState(() {
+                              viewportDisabled = value ?? false;
+                            });
+                          },
+                        ),
+                        const Text('禁用视口调整'),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -596,6 +684,11 @@ class _SettingsTabItemState extends State<_SettingsTabItem> {
                       return;
                     }
 
+                    final vpTop = int.tryParse(viewportTopController.text.trim()) ?? 0;
+                    final vpBottom = int.tryParse(viewportBottomController.text.trim()) ?? 0;
+                    final vpLeft = int.tryParse(viewportLeftController.text.trim()) ?? 0;
+                    final vpRight = int.tryParse(viewportRightController.text.trim()) ?? 0;
+
                     // 用更新后的配置替换原标签页
                     widget.tabManagerVM.updateTab(widget.tab.copyWith(
                       url: url,
@@ -608,6 +701,11 @@ class _SettingsTabItemState extends State<_SettingsTabItem> {
                           : submitXPathController.text.trim(),
                       isEnabled: isEnabled,
                       isDisplayed: isDisplayed,
+                      viewportTop: vpTop,
+                      viewportBottom: vpBottom,
+                      viewportLeft: vpLeft,
+                      viewportRight: vpRight,
+                      viewportDisabled: viewportDisabled,
                     ));
                     Navigator.pop(context);
                   },
@@ -771,6 +869,11 @@ void _showTabsJsonEditor(BuildContext context, TabManagerVM tabManagerVM) {
       'isDisplayed': tab.isDisplayed,
       'customInputXPath': tab.customInputXPath,
       'customSubmitXPath': tab.customSubmitXPath,
+      'viewportTop': tab.viewportTop,
+      'viewportBottom': tab.viewportBottom,
+      'viewportLeft': tab.viewportLeft,
+      'viewportRight': tab.viewportRight,
+      'viewportDisabled': tab.viewportDisabled,
       'createdAt': tab.createdAt.toIso8601String(),
     };
   }).toList();
@@ -853,6 +956,11 @@ void _applyTabsJson(BuildContext context, String jsonStr, TabManagerVM tabManage
         isDisplayed: item['isDisplayed'] ?? true,
         customInputXPath: item['customInputXPath'],
         customSubmitXPath: item['customSubmitXPath'],
+        viewportTop: (item['viewportTop'] as num?)?.toInt() ?? 0,
+        viewportBottom: (item['viewportBottom'] as num?)?.toInt() ?? 0,
+        viewportLeft: (item['viewportLeft'] as num?)?.toInt() ?? 0,
+        viewportRight: (item['viewportRight'] as num?)?.toInt() ?? 0,
+        viewportDisabled: item['viewportDisabled'] as bool? ?? false,
       );
       newTabs.add(tab);
     }
@@ -863,10 +971,16 @@ void _applyTabsJson(BuildContext context, String jsonStr, TabManagerVM tabManage
         tabManagerVM.addTab(
           tab.url,
           tab.displayName,
+          id: tab.id,
           customInputXPath: tab.customInputXPath,
           customSubmitXPath: tab.customSubmitXPath,
           isEnabled: tab.isEnabled,
           isDisplayed: tab.isDisplayed,
+          viewportTop: tab.viewportTop,
+          viewportBottom: tab.viewportBottom,
+          viewportLeft: tab.viewportLeft,
+          viewportRight: tab.viewportRight,
+          viewportDisabled: tab.viewportDisabled,
         );
       }
       ScaffoldMessenger.of(context).showSnackBar(

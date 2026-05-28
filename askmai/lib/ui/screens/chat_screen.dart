@@ -329,20 +329,46 @@ class _ChatScreenState extends State<ChatScreen> {
                                 ],
                               ),
                             )
-                          : IndexedStack(
-                              index: tabManagerVM.activeTab != null
-                                  ? displayedTabs
-                                        .indexOf(tabManagerVM.activeTab!)
-                                        .clamp(0, displayedTabs.length - 1)
-                                  : 0,
-                              children: displayedTabs.map((tab) {
-                                return WebViewContainer(
-                                  key: ValueKey(tab.id),
-                                  tab: tab,
-                                  webViewService: webViewService,
-                                  tabManagerVM: tabManagerVM,
+                          : Builder(
+                              builder: (context) {
+                                final activeTabId = tabManagerVM.activeTabId;
+                                // 使用 activeTabId 构建每个 WebViewContainer，而不是依赖 displayedTabs 中的 tab 对象
+                                // 这样每个 WebViewContainer 都能获取到最新的预览状态
+                                return IndexedStack(
+                                  index: activeTabId != null
+                                      ? displayedTabs
+                                            .indexWhere(
+                                              (tab) => tab.id == activeTabId,
+                                            )
+                                            .clamp(0, displayedTabs.length - 1)
+                                      : 0,
+                                  children: displayedTabs.map((tab) {
+                                    // 直接使用 tabManagerVM 获取最新的 tab 状态（包含预览）
+                                    final currentTab = tabManagerVM.getTab(
+                                      tab.id,
+                                    );
+                                    // 通过 Consumer 监听 tabManagerVM 的变化
+                                    return Consumer<TabManagerVM>(
+                                      key: ValueKey(tab.id),
+                                      builder: (context, vm, _) {
+                                        final activeTabWithPreview =
+                                            vm.activeTab;
+                                        final tabToUse =
+                                            (activeTabWithPreview != null &&
+                                                activeTabWithPreview.id ==
+                                                    tab.id)
+                                            ? activeTabWithPreview
+                                            : tab;
+                                        return WebViewContainer(
+                                          tab: tabToUse,
+                                          webViewService: webViewService,
+                                          tabManagerVM: tabManagerVM,
+                                        );
+                                      },
+                                    );
+                                  }).toList(),
                                 );
-                              }).toList(),
+                              },
                             ),
                     ),
 
@@ -351,7 +377,8 @@ class _ChatScreenState extends State<ChatScreen> {
                       builder: (context, focusManager, keyboardManager, _) {
                         final isFlutterInputFocused = focusManager.hasFocus;
                         final isKeyboardVisible = keyboardManager.isVisible;
-                        final shouldHide = isKeyboardVisible && !isFlutterInputFocused;
+                        final shouldHide =
+                            isKeyboardVisible && !isFlutterInputFocused;
 
                         return Visibility(
                           visible: !shouldHide,

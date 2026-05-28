@@ -42,6 +42,9 @@ class LLMTab {
   /// 视口右边距 (px)
   final int viewportRight;
 
+  /// 是否临时禁用视口调整
+  final bool viewportDisabled;
+
   /// WebView控制器（不序列化）
   @JsonKey(ignore: true)
   WebViewController? webViewController;
@@ -59,6 +62,7 @@ class LLMTab {
     this.viewportBottom = 0,
     this.viewportLeft = 0,
     this.viewportRight = 0,
+    this.viewportDisabled = false,
     this.webViewController,
   });
 
@@ -82,6 +86,7 @@ class LLMTab {
     int? viewportBottom,
     int? viewportLeft,
     int? viewportRight,
+    bool? viewportDisabled,
     WebViewController? webViewController,
   }) {
     return LLMTab(
@@ -97,6 +102,7 @@ class LLMTab {
       viewportBottom: viewportBottom ?? this.viewportBottom,
       viewportLeft: viewportLeft ?? this.viewportLeft,
       viewportRight: viewportRight ?? this.viewportRight,
+      viewportDisabled: viewportDisabled ?? this.viewportDisabled,
       webViewController: webViewController ?? this.webViewController,
     );
   }

@@ -11,12 +11,20 @@ class TabManagerVM extends ChangeNotifier {
   String? _activeTabId;
   bool _isLoading = false;
 
+  /// 存储视口调整的预览状态（不持久化）
+  final Map<String, LLMTab> _previewTabs = {};
+
   TabManagerVM(this._prefs);
 
   // Getters
   List<LLMTab> get tabs => _tabs;
-  LLMTab? get activeTab =>
-      _tabs.firstWhereOrNull((tab) => tab.id == _activeTabId);
+  LLMTab? get activeTab {
+    final originalTab = _tabs.firstWhereOrNull((tab) => tab.id == _activeTabId);
+    if (originalTab == null) return null;
+    // 如果有预览tab，返回预览tab，否则返回原始tab
+    return _previewTabs[originalTab.id] ?? originalTab;
+  }
+
   String? get activeTabId => _activeTabId;
   bool get isLoading => _isLoading;
   int get tabCount => _tabs.length;
@@ -25,13 +33,19 @@ class TabManagerVM extends ChangeNotifier {
   void addTab(
     String url,
     String displayName, {
+    String? id,
     String? customInputXPath,
     String? customSubmitXPath,
     bool isEnabled = true,
     bool isDisplayed = true,
+    int viewportTop = 0,
+    int viewportBottom = 0,
+    int viewportLeft = 0,
+    int viewportRight = 0,
+    bool viewportDisabled = false,
   }) {
     final newTab = LLMTab(
-      id: const Uuid().v4(),
+      id: id ?? const Uuid().v4(),
       url: url,
       displayName: displayName,
       createdAt: DateTime.now(),
@@ -39,6 +53,11 @@ class TabManagerVM extends ChangeNotifier {
       isDisplayed: isDisplayed,
       customInputXPath: customInputXPath,
       customSubmitXPath: customSubmitXPath,
+      viewportTop: viewportTop,
+      viewportBottom: viewportBottom,
+      viewportLeft: viewportLeft,
+      viewportRight: viewportRight,
+      viewportDisabled: viewportDisabled,
     );
 
     _tabs.add(newTab);
@@ -66,6 +85,10 @@ class TabManagerVM extends ChangeNotifier {
   /// 切换活跃标签页
   void switchTab(String tabId) {
     if (_tabs.any((tab) => tab.id == tabId)) {
+      // 清除之前活跃标签页的预览状态
+      if (_activeTabId != null) {
+        clearTabPreview(_activeTabId!);
+      }
       _activeTabId = tabId;
       notifyListeners();
     }
@@ -84,13 +107,18 @@ class TabManagerVM extends ChangeNotifier {
     final index = _tabs.indexWhere((tab) => tab.id == updatedTab.id);
     if (index != -1) {
       _tabs[index] = updatedTab;
-      
+
+      // 清除预览状态
+      clearTabPreview(updatedTab.id);
+
       // 如果正在隐藏活跃的标签页，自动切换到第一个可见的标签页
       if (_activeTabId == updatedTab.id && !updatedTab.isDisplayed) {
-        final firstVisibleTab = _tabs.firstWhereOrNull((tab) => tab.isDisplayed);
+        final firstVisibleTab = _tabs.firstWhereOrNull(
+          (tab) => tab.isDisplayed,
+        );
         _activeTabId = firstVisibleTab?.id;
       }
-      
+
       notifyListeners();
       _persistTabs();
     }
@@ -98,9 +126,15 @@ class TabManagerVM extends ChangeNotifier {
 
   /// 预览更新标签页的视口设置（不持久化，用于对话框实时预览）
   void updateTabPreview(LLMTab updatedTab) {
-    final index = _tabs.indexWhere((tab) => tab.id == updatedTab.id);
-    if (index != -1) {
-      _tabs[index] = updatedTab;
+    // 只更新预览状态，不修改原始_tab数据
+    _previewTabs[updatedTab.id] = updatedTab;
+    notifyListeners();
+  }
+
+  /// 清除指定tab的预览状态
+  void clearTabPreview(String tabId) {
+    if (_previewTabs.containsKey(tabId)) {
+      _previewTabs.remove(tabId);
       notifyListeners();
     }
   }
