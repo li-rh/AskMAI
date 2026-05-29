@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../utils/theme_config.dart';
 import '../../models/exports.dart';
 import '../../viewmodels/exports.dart';
 import 'tab_bar.dart';
@@ -424,14 +425,7 @@ class _SettingsTabItemState extends State<_SettingsTabItem> {
                     arrowHeight: arrowHeight,
                     borderRadius: borderRadius,
                   ),
-                  shadows: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.12),
-                      blurRadius: 10,
-                      spreadRadius: 0,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
+                  shadows: [],
                 ),
                 child: SizedBox(
                   width: menuWidth,

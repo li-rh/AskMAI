@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../../utils/theme_config.dart';
 import '../../services/exports.dart';
 import '../../viewmodels/exports.dart';
 import '../widgets/exports.dart';
@@ -394,9 +395,11 @@ class _ChatScreenState extends State<ChatScreen> {
                               color: Theme.of(context).scaffoldBackgroundColor,
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.08),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, -2),
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.white.withValues(alpha: 0.08)
+                                      : Colors.black.withValues(alpha: 0.08),
+                                  blurRadius: AppThemeConfig.shadowBlur,
+                                  offset: Offset(0, AppThemeConfig.shadowOffsetY),
                                 ),
                               ],
                             ),
@@ -471,8 +474,8 @@ class _LeftButtonColumn extends StatelessWidget {
         final isViewportEnabled = activeTab != null && !activeTab.viewportDisabled;
 
         return Container(
-          width: 52,
-          padding: const EdgeInsets.symmetric(vertical: 4),
+          width: 48,
+          padding: const EdgeInsets.only(left: 10, right: 0, top: 10, bottom: 0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -562,23 +565,22 @@ class _LeftIconButtonState extends State<_LeftIconButton>
         color: Colors.transparent,
         child: InkWell(
           onTap: _handleTap,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(18),
           child: Container(
-            width: 40,
-            height: 40,
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              color: colorScheme.primary.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
               border: Border.all(
-                color: colorScheme.primary.withValues(alpha: 0.3),
-                width: 1,
+                color: colorScheme.primary.withValues(alpha: 0.5),
+                width: 1.5,
               ),
             ),
             child: Center(
               child: Icon(
                 widget.icon,
                 color: widget.iconColor ?? colorScheme.primary,
-                size: 20,
+                size: 16,
               ),
             ),
           ),

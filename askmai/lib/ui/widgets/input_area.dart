@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../utils/theme_config.dart';
 import '../../services/exports.dart';
 import '../../viewmodels/exports.dart';
 
@@ -134,12 +135,21 @@ class _InputAreaState extends State<InputArea> {
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(20),
+                        color: colorScheme.surface,
+                        border: Border.all(
+                          color: theme.brightness == Brightness.light
+                              ? Colors.black.withValues(alpha: 0.06)
+                              : Colors.white.withValues(alpha: 0.12),
+                          width: 1,
+                        ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
+                            color: theme.brightness == Brightness.light
+                                ? Colors.black.withValues(alpha: 0.08)
+                                : Colors.white.withValues(alpha: 0.08),
+                            blurRadius: 16,
+                            offset: const Offset(0, 4),
                           ),
                         ],
                       ),
@@ -161,38 +171,26 @@ class _InputAreaState extends State<InputArea> {
                             fontSize: 14,
                           ),
                           filled: true,
-                          fillColor: colorScheme.surface,
+                          fillColor: Colors.transparent,
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16,
                             vertical: 14,
                           ),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: theme.dividerColor,
-                              width: 1,
-                            ),
+                            borderRadius: BorderRadius.circular(20),
+                            borderSide: BorderSide.none,
                           ),
                           enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: theme.dividerColor,
-                              width: 1,
-                            ),
+                            borderRadius: BorderRadius.circular(20),
+                            borderSide: BorderSide.none,
                           ),
                           focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: colorScheme.primary,
-                              width: 2,
-                            ),
+                            borderRadius: BorderRadius.circular(20),
+                            borderSide: BorderSide.none,
                           ),
                           disabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: theme.dividerColor,
-                              width: 1,
-                            ),
+                            borderRadius: BorderRadius.circular(20),
+                            borderSide: BorderSide.none,
                           ),
                         ),
                       ),
@@ -208,10 +206,10 @@ class _InputAreaState extends State<InputArea> {
                       child: Material(
                         color: Colors.transparent,
                         child: Container(
-                          height: 48,
-                          width: 48,
+                          height: 40,
+                          width: 40,
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
+                            shape: BoxShape.circle,
                             gradient: isDisabled
                                 ? LinearGradient(
                                     colors: [
@@ -233,17 +231,6 @@ class _InputAreaState extends State<InputArea> {
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
                                   ),
-                            boxShadow: [
-                              BoxShadow(
-                                color:
-                                    (isDisabled
-                                            ? colorScheme.onSurface
-                                            : colorScheme.primary)
-                                        .withValues(alpha: 0.3),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
                           ),
                           child: Material(
                             color: Colors.transparent,
@@ -254,14 +241,14 @@ class _InputAreaState extends State<InputArea> {
                                       distributorVM,
                                       tabManagerVM,
                                     ),
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(20),
                               child: Center(
                                 child: distributorVM.isSubmitting
                                     ? SizedBox(
-                                        width: 24,
-                                        height: 24,
+                                        width: 20,
+                                        height: 20,
                                         child: CircularProgressIndicator(
-                                          strokeWidth: 2.5,
+                                          strokeWidth: 2,
                                           valueColor:
                                               AlwaysStoppedAnimation<Color>(
                                                   colorScheme.onPrimary),
@@ -270,7 +257,7 @@ class _InputAreaState extends State<InputArea> {
                                     : Icon(
                                         Icons.send_rounded,
                                         color: colorScheme.onPrimary,
-                                        size: 22,
+                                        size: 18,
                                       ),
                               ),
                             ),

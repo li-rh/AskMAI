@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../utils/theme_config.dart' show AppThemeConfig;
 import '../../models/exports.dart';
 import '../../viewmodels/exports.dart';
 
@@ -57,12 +58,12 @@ class LLMTabBar extends StatelessWidget {
                   message: 'Add new tab',
                   child: InkWell(
                     onTap: onAddTab,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
                     child: Container(
                       width: 32,
                       height: 32,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                         color: colorScheme.primary.withValues(alpha: 0.1),
                       ),
                       child: Icon(
@@ -166,25 +167,18 @@ class _ModernTabButtonState extends State<_ModernTabButton> {
             followerAnchor: Alignment.bottomLeft,
             // 传入水平和垂直的偏移量，高度留出 6dp 气泡微小间距
             offset: Offset(finalOffsetX, -6.0),
-            child: Material(
+              child: Material(
               color: Colors.transparent,
               elevation: 0,
               child: Container(
                 decoration: ShapeDecoration(
-                  color: colorScheme.surface, // 主题自适应背景色
+                  color: colorScheme.surface,
                   shape: BubbleShapeBorder(
                     arrowX: arrowX,
                     arrowHeight: arrowHeight,
                     borderRadius: borderRadius,
                   ),
-                  shadows: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.12),
-                      blurRadius: 10,
-                      spreadRadius: 0,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
+                  shadows: AppThemeConfig.menuShadow(theme.brightness == Brightness.dark),
                 ),
                 child: SizedBox(
                   width: menuWidth,
@@ -291,7 +285,7 @@ class _ModernTabButtonState extends State<_ModernTabButton> {
         child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
             color: widget.isActive
                 ? colorScheme.primary.withValues(alpha: 0.1)
                 : colorScheme.surface, // Clean white (surface) for inactive tabs!
@@ -336,16 +330,6 @@ class _ModernTabButtonState extends State<_ModernTabButton> {
                     color: !widget.tab.isEnabled
                         ? Colors.grey[400]!
                         : _getStatusColor(),
-                    boxShadow: [
-                      BoxShadow(
-                        color: (!widget.tab.isEnabled
-                                ? Colors.grey[400]!
-                                : _getStatusColor())
-                            .withValues(alpha: 0.4),
-                        blurRadius: 3,
-                        spreadRadius: 0,
-                      ),
-                    ],
                   ),
                 ),
               ],

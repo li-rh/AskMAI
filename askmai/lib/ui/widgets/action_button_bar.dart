@@ -132,10 +132,20 @@ class _ActionButtonState extends State<_ActionButton>
                 Stack(
                   alignment: Alignment.topRight,
                   children: [
-                    Icon(
-                      widget.icon,
-                      color: colorScheme.primary,
-                      size: 20,
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: colorScheme.primary,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Icon(
+                        widget.icon,
+                        color: colorScheme.primary,
+                        size: 14,
+                      ),
                     ),
                     if (widget.showPlusIcon)
                       Container(

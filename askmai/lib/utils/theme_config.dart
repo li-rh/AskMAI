@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 /// 应用主题配置 - 支持浅色和深色主题
 class AppThemeConfig {
   // 浅色主题颜色 - 黑白灰浅色系
-  static const Color lightBackground = Color(0xFFF5F5F5);
+  static const Color lightBackground = Color(0xFFFFFFFF);
   static const Color lightSurface = Color(0xFFFFFFFF);
   static const Color lightPrimary = Color(0xFF5B77D2);
   static const Color lightPrimaryLight = Color(0xFF7A92E8);
@@ -21,6 +21,22 @@ class AppThemeConfig {
   static const Color darkTextSecondary = Color(0xFFB0B0B0);
   static const Color darkDivider = Color(0xFF2C2C2C);
   static const Color darkBorder = Color(0xFF333333);
+
+  // UI与WebView之间的软隔离阴影
+  static const double shadowBlur = 5.0;
+  static const double shadowOffsetY = -3.0;
+
+  // 右键菜单阴影
+  static List<BoxShadow> menuShadow(bool isDark) => [
+    BoxShadow(
+      color: isDark ? Colors.white.withValues(alpha: 0.5) : Colors.black.withValues(alpha: 0.5),
+      blurRadius: shadowBlur,
+      offset: Offset(0, shadowBlur / 2),
+    ),
+  ];
+
+  static List<BoxShadow> get lightMenuShadow => menuShadow(false);
+  static List<BoxShadow> get darkMenuShadow => menuShadow(true);
 
   /// 构建浅色主题
   static ThemeData buildLightTheme() {
