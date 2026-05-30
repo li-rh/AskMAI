@@ -3,7 +3,7 @@
     "chatgpt": {
       "id": "chatgpt",
       "urlPattern": "^https://chat\\.openai\\.com",
-      "inputXPath": "//textarea[@name='prompt-textarea']",
+      "inputXPath": "//div[@id='prompt-textarea']",
       "submitXPath": "//button[@data-testid='send-button']",
       "displayName": "ChatGPT",
       "isDisplay": true,
@@ -66,6 +66,18 @@
       "inputXPath": "div[role=\"textbox\"][aria-multiline=\"true\"][data-slate-editor]",
       "submitXPath": "//button[@aria-label='发送消息']",
       "displayName": "千问",
+      "isDisplay": true,
+      "viewportTop": 0,
+      "viewportBottom": 0,
+      "viewportLeft": 0,
+      "viewportRight": 0
+    },
+      "qwen": {
+      "id": "qianwen",
+      "urlPattern": "^https://chat\\.qwen\\.ai",
+      "inputXPath": "//textarea[@class='message-input-textarea']",
+      "submitXPath": "//button[contains(@class,'send-button')]",
+      "displayName": "Qwen",
       "isDisplay": true,
       "viewportTop": 0,
       "viewportBottom": 0,

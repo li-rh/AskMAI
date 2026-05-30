@@ -190,6 +190,36 @@ class TabManagerVM extends ChangeNotifier {
         _initDefaultTabs();
       } else {
         _activeTabId = activeTabId ?? _tabs.first.id;
+        
+        // 自动合并 site_config.json 中新增的模型
+        final siteRegistry = SiteRegistry();
+        final configs = siteRegistry.getAllConfigs();
+        bool isNewTabAdded = false;
+        
+        for (final config in configs) {
+          if (config.isDisplay) {
+            final exists = _tabs.any((tab) => tab.displayName == config.displayName);
+            if (!exists) {
+              String startUrl = config.urlPattern;
+              if (startUrl.startsWith('^')) {
+                startUrl = startUrl.substring(1);
+              }
+              startUrl = startUrl.replaceAll('\\.', '.');
+              
+              _tabs.add(LLMTab(
+                id: const Uuid().v4(),
+                url: startUrl,
+                displayName: config.displayName,
+                createdAt: DateTime.now(),
+              ));
+              isNewTabAdded = true;
+            }
+          }
+        }
+        
+        if (isNewTabAdded) {
+          await _prefs.saveTabUrls(_tabs);
+        }
       }
     } catch (e) {
       print('Error restoring tabs: $e');
