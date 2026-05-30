@@ -201,10 +201,6 @@ class TabManagerVM extends ChangeNotifier {
             final exists = _tabs.any((tab) => tab.displayName == config.displayName);
             if (!exists) {
               String startUrl = config.urlPattern;
-              if (startUrl.startsWith('^')) {
-                startUrl = startUrl.substring(1);
-              }
-              startUrl = startUrl.replaceAll('\\.', '.');
               
               _tabs.add(LLMTab(
                 id: const Uuid().v4(),
@@ -239,12 +235,7 @@ class TabManagerVM extends ChangeNotifier {
 
     for (final config in configs) {
       if (config.isDisplay) { // 只添加默认显示为 true 的
-        // 简单处理正则表达式转换回有效URL（例如把 ^https://www\.doubao\.com 转换为 https://www.doubao.com）
         String startUrl = config.urlPattern;
-        if (startUrl.startsWith('^')) {
-          startUrl = startUrl.substring(1);
-        }
-        startUrl = startUrl.replaceAll('\\.', '.');
         
         final newTab = LLMTab(
           id: const Uuid().v4(),

@@ -61,12 +61,7 @@ class SiteConfig {
 
   /// 检查URL是否匹配此网站配置
   bool matchesUrl(String url) {
-    try {
-      final regex = RegExp(urlPattern);
-      return regex.hasMatch(url);
-    } catch (e) {
-      return false;
-    }
+    return url.startsWith(urlPattern);
   }
 
   @override

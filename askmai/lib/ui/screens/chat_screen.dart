@@ -233,13 +233,7 @@ class _ChatScreenState extends State<ChatScreen> {
       String defaultUrl = tab.url; // 默认回退为当前URL
 
       if (config != null) {
-        // 简单处理正则表达式转换回有效URL
-        String startUrl = config.urlPattern;
-        if (startUrl.startsWith('^')) {
-          startUrl = startUrl.substring(1);
-        }
-        startUrl = startUrl.replaceAll('\\.', '.');
-        defaultUrl = startUrl;
+        defaultUrl = config.urlPattern;
       }
 
       // 更新tab的URL

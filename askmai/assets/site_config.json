@@ -2,7 +2,7 @@
   "sites": {
     "chatgpt": {
       "id": "chatgpt",
-      "urlPattern": "^https://chat\\.openai\\.com",
+      "urlPattern": "https://chat.openai.com",
       "inputXPath": "//div[@id='prompt-textarea']",
       "submitXPath": "//button[@data-testid='send-button']",
       "displayName": "ChatGPT",
@@ -15,7 +15,7 @@
     },
     "claude": {
       "id": "claude",
-      "urlPattern": "^https://claude\\.ai",
+      "urlPattern": "https://claude.ai",
       "inputXPath": "//textarea[@placeholder='Message Claude']",
       "submitXPath": "//button[contains(@aria-label, 'Send')]",
       "displayName": "Claude",
@@ -28,7 +28,7 @@
     },
     "gemini": {
       "id": "gemini",
-      "urlPattern": "^https://gemini\\.google\\.com",
+      "urlPattern": "https://gemini.google.com",
       "inputXPath": "//div[@aria-label='Enter a prompt for Gemini' and @contenteditable='true']",
       "submitXPath": "//mat-icon[@data-mat-icon-name='arrow_upward']",
       "displayName": "Gemini",
@@ -41,7 +41,7 @@
     },
     "doubao": {
       "id": "doubao",
-      "urlPattern": "^https://www\\.doubao\\.com",
+      "urlPattern": "https://www.doubao.com",
       "inputXPath": "//textarea[@data-testid='chat_input_input'] | //textarea[contains(@class, 'semi-input-textarea')]",
       "submitXPath": "//button[@id='flow-end-msg-send']",
       "displayName": "豆包",
@@ -54,9 +54,9 @@
     },
     "deepseek": {
       "id": "deepseek",
-      "urlPattern": "^https://chat\\.deepseek\\.com",
+      "urlPattern": "https://chat.deepseek.com",
       "inputXPath": "//textarea[@placeholder='给 DeepSeek 发送消息 ']",
-      "submitXPath": "div[role=\"button\"][aria-disabled=\"false\"].ds-icon-button [d*=\"M8.3125\"]",
+      "submitXPath": "div[role='button'][aria-disabled='false'].ds-icon-button [d*='M8.3125']",
       "displayName": "DeepSeek",
       "isDisplay": true,
       "viewportTop": 0,
@@ -67,8 +67,8 @@
     },
     "qianwen": {
       "id": "qianwen",
-      "urlPattern": "^https://(www\\.)?qianwen\\.com",
-      "inputXPath": "div[role=\"textbox\"][aria-multiline=\"true\"][data-slate-editor]",
+      "urlPattern": "https://www.qianwen.com",
+      "inputXPath": "div[role='textbox'][aria-multiline='true'][data-slate-editor]",
       "submitXPath": "//button[@aria-label='发送消息']",
       "displayName": "千问",
       "isDisplay": true,
@@ -80,7 +80,7 @@
     },
     "qwen": {
       "id": "qianwen",
-      "urlPattern": "^https://chat\\.qwen\\.ai",
+      "urlPattern": "https://chat.qwen.ai",
       "inputXPath": "//textarea[@class='message-input-textarea']",
       "submitXPath": "//button[contains(@class,'send-button')]",
       "displayName": "Qwen",
@@ -93,7 +93,7 @@
     },
     "yuanbao": {
       "id": "yuanbao",
-      "urlPattern": "^https://yuanbao\\.tencent\\.com",
+      "urlPattern": "https://yuanbao.tencent.com",
       "inputXPath": "//div[contains(@class, 'ql-editor') and @contenteditable='true']",
       "submitXPath": "//*[@id='yuanbao-send-btn']",
       "displayName": "元宝",
