@@ -16,14 +16,6 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  // 默认的 LLM 标签页配置
-  static const List<Map<String, String>> _defaultTabs = [
-    {'url': 'https://www.doubao.com/chat/', 'name': '豆包'},
-    {'url': 'https://chat.deepseek.com/', 'name': 'DeepSeek'},
-    {'url': 'https://www.qianwen.com/', 'name': '千问'},
-    {'url': 'https://yuanbao.tencent.com/', 'name': '元宝'},
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -230,11 +222,25 @@ class _ChatScreenState extends State<ChatScreen> {
 
     final tabVM = context.read<TabManagerVM>();
     final webViewService = context.read<WebViewService>();
+    final siteRegistry = SiteRegistry();
 
     // 重置所有tabs的URL为默认值
-    for (int i = 0; i < tabVM.tabs.length && i < _defaultTabs.length; i++) {
+    for (int i = 0; i < tabVM.tabs.length; i++) {
       final tab = tabVM.tabs[i];
-      final defaultUrl = _defaultTabs[i]['url']!;
+      
+      // 尝试通过URL找回原始的配置
+      final config = siteRegistry.getConfigByUrl(tab.url);
+      String defaultUrl = tab.url; // 默认回退为当前URL
+
+      if (config != null) {
+        // 简单处理正则表达式转换回有效URL
+        String startUrl = config.urlPattern;
+        if (startUrl.startsWith('^')) {
+          startUrl = startUrl.substring(1);
+        }
+        startUrl = startUrl.replaceAll('\\.', '.');
+        defaultUrl = startUrl;
+      }
 
       // 更新tab的URL
       final updatedTab = tab.copyWith(url: defaultUrl);

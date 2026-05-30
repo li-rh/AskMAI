@@ -3,7 +3,7 @@
     "chatgpt": {
       "id": "chatgpt",
       "urlPattern": "^https://chat\\.openai\\.com",
-      "inputXPath": "//textarea[@placeholder='Message ChatGPT']",
+      "inputXPath": "//textarea[@name='prompt-textarea']",
       "submitXPath": "//button[@data-testid='send-button']",
       "displayName": "ChatGPT",
       "isDisplay": true,
@@ -27,9 +27,9 @@
     "gemini": {
       "id": "gemini",
       "urlPattern": "^https://gemini\\.google\\.com",
-      "inputXPath": "//textarea[@aria-label='Message Gemini']",
-      "submitXPath": "//button[@aria-label='Send']",
-      "displayName": "Google Gemini",
+      "inputXPath": "//div[@aria-label='Enter a prompt for Gemini' and @contenteditable='true']",
+      "submitXPath": "//mat-icon[@data-mat-icon-name='arrow_upward']",
+      "displayName": "Gemini",
       "isDisplay": true,
       "viewportTop": 0,
       "viewportBottom": 0,

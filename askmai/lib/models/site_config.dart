@@ -20,6 +20,9 @@ class SiteConfig {
   /// 显示名称
   final String displayName;
 
+  /// 是否默认显示
+  final bool isDisplay;
+
   /// 视口上边距 (px)，用于调整网页显示区域
   final int viewportTop;
 
@@ -38,6 +41,7 @@ class SiteConfig {
     required this.inputXPath,
     required this.submitXPath,
     required this.displayName,
+    this.isDisplay = true,
     this.viewportTop = 0,
     this.viewportBottom = 0,
     this.viewportLeft = 0,

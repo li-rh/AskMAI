@@ -202,26 +202,33 @@ class TabManagerVM extends ChangeNotifier {
     }
   }
 
-  /// 初始化默认标签页（豆包、DeepSeek、千问、元宝）
+  /// 初始化默认标签页（基于site_config.json）
   void _initDefaultTabs() {
-    const defaults = [
-      ('https://www.doubao.com', '豆包'),
-      ('https://chat.deepseek.com', 'DeepSeek'),
-      ('https://www.qianwen.com', '千问'),
-      ('https://yuanbao.tencent.com', '元宝'),
-    ];
+    final siteRegistry = SiteRegistry();
+    final configs = siteRegistry.getAllConfigs();
 
-    for (final (url, name) in defaults) {
-      final newTab = LLMTab(
-        id: const Uuid().v4(),
-        url: url,
-        displayName: name,
-        createdAt: DateTime.now(),
-      );
-      _tabs.add(newTab);
+    for (final config in configs) {
+      if (config.isDisplay) { // 只添加默认显示为 true 的
+        // 简单处理正则表达式转换回有效URL（例如把 ^https://www\.doubao\.com 转换为 https://www.doubao.com）
+        String startUrl = config.urlPattern;
+        if (startUrl.startsWith('^')) {
+          startUrl = startUrl.substring(1);
+        }
+        startUrl = startUrl.replaceAll('\\.', '.');
+        
+        final newTab = LLMTab(
+          id: const Uuid().v4(),
+          url: startUrl,
+          displayName: config.displayName,
+          createdAt: DateTime.now(),
+        );
+        _tabs.add(newTab);
+      }
     }
 
-    _activeTabId = _tabs.first.id;
+    if (_tabs.isNotEmpty) {
+      _activeTabId = _tabs.first.id;
+    }
     _persistTabs();
   }
 
