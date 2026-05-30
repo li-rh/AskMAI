@@ -17,6 +17,7 @@ SiteConfig _$SiteConfigFromJson(Map<String, dynamic> json) => SiteConfig(
   viewportBottom: (json['viewportBottom'] as num?)?.toInt() ?? 0,
   viewportLeft: (json['viewportLeft'] as num?)?.toInt() ?? 0,
   viewportRight: (json['viewportRight'] as num?)?.toInt() ?? 0,
+  strategy: json['strategy'] as String?,
 );
 
 Map<String, dynamic> _$SiteConfigToJson(SiteConfig instance) =>
@@ -31,4 +32,5 @@ Map<String, dynamic> _$SiteConfigToJson(SiteConfig instance) =>
       'viewportBottom': instance.viewportBottom,
       'viewportLeft': instance.viewportLeft,
       'viewportRight': instance.viewportRight,
+      'strategy': instance.strategy,
     };

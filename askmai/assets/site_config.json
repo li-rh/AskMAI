@@ -10,7 +10,8 @@
       "viewportTop": 0,
       "viewportBottom": 0,
       "viewportLeft": 0,
-      "viewportRight": 0
+      "viewportRight": 0,
+      "strategy": "generic"
     },
     "claude": {
       "id": "claude",
@@ -22,7 +23,8 @@
       "viewportTop": 0,
       "viewportBottom": 0,
       "viewportLeft": 0,
-      "viewportRight": 0
+      "viewportRight": 0,
+      "strategy": "generic"
     },
     "gemini": {
       "id": "gemini",
@@ -34,7 +36,8 @@
       "viewportTop": 0,
       "viewportBottom": 0,
       "viewportLeft": 0,
-      "viewportRight": 0
+      "viewportRight": 0,
+      "strategy": "generic"
     },
     "doubao": {
       "id": "doubao",
@@ -46,7 +49,8 @@
       "viewportTop": 0,
       "viewportBottom": 0,
       "viewportLeft": 0,
-      "viewportRight": 0
+      "viewportRight": 0,
+      "strategy": "generic"
     },
     "deepseek": {
       "id": "deepseek",
@@ -58,11 +62,12 @@
       "viewportTop": 0,
       "viewportBottom": 0,
       "viewportLeft": 0,
-      "viewportRight": 0
+      "viewportRight": 0,
+      "strategy": "generic"
     },
     "qianwen": {
       "id": "qianwen",
-      "urlPattern": "^https://www\\.qianwen\\.com",
+      "urlPattern": "^https://(www\\.)?qianwen\\.com",
       "inputXPath": "div[role=\"textbox\"][aria-multiline=\"true\"][data-slate-editor]",
       "submitXPath": "//button[@aria-label='发送消息']",
       "displayName": "千问",
@@ -70,9 +75,10 @@
       "viewportTop": 0,
       "viewportBottom": 0,
       "viewportLeft": 0,
-      "viewportRight": 0
+      "viewportRight": 0,
+      "strategy": "react_fiber"
     },
-      "qwen": {
+    "qwen": {
       "id": "qianwen",
       "urlPattern": "^https://chat\\.qwen\\.ai",
       "inputXPath": "//textarea[@class='message-input-textarea']",
@@ -82,7 +88,8 @@
       "viewportTop": 0,
       "viewportBottom": 0,
       "viewportLeft": 0,
-      "viewportRight": 0
+      "viewportRight": 0,
+      "strategy": "generic"
     },
     "yuanbao": {
       "id": "yuanbao",
@@ -94,7 +101,8 @@
       "viewportTop": 0,
       "viewportBottom": 0,
       "viewportLeft": 0,
-      "viewportRight": 0
+      "viewportRight": 0,
+      "strategy": "generic"
     }
   }
 }

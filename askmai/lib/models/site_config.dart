@@ -35,6 +35,9 @@ class SiteConfig {
   /// 视口右边距 (px)
   final int viewportRight;
 
+  /// 注入策略名称 (例如: 'generic', 'react_fiber')
+  final String? strategy;
+
   SiteConfig({
     required this.id,
     required this.urlPattern,
@@ -46,6 +49,7 @@ class SiteConfig {
     this.viewportBottom = 0,
     this.viewportLeft = 0,
     this.viewportRight = 0,
+    this.strategy,
   });
 
   /// 从JSON创建SiteConfig

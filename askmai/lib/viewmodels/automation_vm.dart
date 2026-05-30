@@ -46,6 +46,7 @@ class AutomationVM extends ChangeNotifier {
       // 获取网站配置或使用自定义XPath
       String inputXPath = tab.customInputXPath ?? '';
       String submitXPath = tab.customSubmitXPath ?? '';
+      String? strategyName;
 
       // 如果没有自定义XPath，尝试从site_config获取
       if (inputXPath.isEmpty || submitXPath.isEmpty) {
@@ -58,8 +59,13 @@ class AutomationVM extends ChangeNotifier {
             tabId: tabId,
           );
         }
+        strategyName = siteConfig.strategy;
         inputXPath = tab.customInputXPath ?? siteConfig.inputXPath;
         submitXPath = tab.customSubmitXPath ?? siteConfig.submitXPath;
+      } else {
+        // 如果使用了自定义配置，仍尝试获取strategy用于匹配策略
+        final siteConfig = _siteRegistry.getConfigByUrl(tab.url);
+        strategyName = siteConfig?.strategy;
       }
 
       print(
@@ -73,6 +79,7 @@ class AutomationVM extends ChangeNotifier {
         submitXPath,
         message,
         tabId,
+        strategyName: strategyName,
       );
 
       print('Submission result for $tabId: ${result.getStatusString()}');
