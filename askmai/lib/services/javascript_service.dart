@@ -132,9 +132,6 @@ class JavascriptService {
           return JSON.stringify({ success: false, error: 'Submit button is disabled', step: 'click' });
         }
         _simulateClick(btn);
-        if (typeof btn.click === 'function') {
-          btn.click();
-        }
         return JSON.stringify({ success: true, method: 'click' });
       } catch (e) {
         return JSON.stringify({ success: false, error: e.message, step: 'click' });
