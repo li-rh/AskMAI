@@ -19,6 +19,10 @@ void main() async {
   final prefsService = PreferencesService();
   await prefsService.init();
 
+  // --- 临时调试代码：清空 SharedPreferences 配置 (不会清除 WebView Cookie) ---
+  await prefsService.clearAll();
+  // ----------------------------------------------------------------------
+
   // 初始化SiteRegistry
   final siteRegistry = SiteRegistry();
   await siteRegistry.loadConfigs();

@@ -71,19 +71,30 @@ flutter run -d <device_id>
 
 - **ChatGPT** (https://chat.openai.com)
 - **Claude** (https://claude.ai)
-- **Google Gemini** (https://gemini.google.com)
-- **Doubao** (https://www.doubao.com)
+- **Gemini** (https://gemini.google.com)
+- **豆包** (https://www.doubao.com)
+- **DeepSeek** (https://chat.deepseek.com)
+- **千问** (https://www.qianwen.com)
+- **Qwen** (https://chat.qwen.ai)
+- **元宝** (https://yuanbao.tencent.com)
 
 **如何配置新网站？**
 编辑 `assets/site_config.json` 或直接在 App 内的设置中添加。使用浏览器开发者工具（F12）查找输入框和提交按钮的 XPath：
 ```json
 {
   "sites": {
-    "siteName": {
-      "urlPattern": "^https://example\\.com",
+    "site_id": {
+      "id": "site_id",
+      "displayName": "Example LLM",
+      "urlPattern": "https://example.com",
       "inputXPath": "//textarea[@id='input']",
       "submitXPath": "//button[@id='submit']",
-      "displayName": "Example LLM"
+      "isDisplay": true,
+      "viewportTop": 0,
+      "viewportBottom": 0,
+      "viewportLeft": 0,
+      "viewportRight": 0,
+      "strategy": "generic"
     }
   }
 }
@@ -116,11 +127,10 @@ lib/
 ## ⚠️ 目前已知问题
 
 - **输入限制**：目前仅支持发送纯文本，暂不支持发送图片、文档等多模态文件内容。
-- **注入兼容性**：当前网页文本注入及事件触发的方式较为单一。对于部分前端框架较复杂的自定义 AI 网页，可能会出现注入失败的情况（例如：目前已知的网页版**通义千问**无法正确响应现有的文本注入逻辑）。
 
 ## 📝 后续待办事项 (TODO)
 
-- [ ] **注入引擎升级**：支持多种更底层的文本注入方式与事件模拟（例如 React/Vue 特殊事件劫持），解决千问等站点的兼容性问题。
+- [ ] **注入引擎升级**：支持多种更底层的文本注入方式与事件模拟（例如 React/Vue 特殊事件劫持）。
 - [ ] **多模态支持**：支持图片/文件的拖拽上传与识别。
 - [ ] **内置浏览器闭环**：支持在软件内部以标准浏览器形态打开 AI 回答中的网页外链。
 - [ ] **桌面端开发**：增加更丰富的全局快捷键支持与系统托盘能力。
