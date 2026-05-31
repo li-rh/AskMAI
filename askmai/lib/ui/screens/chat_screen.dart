@@ -60,7 +60,50 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
-  void _handleBackPress() {
+  Future<void> _handleBackPress() async {
+    if (!mounted) return;
+
+    // 1. 优先检测并关闭软键盘（执行 JS blur 确保原生 WebView 中的输入框失去焦点，收起键盘）
+    try {
+      final keyboardManager = context.read<KeyboardVisibilityManager>();
+      if (keyboardManager.isVisible) {
+        final tabVM = context.read<TabManagerVM>();
+        final activeTabId = tabVM.activeTabId;
+        if (activeTabId != null) {
+          final webViewService = context.read<WebViewService>();
+          final controller = webViewService.getWebView(activeTabId);
+          if (controller != null) {
+            await controller.runJavaScript(
+              'if (document.activeElement) { document.activeElement.blur(); }'
+            );
+          }
+        }
+        FocusManager.instance.primaryFocus?.unfocus();
+        return;
+      }
+    } catch (e) {
+      debugPrint('[BackPress] Error closing native keyboard: $e');
+    }
+
+    // 2. 检查 WebView 是否可以后退
+    try {
+      final tabVM = context.read<TabManagerVM>();
+      final activeTabId = tabVM.activeTabId;
+      if (activeTabId != null) {
+        final webViewService = context.read<WebViewService>();
+        final controller = webViewService.getWebView(activeTabId);
+        if (controller != null) {
+          final canGoBack = await controller.canGoBack();
+          if (canGoBack) {
+            await controller.goBack();
+            return;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('[BackPress] Error handling webview back navigation: $e');
+    }
+
     final now = DateTime.now();
     if (_lastBackPressTime == null ||
         now.difference(_lastBackPressTime!) > const Duration(milliseconds: 1500)) {

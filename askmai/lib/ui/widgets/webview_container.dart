@@ -51,15 +51,25 @@ class _WebViewContainerState extends State<WebViewContainer> {
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageStarted: (String url) {
-            setState(() {
-              _isLoading = true;
-              _hasError = false;
-            });
+            if (mounted) {
+              setState(() {
+                _isLoading = true;
+                _hasError = false;
+              });
+            }
           },
-          onPageFinished: (String url) {
-            setState(() {
-              _isLoading = false;
-            });
+          onPageFinished: (String url) async {
+            if (mounted) {
+              setState(() {
+                _isLoading = false;
+              });
+            }
+            try {
+              final canGo = await _controller.canGoBack();
+              debugPrint('[WebView] Page finished: $url, canGoBack: $canGo');
+            } catch (e) {
+              debugPrint('[WebView] Error checking canGoBack on page finish: $e');
+            }
           },
           onWebResourceError: (WebResourceError error) {
             if (error.isForMainFrame == true && mounted) {
@@ -67,6 +77,14 @@ class _WebViewContainerState extends State<WebViewContainer> {
                 _hasError = true;
                 _isLoading = false;
               });
+            }
+          },
+          onUrlChange: (UrlChange change) async {
+            try {
+              final canGo = await _controller.canGoBack();
+              debugPrint('[WebView] URL changed: ${change.url}, canGoBack: $canGo');
+            } catch (e) {
+              debugPrint('[WebView] Error checking canGoBack on URL change: $e');
             }
           },
         ),
