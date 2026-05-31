@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -16,6 +17,65 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
+  DateTime? _lastBackPressTime;
+  OverlayEntry? _toastOverlayEntry;
+  Timer? _toastTimer;
+
+  @override
+  void dispose() {
+    _toastTimer?.cancel();
+    _toastOverlayEntry?.remove();
+    _toastOverlayEntry = null;
+    super.dispose();
+  }
+
+  void _showExitToast() {
+    _toastTimer?.cancel();
+    if (_toastOverlayEntry != null) {
+      _toastOverlayEntry!.remove();
+      _toastOverlayEntry = null;
+    }
+
+    _toastOverlayEntry = OverlayEntry(
+      builder: (context) => const Positioned(
+        bottom: 140,
+        left: 0,
+        right: 0,
+        child: Align(
+          alignment: Alignment.center,
+          child: ToastBubble(
+            message: '再返回一次退出',
+          ),
+        ),
+      ),
+    );
+
+    Overlay.of(context).insert(_toastOverlayEntry!);
+
+    _toastTimer = Timer(const Duration(milliseconds: 1500), () {
+      if (_toastOverlayEntry != null) {
+        _toastOverlayEntry!.remove();
+        _toastOverlayEntry = null;
+      }
+    });
+  }
+
+  void _handleBackPress() {
+    final now = DateTime.now();
+    if (_lastBackPressTime == null ||
+        now.difference(_lastBackPressTime!) > const Duration(milliseconds: 1500)) {
+      _lastBackPressTime = now;
+      _showExitToast();
+    } else {
+      _toastTimer?.cancel();
+      if (_toastOverlayEntry != null) {
+        _toastOverlayEntry!.remove();
+        _toastOverlayEntry = null;
+      }
+      SystemNavigator.pop();
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -274,7 +334,13 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     return Consumer<AppSettingsVM>(
       builder: (context, settingsVM, _) {
-        return Scaffold(
+        return PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop) return;
+            _handleBackPress();
+          },
+          child: Scaffold(
           appBar: settingsVM.showAppBar
               ? AppBar(
                   title: const Text('AskMAI - Multi-LLM Chat'),
@@ -445,10 +511,11 @@ class _ChatScreenState extends State<ChatScreen> {
               },
             ),
           ),
-        );
-      },
-    );
-  }
+        ),
+      );
+    },
+  );
+}
 }
 
 /// 左侧功能按钮列，独立于输入框
