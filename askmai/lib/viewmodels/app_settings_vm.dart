@@ -9,9 +9,12 @@ class AppSettingsVM extends ChangeNotifier {
   // 主题模式: 'light', 'dark', 'auto'
   late String _themeMode;
   bool _showAppBar = true;
+  // 网页加载策略: 'concurrent', 'sequential', 'lazy'
+  late String _webLoadStrategy;
 
   String get themeMode => _themeMode;
   bool get showAppBar => _showAppBar;
+  String get webLoadStrategy => _webLoadStrategy;
 
   // 虚拟显示设置
   double _virtualTopGap = 0.0;
@@ -28,8 +31,17 @@ class AppSettingsVM extends ChangeNotifier {
   Future<void> _initSettings() async {
     _themeMode = _prefsService.getThemeMode() ?? 'light';
     _showAppBar = _prefsService.getShowAppBar() ?? true;
+    _webLoadStrategy = _prefsService.getWebLoadStrategy() ?? 'sequential';
     _virtualTopGap = _prefsService.getVirtualTopGap();
     _virtualBottomGap = _prefsService.getVirtualBottomGap();
+    notifyListeners();
+  }
+
+  /// 设置网页加载策略
+  Future<void> setWebLoadStrategy(String strategy) async {
+    if (_webLoadStrategy == strategy) return;
+    _webLoadStrategy = strategy;
+    await _prefsService.setWebLoadStrategy(strategy);
     notifyListeners();
   }
 
@@ -72,8 +84,10 @@ class AppSettingsVM extends ChangeNotifier {
   Future<void> resetToDefaults() async {
     _themeMode = 'light';
     _showAppBar = true;
+    _webLoadStrategy = 'sequential';
     await _prefsService.setThemeMode(_themeMode);
     await _prefsService.setShowAppBar(_showAppBar);
+    await _prefsService.setWebLoadStrategy(_webLoadStrategy);
     notifyListeners();
   }
 }

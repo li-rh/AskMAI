@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../../models/exports.dart';
 import '../../services/exports.dart';
@@ -34,11 +36,43 @@ class _WebViewContainerState extends State<WebViewContainer> {
   Offset? _pointerDownPosition;
   bool _isScrolling = false;
 
+  bool _hasLoadedRequest = false;
+  Timer? _loadTimer;
+
   @override
   void initState() {
     super.initState();
     if (widget.tab != null && _isMobilePlatform) {
       _initializeWebView();
+    }
+  }
+
+  @override
+  void dispose() {
+    _loadTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(WebViewContainer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.tab?.id != widget.tab?.id || oldWidget.tab?.url != widget.tab?.url) {
+      _loadTimer?.cancel();
+      _loadTimer = null;
+      setState(() {
+        _hasLoadedRequest = false;
+        _isLoading = false;
+        _hasError = false;
+      });
+      if (widget.tab != null && _isMobilePlatform) {
+        _initializeWebView();
+      }
+    } else {
+      // 检查是否在延迟或懒加载策略中，由于切换激活需要立刻加载
+      final activeTabId = widget.tabManagerVM.activeTabId;
+      if (widget.tab != null && widget.tab!.id == activeTabId && !_hasLoadedRequest) {
+        _loadRequestNow();
+      }
     }
   }
 
@@ -76,17 +110,15 @@ class _WebViewContainerState extends State<WebViewContainer> {
           },
           onPageFinished: (String url) async {
             if (mounted) {
-              if (mounted) {
               setState(() {
-                  _isLoading = false;
-                });
-            }
-            try {
-              final canGo = await _controller.canGoBack();
-              debugPrint('[WebView] Page finished: $url, canGoBack: $canGo');
-            } catch (e) {
-              debugPrint('[WebView] Error checking canGoBack on page finish: $e');
-            }
+                _isLoading = false;
+              });
+              try {
+                final canGo = await _controller.canGoBack();
+                debugPrint('[WebView] Page finished: $url, canGoBack: $canGo');
+              } catch (e) {
+                debugPrint('[WebView] Error checking canGoBack on page finish: $e');
+              }
               // We do not immediately set WebLoadingStatus to loaded here to prevent a brief
               // flash of green before the JS framework starts rendering. Instead, the injected
               // MutationObserver will decide when it transitions to active (yellow) or loaded (green).
@@ -110,11 +142,62 @@ class _WebViewContainerState extends State<WebViewContainer> {
             }
           },
         ),
-      )
-      ..loadRequest(Uri.parse(tab.url));
+      );
 
     widget.webViewService.addWebView(tab.id, _controller);
     widget.tabManagerVM.setWebViewController(tab.id, _controller);
+
+    _startLoadRequest();
+  }
+
+  void _startLoadRequest() {
+    if (!mounted || widget.tab == null) return;
+    final tab = widget.tab!;
+
+    final settingsVM = Provider.of<AppSettingsVM>(context, listen: false);
+    final strategy = settingsVM.webLoadStrategy;
+    final activeTabId = widget.tabManagerVM.activeTabId;
+
+    if (strategy == 'concurrent') {
+      _loadRequestNow();
+    } else if (strategy == 'lazy') {
+      if (tab.id == activeTabId) {
+        _loadRequestNow();
+      } else {
+        // 懒加载模式下未激活的标签，暂时在UI上显示骨架屏
+        // 将状态重置为 loading 触发其显示骨架屏和 loading 环
+        widget.tabManagerVM.setWebStatus(tab.id, WebLoadingStatus.loading);
+      }
+    } else if (strategy == 'sequential') {
+      if (tab.id == activeTabId) {
+        _loadRequestNow();
+      } else {
+        final displayedTabs = widget.tabManagerVM.tabs
+            .where((t) => t.isDisplayed)
+            .toList();
+        final index = displayedTabs.indexWhere((t) => t.id == tab.id);
+        final delayMs = (index >= 0 ? index : 0) * 1500;
+
+        _loadTimer = Timer(Duration(milliseconds: delayMs), () {
+          _loadRequestNow();
+        });
+      }
+    }
+  }
+
+  void _loadRequestNow() {
+    if (_hasLoadedRequest) return;
+    _loadTimer?.cancel();
+    _loadTimer = null;
+
+    if (mounted && widget.tab != null) {
+      setState(() {
+        _hasLoadedRequest = true;
+        _isLoading = true;
+      });
+      widget.tabManagerVM.setWebStatus(widget.tab!.id, WebLoadingStatus.loading);
+      _controller.loadRequest(Uri.parse(widget.tab!.url));
+    }
   }
 
   Future<void> _injectDomObserver() async {
@@ -313,6 +396,13 @@ class _WebViewContainerState extends State<WebViewContainer> {
       );
     }
 
+    if (!_hasLoadedRequest) {
+      return SkeletonPlaceholder(
+        displayName: tab.displayName,
+        url: tab.url,
+      );
+    }
+
     if (_hasError) {
       return Container(
         color: theme.scaffoldBackgroundColor,
@@ -454,6 +544,186 @@ class _WebViewContainerState extends State<WebViewContainer> {
           ],
         );
       },
+    );
+  }
+}
+
+/// 网页加载就绪占位骨架屏
+class SkeletonPlaceholder extends StatefulWidget {
+  final String displayName;
+  final String url;
+
+  const SkeletonPlaceholder({
+    Key? key,
+    required this.displayName,
+    required this.url,
+  }) : super(key: key);
+
+  @override
+  State<SkeletonPlaceholder> createState() => _SkeletonPlaceholderState();
+}
+
+class _SkeletonPlaceholderState extends State<SkeletonPlaceholder>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _opacityAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
+    _opacityAnimation = Tween<double>(begin: 0.35, end: 0.85).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Container(
+      color: theme.scaffoldBackgroundColor,
+      width: double.infinity,
+      height: double.infinity,
+      child: Center(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // 呼吸发光 AI 标志占位符
+              AnimatedBuilder(
+                animation: _opacityAnimation,
+                builder: (context, child) {
+                  return Opacity(
+                    opacity: _opacityAnimation.value,
+                    child: Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: colorScheme.primary.withValues(alpha: 0.1),
+                        border: Border.all(
+                          color: colorScheme.primary.withValues(alpha: 0.3),
+                          width: 2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: colorScheme.primary.withValues(alpha: 0.15),
+                            blurRadius: 20,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        Icons.blur_on_rounded,
+                        size: 40,
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 24),
+              // 就绪加载文字
+              Text(
+                '${widget.displayName} 正在就绪',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '等待激活以加载 ${widget.url}',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.5),
+                ),
+              ),
+              const SizedBox(height: 32),
+              // 骨架屏模拟聊天气泡块
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 40),
+                child: Column(
+                  children: [
+                    _buildSkeletonLine(width: 0.4, alignLeft: true, colorScheme: colorScheme),
+                    const SizedBox(height: 12),
+                    _buildSkeletonLine(width: 0.7, alignLeft: false, colorScheme: colorScheme),
+                    const SizedBox(height: 12),
+                    _buildSkeletonLine(width: 0.5, alignLeft: true, colorScheme: colorScheme),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSkeletonLine({
+    required double width,
+    required bool alignLeft,
+    required ColorScheme colorScheme,
+  }) {
+    return Align(
+      alignment: alignLeft ? Alignment.centerLeft : Alignment.centerRight,
+      child: AnimatedBuilder(
+        animation: _opacityAnimation,
+        builder: (context, child) {
+          return Opacity(
+            opacity: _opacityAnimation.value,
+            child: Container(
+              height: 48,
+              width: MediaQuery.of(context).size.width * width,
+              decoration: BoxDecoration(
+                color: alignLeft
+                    ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.4)
+                    : colorScheme.primaryContainer.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.only(
+                  topLeft: const Radius.circular(16),
+                  topRight: const Radius.circular(16),
+                  bottomLeft: Radius.circular(alignLeft ? 4 : 16),
+                  bottomRight: Radius.circular(alignLeft ? 16 : 4),
+                ),
+              ),
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    height: 8,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: colorScheme.onSurfaceVariant.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    height: 8,
+                    width: MediaQuery.of(context).size.width * width * 0.6,
+                    decoration: BoxDecoration(
+                      color: colorScheme.onSurfaceVariant.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 }

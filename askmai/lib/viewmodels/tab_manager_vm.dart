@@ -108,6 +108,7 @@ class TabManagerVM extends ChangeNotifier {
       }
       _activeTabId = tabId;
       notifyListeners();
+      _persistTabs();
     }
   }
 

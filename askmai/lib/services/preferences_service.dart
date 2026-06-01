@@ -103,6 +103,26 @@ class PreferencesService {
 
   static const String _themeModeKey = 'theme_mode';
   static const String _showAppBarKey = 'show_app_bar';
+  static const String _webLoadStrategyKey = 'web_load_strategy';
+
+  /// 保存网页加载策略
+  Future<void> setWebLoadStrategy(String strategy) async {
+    try {
+      await _prefs.setString(_webLoadStrategyKey, strategy);
+    } catch (e) {
+      print('Error saving web load strategy: $e');
+    }
+  }
+
+  /// 读取网页加载策略
+  String? getWebLoadStrategy() {
+    try {
+      return _prefs.getString(_webLoadStrategyKey);
+    } catch (e) {
+      print('Error reading web load strategy: $e');
+      return null;
+    }
+  }
 
   /// 保存主题模式
   Future<void> setThemeMode(String mode) async {

@@ -154,6 +154,45 @@ class _SettingsBottomSheet extends StatelessWidget {
 
               const SizedBox(height: 16),
 
+              // 网页加载策略设置
+              _SettingsSection(
+                title: '网页加载策略',
+                child: Column(
+                  children: [
+                    _StrategyOption(
+                      title: '仅在切换时加载（极速）',
+                      subtitle: '最节省流量和内存，点击标签页才开始加载网页',
+                      value: 'lazy',
+                      currentValue: settingsVM.webLoadStrategy,
+                      onChanged: (value) {
+                        settingsVM.setWebLoadStrategy(value);
+                      },
+                    ),
+                    _StrategyOption(
+                      title: '顺序排队加载（推荐，均衡）',
+                      subtitle: '先加载活跃网页，其余网页每隔 1.5 秒依次载入',
+                      value: 'sequential',
+                      currentValue: settingsVM.webLoadStrategy,
+                      onChanged: (value) {
+                        settingsVM.setWebLoadStrategy(value);
+                      },
+                    ),
+                    _StrategyOption(
+                      title: '同时并发加载（常规）',
+                      subtitle: '启动应用时在后台同时加载所有网页',
+                      value: 'concurrent',
+                      currentValue: settingsVM.webLoadStrategy,
+                      onChanged: (value) {
+                        settingsVM.setWebLoadStrategy(value);
+                      },
+                      isLast: true,
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
               // AI Tab 配置
               Consumer<TabManagerVM>(
                 builder: (context, tabManagerVM, _) {
@@ -308,7 +347,6 @@ class _ThemeOption extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final isSelected = currentValue == value;
 
     return Material(
       color: Colors.transparent,
@@ -331,6 +369,85 @@ class _ThemeOption extends StatelessWidget {
                 title,
                 style: theme.textTheme.titleMedium,
               ),
+              Radio<String>(
+                value: value,
+                groupValue: currentValue,
+                onChanged: (val) {
+                  if (val != null) onChanged(val);
+                },
+                activeColor: colorScheme.primary,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 网页加载策略选项
+class _StrategyOption extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final String value;
+  final String currentValue;
+  final Function(String) onChanged;
+  final bool isLast;
+
+  const _StrategyOption({
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.currentValue,
+    required this.onChanged,
+    this.isLast = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isSelected = currentValue == value;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => onChanged(value),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          decoration: BoxDecoration(
+            border: isLast
+                ? null
+                : Border(
+                    bottom: BorderSide(
+                      color: theme.dividerColor.withValues(alpha: 0.5),
+                      width: 0.5,
+                    ),
+                  ),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: isSelected ? FontWeight.w600 : null,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
               Radio<String>(
                 value: value,
                 groupValue: currentValue,
