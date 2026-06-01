@@ -20,7 +20,7 @@ void main() async {
   await prefsService.init();
 
   // --- 临时调试代码：清空 SharedPreferences 配置 (不会清除 WebView Cookie) ---
-  await prefsService.clearAll();
+  // await prefsService.clearAll();
   // ----------------------------------------------------------------------
 
   // 初始化AppConfig并加载配置

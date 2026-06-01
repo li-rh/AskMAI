@@ -228,19 +228,27 @@ class _SettingsBottomSheet extends StatelessWidget {
                           ),
                           const SizedBox(height: 8),
                           // 显示标签页列表
-                          if (tabManagerVM.tabs.isNotEmpty)
-                            Column(
-                              children: [
-                                const SizedBox(height: 8),
-                                ...tabManagerVM.tabs.map((tab) {
-                                  return _SettingsTabItem(
-                                    key: ValueKey(tab.id),
-                                    tab: tab,
-                                    tabManagerVM: tabManagerVM,
-                                  );
-                                }).toList(),
-                              ],
+                          if (tabManagerVM.tabs.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            ReorderableListView(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              buildDefaultDragHandles: false,
+                              onReorder: (oldIndex, newIndex) {
+                                tabManagerVM.reorderTabs(oldIndex, newIndex);
+                              },
+                              children: tabManagerVM.tabs.asMap().entries.map((entry) {
+                                final index = entry.key;
+                                final tab = entry.value;
+                                return _SettingsTabItem(
+                                  key: ValueKey(tab.id),
+                                  index: index,
+                                  tab: tab,
+                                  tabManagerVM: tabManagerVM,
+                                );
+                              }).toList(),
                             ),
+                          ],
                         ],
                       ),
                     ),
@@ -553,11 +561,13 @@ class _StrategyOption extends StatelessWidget {
 class _SettingsTabItem extends StatefulWidget {
   final LLMTab tab;
   final TabManagerVM tabManagerVM;
+  final int index;
 
   const _SettingsTabItem({
     Key? key,
     required this.tab,
     required this.tabManagerVM,
+    required this.index,
   }) : super(key: key);
 
   @override
@@ -977,27 +987,39 @@ class _SettingsTabItemState extends State<_SettingsTabItem> {
       padding: const EdgeInsets.only(bottom: 8),
       child: CompositedTransformTarget(
         link: _layerLink,
-        child: GestureDetector(
-          onLongPress: () {
-            _showContextMenu(context);
-          },
-          onSecondaryTap: () {
-            _showContextMenu(context);
-          },
-          child: Container(
-            decoration: BoxDecoration(
-              color: colorScheme.surface,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: widget.tab.isEnabled
-                    ? colorScheme.primary.withValues(alpha: 0.3)
-                    : Colors.grey.withValues(alpha: 0.3),
-              ),
+        child: Container(
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: widget.tab.isEnabled
+                  ? colorScheme.primary.withValues(alpha: 0.3)
+                  : Colors.grey.withValues(alpha: 0.3),
             ),
-            padding: const EdgeInsets.all(8),
-            child: Row(
-              children: [
-                Expanded(
+          ),
+          padding: const EdgeInsets.all(8),
+          child: Row(
+            children: [
+              ReorderableDragStartListener(
+                index: widget.index,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 8, left: 4),
+                  child: Icon(
+                    Icons.drag_handle,
+                    color: colorScheme.onSurface.withValues(alpha: 0.4),
+                    size: 20,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: GestureDetector(
+                  onLongPress: () {
+                    _showContextMenu(context);
+                  },
+                  onSecondaryTap: () {
+                    _showContextMenu(context);
+                  },
+                  behavior: HitTestBehavior.opaque,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1024,25 +1046,26 @@ class _SettingsTabItemState extends State<_SettingsTabItem> {
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
-                // 启用/禁用切换
-                Tooltip(
-                  message: widget.tab.isEnabled ? '禁用' : '启用',
-                  child: IconButton(
-                    icon: Icon(
-                      widget.tab.isEnabled ? Icons.check_circle : Icons.radio_button_unchecked,
-                      color: widget.tab.isEnabled ? Colors.orange : Colors.grey,
-                    ),
-                    onPressed: () {
-                      final willBeEnabled = !widget.tab.isEnabled;
-                      widget.tabManagerVM.updateTab(widget.tab.copyWith(
-                        isEnabled: willBeEnabled,
-                        isDisplayed: willBeEnabled ? true : widget.tab.isDisplayed,
-                      ));
-                    },
-                    iconSize: 20,
-                    padding: EdgeInsets.zero,
-                    visualDensity: VisualDensity.compact,
+              ),
+              const SizedBox(width: 8),
+              // 启用/禁用切换
+              Tooltip(
+                message: widget.tab.isEnabled ? '禁用' : '启用',
+                child: IconButton(
+                  icon: Icon(
+                    widget.tab.isEnabled ? Icons.check_circle : Icons.radio_button_unchecked,
+                    color: widget.tab.isEnabled ? Colors.orange : Colors.grey,
+                  ),
+                  onPressed: () {
+                    final willBeEnabled = !widget.tab.isEnabled;
+                    widget.tabManagerVM.updateTab(widget.tab.copyWith(
+                      isEnabled: willBeEnabled,
+                      isDisplayed: willBeEnabled ? true : widget.tab.isDisplayed,
+                    ));
+                  },
+                  iconSize: 20,
+                  padding: EdgeInsets.zero,
+                  visualDensity: VisualDensity.compact,
                   ),
                 ),
                 // 显示/隐藏切换
@@ -1069,9 +1092,8 @@ class _SettingsTabItemState extends State<_SettingsTabItem> {
             ),
           ),
         ),
-      ),
-    );
-  }
+      );
+    }
 }
 
 /// 显示标签页JSON编辑器
