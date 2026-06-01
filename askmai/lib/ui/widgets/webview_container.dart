@@ -3,6 +3,9 @@ import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../models/exports.dart';
 import '../../services/exports.dart';
 import '../../viewmodels/exports.dart';
@@ -162,6 +165,189 @@ class _WebViewContainerState extends State<WebViewContainer> {
           },
         ),
       );
+
+    // Setup file selector callback for Android
+    final platform = _controller.platform;
+    if (platform is AndroidWebViewController) {
+      platform.setOnShowFileSelector((FileSelectorParams params) async {
+        final List<String> paths = [];
+        try {
+          final bool allowMultiple = params.mode == FileSelectorMode.openMultiple;
+          
+          // First, split any comma-separated accept types and clean them
+          final List<String> resolvedTypes = [];
+          for (final type in params.acceptTypes) {
+            if (type.contains(',')) {
+              resolvedTypes.addAll(type.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty));
+            } else {
+              final trimmed = type.trim();
+              if (trimmed.isNotEmpty) {
+                resolvedTypes.add(trimmed);
+              }
+            }
+          }
+          
+          debugPrint('[WebView] onShowFileSelector: resolvedTypes=$resolvedTypes, isCaptureEnabled=${params.isCaptureEnabled}');
+
+          // 1. If capture is requested (e.g. capture="camera"), open camera directly
+          if (params.isCaptureEnabled) {
+            final ImagePicker picker = ImagePicker();
+            final XFile? image = await picker.pickImage(source: ImageSource.camera);
+            if (image != null) {
+              paths.add(Uri.file(image.path).toString());
+            }
+            return paths;
+          }
+
+          // Determine the file type filter and check if it is image-only
+          FileType fileType = FileType.any;
+          List<String>? allowedExtensions;
+          bool isImageOnly = false;
+          
+          if (resolvedTypes.isNotEmpty) {
+            const imageExtensions = {
+              '.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.heic', '.heif',
+              'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'heic', 'heif'
+            };
+            const videoExtensions = {
+              '.mp4', '.mov', '.avi', '.mkv', '.flv', '.3gp', '.webm',
+              'mp4', 'mov', 'avi', 'mkv', 'flv', '3gp', 'webm'
+            };
+            const audioExtensions = {
+              '.mp3', '.wav', '.m4a', '.aac', '.ogg', '.flac',
+              'mp3', 'wav', 'm4a', 'aac', 'ogg', 'flac'
+            };
+
+            final allImages = resolvedTypes.every((t) {
+              final lower = t.toLowerCase();
+              return lower.startsWith('image/') || imageExtensions.contains(lower);
+            });
+            
+            final allVideos = resolvedTypes.every((t) {
+              final lower = t.toLowerCase();
+              return lower.startsWith('video/') || videoExtensions.contains(lower);
+            });
+            
+            final allAudio = resolvedTypes.every((t) {
+              final lower = t.toLowerCase();
+              return lower.startsWith('audio/') || audioExtensions.contains(lower);
+            });
+            
+            if (allImages) {
+              fileType = FileType.image;
+              isImageOnly = true;
+            } else if (allVideos) {
+              fileType = FileType.video;
+            } else if (allAudio) {
+              fileType = FileType.audio;
+            } else {
+              // Extract extensions if any
+              final List<String> extensions = [];
+              bool hasUnmappableType = false;
+              
+              final Map<String, String> mimeToExt = {
+                'application/pdf': 'pdf',
+                'application/msword': 'doc',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+                'application/vnd.ms-excel': 'xls',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+                'application/vnd.ms-powerpoint': 'ppt',
+                'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
+                'text/plain': 'txt',
+                'text/html': 'html',
+                'application/json': 'json',
+                'application/zip': 'zip',
+              };
+
+              for (final type in resolvedTypes) {
+                final lower = type.toLowerCase();
+                if (lower.startsWith('.')) {
+                  extensions.add(lower.substring(1));
+                } else if (mimeToExt.containsKey(lower)) {
+                  extensions.add(mimeToExt[lower]!);
+                } else {
+                  hasUnmappableType = true;
+                }
+              }
+
+              if (extensions.isNotEmpty && !hasUnmappableType) {
+                fileType = FileType.custom;
+                allowedExtensions = extensions;
+              } else {
+                fileType = FileType.any;
+              }
+            }
+          }
+
+          // Show a beautiful modal bottom sheet to let the user select how they want to upload
+          final String? selectedSource = await showModalBottomSheet<String>(
+            context: context,
+            builder: (BuildContext context) {
+              return SafeArea(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    ListTile(
+                      leading: const Icon(Icons.photo_library),
+                      title: const Text('从相册选择'),
+                      onTap: () => Navigator.pop(context, 'gallery'),
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.camera_alt),
+                      title: const Text('拍照'),
+                      onTap: () => Navigator.pop(context, 'camera'),
+                    ),
+                    if (!isImageOnly)
+                      ListTile(
+                        leading: const Icon(Icons.insert_drive_file),
+                        title: const Text('选择文件/文档'),
+                        onTap: () => Navigator.pop(context, 'file'),
+                      ),
+                  ],
+                ),
+              );
+            },
+          );
+
+          if (selectedSource == 'gallery') {
+            final ImagePicker picker = ImagePicker();
+            if (allowMultiple) {
+              final List<XFile> images = await picker.pickMultiImage();
+              for (final image in images) {
+                paths.add(Uri.file(image.path).toString());
+              }
+            } else {
+              final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+              if (image != null) {
+                paths.add(Uri.file(image.path).toString());
+              }
+            }
+          } else if (selectedSource == 'camera') {
+            final ImagePicker picker = ImagePicker();
+            final XFile? image = await picker.pickImage(source: ImageSource.camera);
+            if (image != null) {
+              paths.add(Uri.file(image.path).toString());
+            }
+          } else if (selectedSource == 'file') {
+            final FilePickerResult? result = await FilePicker.platform.pickFiles(
+              allowMultiple: allowMultiple,
+              type: fileType,
+              allowedExtensions: allowedExtensions,
+            );
+            if (result != null && result.files.isNotEmpty) {
+              for (final file in result.files) {
+                if (file.path != null) {
+                  paths.add(Uri.file(file.path!).toString());
+                }
+              }
+            }
+          }
+        } catch (e) {
+          debugPrint('[WebView] Error picking files/images: $e');
+        }
+        return paths;
+      });
+    }
 
     widget.webViewService.addWebView(tab.id, _controller);
     widget.tabManagerVM.setWebViewController(tab.id, _controller);
