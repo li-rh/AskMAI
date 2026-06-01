@@ -38,6 +38,8 @@ class _WebViewContainerState extends State<WebViewContainer> {
 
   bool _hasLoadedRequest = false;
   Timer? _loadTimer;
+  Timer? _pageTimeoutTimer;
+  bool _showWebView = true;
 
   @override
   void initState() {
@@ -50,6 +52,7 @@ class _WebViewContainerState extends State<WebViewContainer> {
   @override
   void dispose() {
     _loadTimer?.cancel();
+    _pageTimeoutTimer?.cancel();
     super.dispose();
   }
 
@@ -59,10 +62,13 @@ class _WebViewContainerState extends State<WebViewContainer> {
     if (oldWidget.tab?.id != widget.tab?.id || oldWidget.tab?.url != widget.tab?.url) {
       _loadTimer?.cancel();
       _loadTimer = null;
+      _pageTimeoutTimer?.cancel();
+      _pageTimeoutTimer = null;
       setState(() {
         _hasLoadedRequest = false;
         _isLoading = false;
         _hasError = false;
+        _showWebView = true;
       });
       if (widget.tab != null && _isMobilePlatform) {
         _initializeWebView();
@@ -89,6 +95,7 @@ class _WebViewContainerState extends State<WebViewContainer> {
         'AskMAIDomChangeChannel',
         onMessageReceived: (JavaScriptMessage message) {
           if (!mounted) return;
+          if (_hasError) return; // Ignore DOM messages when displaying an error page
           final text = message.message;
           if (text == 'active') {
             widget.tabManagerVM.setWebStatus(tab.id, WebLoadingStatus.active);
@@ -100,19 +107,28 @@ class _WebViewContainerState extends State<WebViewContainer> {
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageStarted: (String url) {
+            if (url == 'about:blank') return;
             if (mounted) {
               setState(() {
                 _isLoading = true;
                 _hasError = false;
               });
               widget.tabManagerVM.setWebStatus(tab.id, WebLoadingStatus.loading);
+              _startPageTimeoutTimer();
             }
           },
           onPageFinished: (String url) async {
+            if (url == 'about:blank') return;
+            _cancelPageTimeoutTimer();
             if (mounted) {
               setState(() {
                 _isLoading = false;
+                _showWebView = true;
               });
+              if (_hasError) {
+                // If it already failed with an error, do not inject the DOM observer
+                return;
+              }
               try {
                 final canGo = await _controller.canGoBack();
                 debugPrint('[WebView] Page finished: $url, canGoBack: $canGo');
@@ -127,10 +143,13 @@ class _WebViewContainerState extends State<WebViewContainer> {
           },
           onWebResourceError: (WebResourceError error) {
             if (error.isForMainFrame == true && mounted) {
+              _cancelPageTimeoutTimer();
               setState(() {
                 _hasError = true;
                 _isLoading = false;
+                _showWebView = true;
               });
+              widget.tabManagerVM.setWebStatus(tab.id, WebLoadingStatus.error);
             }
           },
           onUrlChange: (UrlChange change) async {
@@ -196,8 +215,35 @@ class _WebViewContainerState extends State<WebViewContainer> {
         _isLoading = true;
       });
       widget.tabManagerVM.setWebStatus(widget.tab!.id, WebLoadingStatus.loading);
+      _startPageTimeoutTimer();
       _controller.loadRequest(Uri.parse(widget.tab!.url));
     }
+  }
+
+  void _startPageTimeoutTimer() {
+    _pageTimeoutTimer?.cancel();
+    _pageTimeoutTimer = Timer(const Duration(seconds: 12), () {
+      if (mounted && _isLoading && !_hasError) {
+        debugPrint('[WebView] Page load timed out after 12 seconds.');
+        try {
+          _controller.loadRequest(Uri.parse('about:blank'));
+        } catch (e) {
+          debugPrint('[WebView] Error loading about:blank on timeout: $e');
+        }
+        setState(() {
+          _hasError = true;
+          _isLoading = false;
+        });
+        if (widget.tab != null) {
+          widget.tabManagerVM.setWebStatus(widget.tab!.id, WebLoadingStatus.error);
+        }
+      }
+    });
+  }
+
+  void _cancelPageTimeoutTimer() {
+    _pageTimeoutTimer?.cancel();
+    _pageTimeoutTimer = null;
   }
 
   Future<void> _injectDomObserver() async {
@@ -396,13 +442,6 @@ class _WebViewContainerState extends State<WebViewContainer> {
       );
     }
 
-    if (!_hasLoadedRequest) {
-      return SkeletonPlaceholder(
-        displayName: tab.displayName,
-        url: tab.url,
-      );
-    }
-
     if (_hasError) {
       return Container(
         color: theme.scaffoldBackgroundColor,
@@ -413,7 +452,29 @@ class _WebViewContainerState extends State<WebViewContainer> {
               Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
               const SizedBox(height: 16),
               Text('Failed to Load Page', style: theme.textTheme.titleLarge),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Text(
+                  '网页加载失败。请检查您的网络连接或确认是否需要开启 VPN/代理服务（部分 AI 服务在特定地区需要代理访问）。',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.error,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Text(
+                  'Failed to load the page. Please check your network connection or try enabling a VPN/Proxy (some AI services require specific regional access).',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 32),
                 child: Text(
@@ -433,7 +494,12 @@ class _WebViewContainerState extends State<WebViewContainer> {
                       setState(() {
                         _hasError = false;
                         _isLoading = true;
+                        _showWebView = false;
                       });
+                      if (widget.tab != null) {
+                        widget.tabManagerVM.setWebStatus(widget.tab!.id, WebLoadingStatus.loading);
+                      }
+                      _startPageTimeoutTimer();
                       _controller.reload();
                     },
                     icon: const Icon(Icons.refresh),
@@ -458,6 +524,13 @@ class _WebViewContainerState extends State<WebViewContainer> {
             ],
           ),
         ),
+      );
+    }
+
+    if (!_hasLoadedRequest || !_showWebView) {
+      return SkeletonPlaceholder(
+        displayName: tab.displayName,
+        url: tab.url,
       );
     }
 
