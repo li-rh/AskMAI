@@ -106,9 +106,25 @@ class _ModernTabButton extends StatefulWidget {
   State<_ModernTabButton> createState() => _ModernTabButtonState();
 }
 
-class _ModernTabButtonState extends State<_ModernTabButton> {
+class _ModernTabButtonState extends State<_ModernTabButton> with SingleTickerProviderStateMixin {
   OverlayEntry? _overlayEntry;
   final LayerLink _layerLink = LayerLink();
+
+  // Breathing animation fields
+  AnimationController? _breathingController;
+  Animation<double>? _breathingAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _breathingController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
+    _breathingAnimation = Tween<double>(begin: 0.3, end: 1.0).animate(
+      CurvedAnimation(parent: _breathingController!, curve: Curves.easeInOut),
+    );
+  }
 
   void _showContextMenu(BuildContext context) {
     if (_overlayEntry != null) return; // 避免重复显示菜单
@@ -258,19 +274,93 @@ class _ModernTabButtonState extends State<_ModernTabButton> {
 
   @override
   void dispose() {
+    _breathingController?.dispose();
     _overlayEntry?.remove();
     super.dispose();
   }
 
-  Color _getStatusColor() {
-    if (widget.status == null) return Colors.grey[300]!;
-    return widget.status!.success ? Colors.green : Colors.red;
+  Widget _buildStatusIndicator(WebLoadingStatus webStatus) {
+    if (!widget.tab.isEnabled) {
+      return Container(
+        width: 8,
+        height: 8,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.grey[400]!,
+        ),
+      );
+    }
+
+    final isSubmissionError = widget.status != null && !widget.status!.success;
+    final isWebError = webStatus == WebLoadingStatus.error;
+
+    if (isSubmissionError || isWebError) {
+      return Container(
+        width: 8,
+        height: 8,
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.red,
+        ),
+      );
+    }
+
+    switch (webStatus) {
+      case WebLoadingStatus.loading:
+        return Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.grey[400]!,
+          ),
+        );
+      case WebLoadingStatus.active:
+        return AnimatedBuilder(
+          animation: _breathingAnimation!,
+          builder: (context, child) {
+            final opacity = _breathingAnimation!.value;
+            return Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.amber.withValues(alpha: opacity),
+              ),
+            );
+          },
+        );
+      case WebLoadingStatus.loaded:
+      default:
+        return Container(
+          width: 8,
+          height: 8,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.green,
+          ),
+        );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+
+    final tabManagerVM = Provider.of<TabManagerVM>(context);
+    final webStatus = tabManagerVM.getWebStatus(widget.tab.id);
+
+    // Control breathing animation based on status
+    if (widget.tab.isEnabled && webStatus == WebLoadingStatus.active) {
+      if (!_breathingController!.isAnimating) {
+        _breathingController!.repeat(reverse: true);
+      }
+    } else {
+      if (_breathingController!.isAnimating) {
+        _breathingController!.stop();
+      }
+    }
 
     return CompositedTransformTarget(
       link: _layerLink,
@@ -322,16 +412,7 @@ class _ModernTabButtonState extends State<_ModernTabButton> {
                 ),
                 const SizedBox(width: 6),
                 // 状态指示点
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: !widget.tab.isEnabled
-                        ? Colors.grey[400]!
-                        : _getStatusColor(),
-                  ),
-                ),
+                _buildStatusIndicator(webStatus),
               ],
             ),
           ),

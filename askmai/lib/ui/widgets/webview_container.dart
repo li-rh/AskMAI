@@ -45,21 +45,45 @@ class _WebViewContainerState extends State<WebViewContainer> {
   void _initializeWebView() {
     final tab = widget.tab!;
 
+    // 默认初始状态为正在加载
+    widget.tabManagerVM.setWebStatus(tab.id, WebLoadingStatus.loading);
+
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setUserAgent('Mozilla/5.0 (Linux; Android 13; Pixel 7 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Mobile Safari/537.36')
+      ..addJavaScriptChannel(
+        'AskMAIDomChangeChannel',
+        onMessageReceived: (JavaScriptMessage message) {
+          if (!mounted) return;
+          final text = message.message;
+          if (text == 'active') {
+            widget.tabManagerVM.setWebStatus(tab.id, WebLoadingStatus.active);
+          } else if (text == 'idle') {
+            widget.tabManagerVM.setWebStatus(tab.id, WebLoadingStatus.loaded);
+          }
+        },
+      )
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageStarted: (String url) {
-            setState(() {
-              _isLoading = true;
-              _hasError = false;
-            });
+            if (mounted) {
+              setState(() {
+                _isLoading = true;
+                _hasError = false;
+              });
+              widget.tabManagerVM.setWebStatus(tab.id, WebLoadingStatus.loading);
+            }
           },
           onPageFinished: (String url) {
-            setState(() {
-              _isLoading = false;
-            });
+            if (mounted) {
+              setState(() {
+                _isLoading = false;
+              });
+              // We do not immediately set WebLoadingStatus to loaded here to prevent a brief
+              // flash of green before the JS framework starts rendering. Instead, the injected
+              // MutationObserver will decide when it transitions to active (yellow) or loaded (green).
+              _injectDomObserver();
+            }
           },
           onWebResourceError: (WebResourceError error) {
             if (error.isForMainFrame == true && mounted) {
@@ -67,6 +91,7 @@ class _WebViewContainerState extends State<WebViewContainer> {
                 _hasError = true;
                 _isLoading = false;
               });
+              widget.tabManagerVM.setWebStatus(tab.id, WebLoadingStatus.error);
             }
           },
         ),
@@ -75,6 +100,165 @@ class _WebViewContainerState extends State<WebViewContainer> {
 
     widget.webViewService.addWebView(tab.id, _controller);
     widget.tabManagerVM.setWebViewController(tab.id, _controller);
+  }
+
+  Future<void> _injectDomObserver() async {
+    if (!mounted || widget.tab == null) return;
+    try {
+      const js = '''
+        (function() {
+          if (window.AskMAIDomObserver) {
+            try { window.AskMAIDomObserver.disconnect(); } catch(e) {}
+          }
+          if (window.AskMAICheckInterval) {
+            try { clearInterval(window.AskMAICheckInterval); } catch(e) {}
+          }
+          
+          var timer = null;
+          var safetyTimer = null;
+          var active = false;
+          var checkInterval = null;
+          
+          function post(status) {
+            try {
+              if (window.AskMAIDomChangeChannel) {
+                window.AskMAIDomChangeChannel.postMessage(status);
+              } else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.AskMAIDomChangeChannel) {
+                window.webkit.messageHandlers.AskMAIDomChangeChannel.postMessage(status);
+              } else if (typeof AskMAIDomChangeChannel !== 'undefined') {
+                AskMAIDomChangeChannel.postMessage(status);
+              }
+            } catch(e) {}
+          }
+          
+          function isGeneratingOrThinking() {
+            // 1. Check for visible stop/cancel buttons
+            var stopButtons = document.querySelectorAll('button, [role="button"]');
+            for (var i = 0; i < stopButtons.length; i++) {
+              var btn = stopButtons[i];
+              var label = (btn.getAttribute('aria-label') || btn.getAttribute('title') || btn.innerText || '').toLowerCase();
+              if (label.indexOf('stop') !== -1 || label.indexOf('停止') !== -1 || label.indexOf('中断') !== -1 || label.indexOf('cancel') !== -1) {
+                if (btn.offsetWidth > 0 && btn.offsetHeight > 0 && !btn.disabled) {
+                  return true;
+                }
+              }
+            }
+
+            // 2. Check for text indicators
+            var docText = document.body ? document.body.innerText : '';
+            if (docText.indexOf('正在思考') !== -1 || 
+                docText.indexOf('正在搜索') !== -1 || 
+                docText.indexOf('正在联网') !== -1 || 
+                docText.indexOf('Thinking...') !== -1 || 
+                docText.indexOf('Searching...') !== -1) {
+              return true;
+            }
+
+            // 3. Check for specific selectors (thinking/searching/streaming)
+            var selectors = [
+              '.ds-markdown--thought', 
+              '.thought-block', 
+              '.thinking', 
+              '.searching', 
+              '[data-testid="search-status"]',
+              '.search-pill',
+              '.result-streaming',
+              '.streaming',
+              '.typing-indicator',
+              '.loading-indicator'
+            ];
+            for (var j = 0; j < selectors.length; j++) {
+              var el = document.querySelector(selectors[j]);
+              if (el && el.offsetWidth > 0 && el.offsetHeight > 0) {
+                return true;
+              }
+            }
+
+            // 4. Check for active cursor elements
+            var cursors = document.querySelectorAll('.cursor, .blink, .pulse');
+            for (var k = 0; k < cursors.length; k++) {
+              var cursor = cursors[k];
+              if (cursor.offsetWidth > 0 && cursor.offsetHeight > 0 && cursor.tagName !== 'INPUT' && cursor.tagName !== 'TEXTAREA') {
+                return true;
+              }
+            }
+
+            return false;
+          }
+          
+          function updateState() {
+            var generating = isGeneratingOrThinking();
+            
+            if (generating) {
+              if (safetyTimer) {
+                clearTimeout(safetyTimer);
+                safetyTimer = null;
+              }
+              if (!active) {
+                active = true;
+                post("active");
+              }
+              if (timer) {
+                clearTimeout(timer);
+                timer = null;
+              }
+            } else {
+              if (active && !timer) {
+                timer = setTimeout(function() {
+                  if (!isGeneratingOrThinking()) {
+                    active = false;
+                    post("idle");
+                  }
+                  timer = null;
+                }, 1000);
+              }
+            }
+          }
+          
+          safetyTimer = setTimeout(function() {
+            if (!active) {
+              post("idle");
+            }
+            safetyTimer = null;
+          }, 3000);
+          
+          var observer = new MutationObserver(function(mutations) {
+            if (safetyTimer) {
+              clearTimeout(safetyTimer);
+              safetyTimer = null;
+            }
+            
+            if (!active) {
+              active = true;
+              post("active");
+            }
+            
+            if (timer) {
+              clearTimeout(timer);
+              timer = null;
+            }
+            
+            updateState();
+          });
+          
+          observer.observe(document.body || document.documentElement, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            characterData: true
+          });
+          
+          checkInterval = setInterval(updateState, 500);
+          
+          window.AskMAIDomObserver = observer;
+          window.AskMAICheckInterval = checkInterval;
+          return "initialized";
+        })();
+      ''';
+      await _controller.runJavaScript(js);
+    } catch (e) {
+      debugPrint("Error injecting DOM observer: \$e");
+    }
   }
 
   @override
