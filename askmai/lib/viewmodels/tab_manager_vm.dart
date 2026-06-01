@@ -14,6 +14,9 @@ class TabManagerVM extends ChangeNotifier {
   /// 存储视口调整的预览状态（不持久化）
   final Map<String, LLMTab> _previewTabs = {};
 
+  /// 存储各标签页网页的加载/变化状态（不持久化）
+  final Map<String, WebLoadingStatus> _webStatuses = {};
+
   TabManagerVM(this._prefs);
 
   // Getters
@@ -28,6 +31,19 @@ class TabManagerVM extends ChangeNotifier {
   String? get activeTabId => _activeTabId;
   bool get isLoading => _isLoading;
   int get tabCount => _tabs.length;
+
+  /// 获取指定标签页网页加载/变化状态
+  WebLoadingStatus getWebStatus(String tabId) {
+    return _webStatuses[tabId] ?? WebLoadingStatus.loading;
+  }
+
+  /// 设置指定标签页网页加载/变化状态
+  void setWebStatus(String tabId, WebLoadingStatus status) {
+    if (_webStatuses[tabId] != status) {
+      _webStatuses[tabId] = status;
+      notifyListeners();
+    }
+  }
 
   /// 添加新标签页
   void addTab(
@@ -72,6 +88,7 @@ class TabManagerVM extends ChangeNotifier {
   /// 删除标签页
   void removeTab(String tabId) {
     _tabs.removeWhere((tab) => tab.id == tabId);
+    _webStatuses.remove(tabId);
 
     // 如果删除的是活跃标签页，切换到其他的
     if (_activeTabId == tabId) {
@@ -257,6 +274,7 @@ class TabManagerVM extends ChangeNotifier {
   Future<void> clearAllTabs() async {
     _tabs.clear();
     _activeTabId = null;
+    _webStatuses.clear();
     notifyListeners();
     await _prefs.clearAll();
   }
