@@ -1,0 +1,46 @@
+name: Release APK
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-release-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.8.0"
+          channel: stable
+          cache: true
+
+      - name: Get dependencies
+        working-directory: askmai
+        run: flutter pub get
+
+      - name: Analyze
+        working-directory: askmai
+        run: flutter analyze
+
+      - name: Build APK
+        working-directory: askmai
+        run: flutter build apk --release
+
+      - name: Rename APK
+        run: |
+          cp askmai/build/app/outputs/flutter-apk/app-release.apk askmai/build/app/outputs/flutter-apk/AskMAI-${GITHUB_REF_NAME}.apk
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: askmai/build/app/outputs/flutter-apk/AskMAI-${{ github.ref_name }}.apk
+          generate_release_notes: true
