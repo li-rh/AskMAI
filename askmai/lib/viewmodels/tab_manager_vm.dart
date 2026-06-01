@@ -251,22 +251,31 @@ class TabManagerVM extends ChangeNotifier {
     final siteRegistry = SiteRegistry();
     final configs = siteRegistry.getAllConfigs();
 
+    final defaultEnabledNames = AppConfig().defaultEnabledTabs.toSet();
+
     for (final config in configs) {
       if (config.isDisplay) { // 只添加默认显示为 true 的
         String startUrl = config.urlPattern;
+        final isEnabled = defaultEnabledNames.contains(config.displayName);
         
         final newTab = LLMTab(
           id: const Uuid().v4(),
           url: startUrl,
           displayName: config.displayName,
           createdAt: DateTime.now(),
+          isEnabled: isEnabled,
+          isDisplayed: isEnabled,
         );
         _tabs.add(newTab);
       }
     }
 
     if (_tabs.isNotEmpty) {
-      _activeTabId = _tabs.first.id;
+      try {
+        _activeTabId = _tabs.firstWhere((tab) => tab.isDisplayed).id;
+      } catch (_) {
+        _activeTabId = _tabs.first.id;
+      }
     }
     _persistTabs();
   }

@@ -1,0 +1,13 @@
+{
+  "themeMode": "auto",
+  "showAppBar": false,
+  "webLoadStrategy": "sequential",
+  "defaultEnabledTabs": [
+    "ChatGPT",
+    "豆包",
+    "DeepSeek",
+    "千问",
+    "元宝"
+  ],
+  "githubUrl": "https://github.com/li-rh/AskMAI"
+}

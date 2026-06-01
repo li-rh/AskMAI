@@ -65,6 +65,7 @@ AskMAI/
 │   │   │   ├── javascript_service.dart
 │   │   │   ├── site_registry.dart
 │   │   │   ├── preferences_service.dart
+│   │   │   ├── app_config.dart          # 全局应用配置加载服务
 │   │   │   └── keyboard_visibility_manager.dart # 焦点与键盘可见性管理
 │   │   ├── viewmodels/              # 状态管理
 │   │   │   ├── tab_manager_vm.dart
@@ -86,7 +87,8 @@ AskMAI/
 │   │       ├── extensions.dart
 │   │       └── theme_config.dart    # 统一主题样式
 │   ├── assets/
-│   │   └── site_config.json         # LLM网站XPath配置
+│   │   ├── site_config.json         # LLM网站XPath配置
+│   │   └── app_config.json          # 全局应用默认配置（主题、标题栏、默认开启Tab、GitHub等）
 │   ├── android/                     # Android原生工程配置
 │   ├── ios/                         # iOS原生工程配置
 │   ├── windows/                     # Windows原生工程配置
@@ -243,6 +245,30 @@ function submitForm(inputXPath, submitXPath, messageText) {
 
 ---
 
+## Global Application Configuration
+
+The default application configuration (e.g. default theme, show/hide app bar, default web load strategy, default enabled tabs, and GitHub repository URL) is stored in `askmai/assets/app_config.json` and loaded at startup via the `AppConfig` service:
+
+```json
+{
+  "themeMode": "auto",
+  "showAppBar": false,
+  "webLoadStrategy": "sequential",
+  "defaultEnabledTabs": [
+    "ChatGPT",
+    "豆包",
+    "DeepSeek",
+    "千问",
+    "元宝"
+  ],
+  "githubUrl": "https://github.com/li-rh/AskMAI"
+}
+```
+
+This file serves as a single source of truth for the app's default settings and metadata, making it easy to modify defaults in the future.
+
+---
+
 ## 🔗 Quick Links
 
 - **Project Directory**: `D:\SyncFiles\Code\VScode\aaaTemp\AskMAI\`
@@ -250,4 +276,4 @@ function submitForm(inputXPath, submitXPath, messageText) {
 - **Design Doc**: `FLUTTER_MIGRATION_DESIGN.md`
 - **Impl Plan**: `FLUTTER_IMPLEMENTATION_PLAN.md`
 
-*Configuration updated on: 2026-05-29*
+*Configuration updated on: 2026-06-01*

@@ -54,6 +54,7 @@ AskMAI/
 │   │   │   ├── javascript_service.dart # Core JS injection orchestration
 │   │   │   ├── site_registry.dart   # Loads assets/site_config.json
 │   │   │   ├── preferences_service.dart
+│   │   │   ├── app_config.dart          # Loads assets/app_config.json
 │   │   │   ├── keyboard_visibility_manager.dart # Input focus protection
 │   │   │   └── injection/           # JS Injection Strategies
 │   │   │       ├── generic_strategy.dart    # Standard DOM XPath interaction
@@ -79,7 +80,8 @@ AskMAI/
 │   │       ├── extensions.dart
 │   │       └── theme_config.dart    # Unified theme definitions
 │   ├── assets/
-│   │   └── site_config.json         # Master configuration for XPath targets
+│   │   ├── site_config.json         # Master configuration for XPath targets
+│   │   └── app_config.json          # Global application default configurations
 ```
 
 ## 🔄 Data Flow (How queries are submitted)
@@ -112,11 +114,12 @@ To avoid common errors during implementation, strictly adhere to these guideline
 
 ## Development Conventions
 
-1. **Services as Singletons**: All core services (e.g., `SiteRegistry`, `WebViewService`) use the singleton pattern.
+1. **Services as Singletons**: All core services (e.g., `SiteRegistry`, `WebViewService`, `AppConfig`) use the singleton pattern.
 2. **Exports Pattern**: Every directory has an `exports.dart`. Import via `import '.../exports.dart';` to keep imports clean.
-3. **Initialization Order**: In `main.dart`, `PreferencesService` and `SiteRegistry` must be initialized before `runApp()`.
+3. **Initialization Order**: In `main.dart`, `PreferencesService`, `AppConfig`, and `SiteRegistry` must be initialized before `runApp()`.
 4. **JSON Serialization**: Models use `@JsonSerializable()`. Rerun `build_runner` after any model change.
 5. **XPath Interaction**: Target site structure via XPath defined in `assets/site_config.json`.
+6. **Default Configurations**: Default theme, title bar, web load strategy, default enabled tabs, and GitHub links are defined in `assets/app_config.json`.
 
 ## AI Behavior & Interaction Rules
 

@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../utils/theme_config.dart';
 import '../../models/exports.dart';
+import '../../services/exports.dart';
 import '../../viewmodels/exports.dart';
 import 'tab_bar.dart';
 
@@ -252,24 +254,43 @@ class _SettingsBottomSheet extends StatelessWidget {
               _SettingsSection(
                 title: '关于',
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            '版本',
-                            style: theme.textTheme.titleMedium,
+                      InkWell(
+                        onTap: () {
+                          _showGitHubDialog(context);
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                '版本',
+                                style: theme.textTheme.titleMedium,
+                              ),
+                              Row(
+                                children: [
+                                  Text(
+                                    settingsVM.appVersion,
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: theme.textTheme.bodySmall?.color,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Icon(
+                                    Icons.chevron_right,
+                                    size: 16,
+                                    color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.7),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
-                          Text(
-                            '1.0.0',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.textTheme.bodySmall?.color,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ],
                   ),
@@ -279,6 +300,70 @@ class _SettingsBottomSheet extends StatelessWidget {
               const SizedBox(height: 24),
             ],
           ),
+        );
+      },
+    );
+  }
+
+  void _showGitHubDialog(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.code, color: Colors.blue),
+              SizedBox(width: 8),
+              Text('访问 GitHub 仓库'),
+            ],
+          ),
+          content: const Text(
+            '是否跳转到 AskMAI 的 GitHub 开源仓库？\n\n您可以在这里反馈问题、提出建议或查看最新源代码。',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text(
+                '取消',
+                style: TextStyle(color: theme.textTheme.bodySmall?.color),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final messenger = ScaffoldMessenger.of(context);
+                Navigator.of(context).pop();
+                final url = Uri.parse(AppConfig().githubUrl);
+                try {
+                  bool launched = await launchUrl(url, mode: LaunchMode.externalApplication);
+                  if (!launched) {
+                    launched = await launchUrl(url, mode: LaunchMode.platformDefault);
+                  }
+                  if (!launched) {
+                    messenger.showSnackBar(
+                      const SnackBar(
+                        content: Text('无法打开链接，未找到浏览器或处理程序'),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text('跳转失败: $e'),
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colorScheme.primary,
+                foregroundColor: colorScheme.onPrimary,
+              ),
+              child: const Text('跳转'),
+            ),
+          ],
         );
       },
     );

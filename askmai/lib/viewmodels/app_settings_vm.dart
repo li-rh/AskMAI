@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../services/exports.dart';
 
 /// 应用全局设置 ViewModel
@@ -8,13 +9,15 @@ class AppSettingsVM extends ChangeNotifier {
 
   // 主题模式: 'light', 'dark', 'auto'
   late String _themeMode;
-  bool _showAppBar = true;
+  bool _showAppBar = false;
   // 网页加载策略: 'concurrent', 'sequential', 'lazy'
   late String _webLoadStrategy;
+  String _appVersion = '1.0.0';
 
   String get themeMode => _themeMode;
   bool get showAppBar => _showAppBar;
   String get webLoadStrategy => _webLoadStrategy;
+  String get appVersion => _appVersion;
 
   // 虚拟显示设置
   double _virtualTopGap = 0.0;
@@ -24,17 +27,24 @@ class AppSettingsVM extends ChangeNotifier {
   double get virtualBottomGap => _virtualBottomGap;
 
   AppSettingsVM(this._prefsService) {
+    final appConfig = AppConfig();
+    _themeMode = _prefsService.getThemeMode() ?? appConfig.themeMode;
+    _showAppBar = _prefsService.getShowAppBar() ?? appConfig.showAppBar;
+    _webLoadStrategy = _prefsService.getWebLoadStrategy() ?? appConfig.webLoadStrategy;
+    _virtualTopGap = _prefsService.getVirtualTopGap();
+    _virtualBottomGap = _prefsService.getVirtualBottomGap();
     _initSettings();
   }
 
   /// 从 SharedPreferences 初始化设置
   Future<void> _initSettings() async {
-    _themeMode = _prefsService.getThemeMode() ?? 'light';
-    _showAppBar = _prefsService.getShowAppBar() ?? true;
-    _webLoadStrategy = _prefsService.getWebLoadStrategy() ?? 'sequential';
-    _virtualTopGap = _prefsService.getVirtualTopGap();
-    _virtualBottomGap = _prefsService.getVirtualBottomGap();
-    notifyListeners();
+    try {
+      final packageInfo = await PackageInfo.fromPlatform();
+      _appVersion = packageInfo.version;
+      notifyListeners();
+    } catch (e) {
+      print('Error loading package info: $e');
+    }
   }
 
   /// 设置网页加载策略
@@ -82,9 +92,10 @@ class AppSettingsVM extends ChangeNotifier {
 
   /// 重置所有设置到默认值
   Future<void> resetToDefaults() async {
-    _themeMode = 'light';
-    _showAppBar = true;
-    _webLoadStrategy = 'sequential';
+    final appConfig = AppConfig();
+    _themeMode = appConfig.themeMode;
+    _showAppBar = appConfig.showAppBar;
+    _webLoadStrategy = appConfig.webLoadStrategy;
     await _prefsService.setThemeMode(_themeMode);
     await _prefsService.setShowAppBar(_showAppBar);
     await _prefsService.setWebLoadStrategy(_webLoadStrategy);

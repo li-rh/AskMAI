@@ -160,8 +160,9 @@ export 'model_b.dart';
 ### Service Initialization Order
 In `main.dart`, services must initialize sequentially:
 1. `PreferencesService.init()`
-2. `SiteRegistry.loadConfigs()`
-3. Then `runApp()` → Provider setup
+2. `AppConfig.loadConfig()`
+3. `SiteRegistry.loadConfigs()`
+4. Then `runApp()` → Provider setup
 
 ---
 
@@ -178,7 +179,8 @@ askmai/lib/
 │   ├── webview_service.dart           # Map<tabId, WebViewController>
 │   ├── javascript_service.dart        # JS injection + XPath
 │   ├── site_registry.dart             # site_config.json loader
-│   └── preferences_service.dart       # SharedPreferences wrapper
+│   ├── preferences_service.dart       # SharedPreferences wrapper
+│   └── app_config.dart                # app_config.json loader
 ├── viewmodels/                        # Observable state
 │   ├── tab_manager_vm.dart            # Tab lifecycle
 │   ├── automation_vm.dart             # JS execution orchestrator
@@ -194,7 +196,8 @@ askmai/lib/
     └── extensions.dart                # Dart extensions
 
 askmai/assets/
-└── site_config.json                   # LLM site XPath configurations
+├── site_config.json                   # LLM site XPath configurations
+└── app_config.json                    # Global app default configurations
 ```
 
 ---
@@ -218,6 +221,29 @@ askmai/assets/
 2. Use browser DevTools to find correct XPath expressions for the input field and submit button.
 
 3. Restart the app - configuration loads at startup.
+
+---
+
+## Modifying Default Application Configurations
+
+To change default settings such as the theme, title bar visibility, web loading strategy, default enabled tabs, or the GitHub repository link:
+1. Edit `askmai/assets/app_config.json`:
+```json
+{
+  "themeMode": "auto",
+  "showAppBar": false,
+  "webLoadStrategy": "sequential",
+  "defaultEnabledTabs": [
+    "ChatGPT",
+    "豆包",
+    "DeepSeek",
+    "千问",
+    "元宝"
+  ],
+  "githubUrl": "https://github.com/li-rh/AskMAI"
+}
+```
+2. Restart the app. The values will load dynamically at startup.
 
 ---
 
