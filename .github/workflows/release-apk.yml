@@ -48,16 +48,26 @@ jobs:
           echo "storePassword=$ANDROID_STORE_PASSWORD" >> askmai/android/key.properties
           echo "storeFile=upload-keystore.jks" >> askmai/android/key.properties
 
-      - name: Build APK
+      - name: Build APKs
         working-directory: askmai
-        run: flutter build apk --release
-
-      - name: Rename APK
         run: |
-          cp askmai/build/app/outputs/flutter-apk/app-release.apk askmai/build/app/outputs/flutter-apk/AskMAI-${GITHUB_REF_NAME}.apk
+          flutter build apk --release
+          flutter build apk --release --split-per-abi
+
+      - name: Rename APKs
+        run: |
+          cd askmai/build/app/outputs/flutter-apk/
+          cp app-release.apk AskMAI-${GITHUB_REF_NAME}-universal.apk
+          cp app-armeabi-v7a-release.apk AskMAI-${GITHUB_REF_NAME}-armeabi-v7a.apk
+          cp app-arm64-v8a-release.apk AskMAI-${GITHUB_REF_NAME}-arm64-v8a.apk
+          cp app-x86_64-release.apk AskMAI-${GITHUB_REF_NAME}-x86_64.apk
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: askmai/build/app/outputs/flutter-apk/AskMAI-${{ github.ref_name }}.apk
+          files: |
+            askmai/build/app/outputs/flutter-apk/AskMAI-${{ github.ref_name }}-universal.apk
+            askmai/build/app/outputs/flutter-apk/AskMAI-${{ github.ref_name }}-armeabi-v7a.apk
+            askmai/build/app/outputs/flutter-apk/AskMAI-${{ github.ref_name }}-arm64-v8a.apk
+            askmai/build/app/outputs/flutter-apk/AskMAI-${{ github.ref_name }}-x86_64.apk
           generate_release_notes: true
