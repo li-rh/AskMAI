@@ -20,7 +20,7 @@ class KeyboardVisibilityManager extends ChangeNotifier
 
   void _check() {
     final view = WidgetsBinding.instance.platformDispatcher.views.first;
-    final bottom = view.viewInsets.bottom;
+    final bottom = view.viewInsets.bottom / view.devicePixelRatio;
     final visible = bottom > 100;
     if (visible != _isVisible) {
       _isVisible = visible;

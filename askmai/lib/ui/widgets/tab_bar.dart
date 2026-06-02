@@ -36,13 +36,14 @@ class LLMTabBar extends StatelessWidget {
         child: Row(
           children: [
             const SizedBox(width: 8),
-            // 标签页列表
             ...tabs.map((tab) {
               final status = submissionStatus[tab.id];
+              final webStatus = tabManagerVM.getWebStatus(tab.id);
               return _ModernTabButton(
                 tab: tab,
                 isActive: tab.id == tabManagerVM.activeTabId,
                 status: status,
+                webStatus: webStatus,
                 onTap: () => tabManagerVM.switchTab(tab.id),
                 onClose: () => tabManagerVM.removeTab(tab.id),
                 onRefresh: () => onRefreshTab(tab.id),
@@ -89,6 +90,7 @@ class _ModernTabButton extends StatefulWidget {
   final LLMTab tab;
   final bool isActive;
   final SubmissionResult? status;
+  final WebLoadingStatus webStatus;
   final VoidCallback onTap;
   final VoidCallback onClose;
   final VoidCallback onRefresh;
@@ -97,6 +99,7 @@ class _ModernTabButton extends StatefulWidget {
     required this.tab,
     required this.isActive,
     required this.status,
+    required this.webStatus,
     required this.onTap,
     required this.onClose,
     required this.onRefresh,
@@ -348,8 +351,7 @@ class _ModernTabButtonState extends State<_ModernTabButton> with SingleTickerPro
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    final tabManagerVM = Provider.of<TabManagerVM>(context);
-    final webStatus = tabManagerVM.getWebStatus(widget.tab.id);
+    final webStatus = widget.webStatus;
 
     // Control breathing animation based on status
     if (widget.tab.isEnabled && webStatus == WebLoadingStatus.active) {
@@ -364,56 +366,62 @@ class _ModernTabButtonState extends State<_ModernTabButton> with SingleTickerPro
 
     return CompositedTransformTarget(
       link: _layerLink,
-      child: GestureDetector(
-        onTap: widget.onTap,
-        onLongPress: () {
-          _showContextMenu(context);
-        },
-        onSecondaryTap: () {
-          _showContextMenu(context);
-        },
-        child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-          decoration: BoxDecoration(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+        child: Material(
+          borderRadius: BorderRadius.circular(12),
+          color: widget.isActive
+              ? colorScheme.primary.withValues(alpha: 0.1)
+              : colorScheme.surface, // Clean white (surface) for inactive tabs!
+          child: InkWell(
             borderRadius: BorderRadius.circular(12),
-            color: widget.isActive
-                ? colorScheme.primary.withValues(alpha: 0.1)
-                : colorScheme.surface, // Clean white (surface) for inactive tabs!
-            border: Border.all(
-              color: widget.isActive
-                  ? colorScheme.primary.withValues(alpha: 0.3)
-                  : widget.tab.isEnabled
-                      ? theme.dividerColor.withValues(alpha: 0.4)
-                      : Colors.grey.withValues(alpha: 0.4), // Gray border when disabled
-              width: 1.5,
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // 标签页标题
-                Flexible(
-                  child: Text(
-                    widget.tab.displayName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: widget.isActive ? FontWeight.w600 : FontWeight.w500,
-                      color: widget.tab.isEnabled
-                          ? (widget.isActive
-                              ? colorScheme.primary
-                              : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7))
-                          : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.4), // Faded when disabled
-                    ),
-                  ),
+            onTap: widget.onTap,
+            onLongPress: () {
+              _showContextMenu(context);
+            },
+            onSecondaryTap: () {
+              _showContextMenu(context);
+            },
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: widget.isActive
+                      ? colorScheme.primary.withValues(alpha: 0.3)
+                      : widget.tab.isEnabled
+                          ? theme.dividerColor.withValues(alpha: 0.4)
+                          : Colors.grey.withValues(alpha: 0.4), // Gray border when disabled
+                  width: 1.5,
                 ),
-                const SizedBox(width: 6),
-                // 状态指示点
-                _buildStatusIndicator(webStatus),
-              ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // 标签页标题
+                    Flexible(
+                      child: Text(
+                        widget.tab.displayName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: widget.isActive ? FontWeight.w600 : FontWeight.w500,
+                          color: widget.tab.isEnabled
+                              ? (widget.isActive
+                                  ? colorScheme.primary
+                                  : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7))
+                              : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.4), // Faded when disabled
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    // 状态指示点
+                    _buildStatusIndicator(webStatus),
+                  ],
+                ),
+              ),
             ),
           ),
         ),

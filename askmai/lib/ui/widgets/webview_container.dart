@@ -138,9 +138,8 @@ class _WebViewContainerState extends State<WebViewContainer> {
               } catch (e) {
                 debugPrint('[WebView] Error checking canGoBack on page finish: $e');
               }
-              // We do not immediately set WebLoadingStatus to loaded here to prevent a brief
-              // flash of green before the JS framework starts rendering. Instead, the injected
-              // MutationObserver will decide when it transitions to active (yellow) or loaded (green).
+              // Set the status to loaded as baseline since resource load is complete
+              widget.tabManagerVM.setWebStatus(tab.id, WebLoadingStatus.loaded);
               _injectDomObserver();
             }
           },
@@ -558,16 +557,6 @@ class _WebViewContainerState extends State<WebViewContainer> {
               safetyTimer = null;
             }
             
-            if (!active) {
-              active = true;
-              post("active");
-            }
-            
-            if (timer) {
-              clearTimeout(timer);
-              timer = null;
-            }
-            
             updateState();
           });
           
@@ -758,7 +747,14 @@ class _WebViewContainerState extends State<WebViewContainer> {
             _pointerDownPosition = null;
             _isScrolling = false;
           },
-          child: WebViewWidget(controller: _controller),
+          child: Platform.isAndroid
+              ? WebViewWidget.fromPlatformCreationParams(
+                  params: AndroidWebViewWidgetCreationParams(
+                    controller: _controller.platform,
+                    displayWithHybridComposition: true,
+                  ),
+                )
+              : WebViewWidget(controller: _controller),
         );
 
         if (hasViewportAdjust) {

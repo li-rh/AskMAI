@@ -20,9 +20,11 @@ class _ChatScreenState extends State<ChatScreen> {
   DateTime? _lastBackPressTime;
   OverlayEntry? _toastOverlayEntry;
   Timer? _toastTimer;
+  late TabManagerVM _tabManagerVM;
 
   @override
   void dispose() {
+    _tabManagerVM.removeListener(_onTabManagerChanged);
     _toastTimer?.cancel();
     _toastOverlayEntry?.remove();
     _toastOverlayEntry = null;
@@ -122,12 +124,19 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
+    _tabManagerVM = context.read<TabManagerVM>();
+    _tabManagerVM.addListener(_onTabManagerChanged);
 
     // 应用启动时恢复标签页，ViewModel内部会处理初始化默认标签页
     Future.microtask(() async {
-      final tabVM = context.read<TabManagerVM>();
-      await tabVM.restoreTabs();
+      await _tabManagerVM.restoreTabs();
     });
+  }
+
+  void _onTabManagerChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
@@ -406,8 +415,9 @@ class _ChatScreenState extends State<ChatScreen> {
                 )
               : null,
           body: SafeArea(
-            child: Consumer3<TabManagerVM, WebViewService, InputDistributorVM>(
-              builder: (context, tabManagerVM, webViewService, distributorVM, _) {
+            child: Consumer<TabManagerVM>(
+              builder: (context, tabManagerVM, _) {
+                final webViewService = context.read<WebViewService>();
                 // 过滤只显示isDisplayed=true的tab
                 final displayedTabs = tabManagerVM.tabs
                     .where((tab) => tab.isDisplayed)
@@ -463,22 +473,17 @@ class _ChatScreenState extends State<ChatScreen> {
                                               .clamp(0, displayedTabs.length - 1)
                                       : 0,
                                   children: displayedTabs.map((tab) {
-                                    final currentTab = tabManagerVM.getTab(tab.id);
-                                    return Consumer<TabManagerVM>(
+                                    final activeTabWithPreview = tabManagerVM.activeTab;
+                                    final tabToUse =
+                                        (activeTabWithPreview != null &&
+                                                activeTabWithPreview.id == tab.id)
+                                            ? activeTabWithPreview
+                                            : tab;
+                                    return WebViewContainer(
                                       key: ValueKey(tab.id),
-                                      builder: (context, vm, _) {
-                                        final activeTabWithPreview = vm.activeTab;
-                                        final tabToUse =
-                                            (activeTabWithPreview != null &&
-                                                    activeTabWithPreview.id == tab.id)
-                                                ? activeTabWithPreview
-                                                : tab;
-                                        return WebViewContainer(
-                                          tab: tabToUse,
-                                          webViewService: webViewService,
-                                          tabManagerVM: tabManagerVM,
-                                        );
-                                      },
+                                      tab: tabToUse,
+                                      webViewService: webViewService,
+                                      tabManagerVM: tabManagerVM,
                                     );
                                   }).toList(),
                                 );
@@ -527,12 +532,16 @@ class _ChatScreenState extends State<ChatScreen> {
                                       child: Column(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          LLMTabBar(
-                                            tabs: displayedTabs,
-                                            tabManagerVM: tabManagerVM,
-                                            submissionStatus: distributorVM.submissionStatus,
-                                            onAddTab: _showAddTabDialog,
-                                            onRefreshTab: _onRefreshTab,
+                                          Consumer<InputDistributorVM>(
+                                            builder: (context, distributorVM, _) {
+                                              return LLMTabBar(
+                                                tabs: displayedTabs,
+                                                tabManagerVM: tabManagerVM,
+                                                submissionStatus: distributorVM.submissionStatus,
+                                                onAddTab: _showAddTabDialog,
+                                                onRefreshTab: _onRefreshTab,
+                                              );
+                                            },
                                           ),
                                           InputArea(
                                             onNewChat: _handleNewChat,
