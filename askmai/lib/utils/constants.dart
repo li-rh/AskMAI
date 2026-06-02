@@ -1,7 +1,7 @@
 /// 应用级别的常量定义
 class AppConstants {
   // 应用信息
-  static const String appName = 'AskMAI';
+  static const String appName = 'AMAi';
   static const String appVersion = '1.0.0';
 
   // WebView配置

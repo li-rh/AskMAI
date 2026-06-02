@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🤖 AskMAI - 多模型APP (Ask Multi-AI)
+# 🤖 AMAi - 多模型APP (Ask Me Anything AI)
 
 [![Flutter](https://img.shields.io/badge/Flutter-3.8+-02569B?logo=flutter&logoColor=white)](https://flutter.dev/)
 [![Dart](https://img.shields.io/badge/Dart-3.0+-0175C2?logo=dart&logoColor=white)](https://dart.dev/)
@@ -15,7 +15,7 @@
 
 ## 🖥️ 产品初衷与预览
 
-市面上的很多聚合类 AI 软件仅仅是单纯的网页加载套壳，体验割裂。**AskMAI** 旨在为你提供**媲美原生的问答体验**。你不需要下载十几个不同的 AI App，也不需要为了对比各家模型的回答而来回复制粘贴同一个问题。在一个统一、现代化的界面中，AskMAI 帮你将问题一键分发，轻松实现多个 AI 大模型回答的同屏对比。
+市面上的很多聚合类 AI 软件仅仅是单纯的网页加载套壳，体验割裂。**AMAi** 旨在为你提供**媲美原生的问答体验**。你不需要下载十几个不同的 AI App，也不需要为了对比各家模型的回答而来回复制粘贴同一个问题。在一个统一、现代化的界面中，AMAi 帮你将问题一键分发，轻松实现多个 AI 大模型回答的同屏对比。
 
 *(💡 提示：可以在这里放置项目的实际运行截图或演示 GIF)*
 
@@ -160,7 +160,7 @@ A: 可以在 `WebViewContainer` 的 `initState` 中添加 `debugPrintBeginFrame 
 
 > **“个人能力有限，基本纯靠 Vibe Coding 进行开发，希望大家可以积极提出 issue 和参与开发，让这个项目更加完善！”**
 
-非常欢迎各位开发者参与到 AskMAI 的建设中来！不论是提交反馈，还是直接参与代码贡献，我们都非常感激：
+非常欢迎各位开发者参与到 AMAi 的建设中来！不论是提交反馈，还是直接参与代码贡献，我们都非常感激：
 - 🐛 **提交 Bug**：发现任何注入失败的网页或 UI 错位，欢迎提交 Issue。
 - 💡 **分享配置**：如果你调配出了好用的某个 AI 站点的最佳 XPath 和视口缩放比例，欢迎分享。
 - 🛠️ **提交 PR**：如果你有能力解决 `TODO` 列表中的问题，欢迎直接提交 Pull Request！

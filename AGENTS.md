@@ -1,4 +1,4 @@
-# AskMAI - Multi-LLM Chat Client
+# AMAi - Multi-LLM Chat Client
 
 ## 🚀 Project Status
 
@@ -10,7 +10,7 @@
 
 ## Project Overview
 
-**AskMAI** is a cross-platform application built with Flutter that enables users to send queries simultaneously to multiple Large Language Models (LLMs) and view their responses side-by-side through a tabbed interface. It functions like a browser with multiple LLM tabs, allowing users to quickly compare and switch between different AI responses.
+**AMAi** is a cross-platform application built with Flutter that enables users to send queries simultaneously to multiple Large Language Models (LLMs) and view their responses side-by-side through a tabbed interface. It functions like a browser with multiple LLM tabs, allowing users to quickly compare and switch between different AI responses.
 
 ### Core Purpose
 - 📱 Send a single question to multiple LLM services simultaneously

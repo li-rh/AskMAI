@@ -350,7 +350,7 @@ class _SettingsBottomSheetState extends State<_SettingsBottomSheet> {
             ],
           ),
           content: const Text(
-            '是否跳转到 AskMAI 的 GitHub 开源仓库？\n\n您可以在这里反馈问题、提出建议或查看最新源代码。',
+            '是否跳转到 AMAi 的 GitHub 开源仓库？\n\n您可以在这里反馈问题、提出建议或查看最新源代码。',
           ),
           actions: [
             TextButton(

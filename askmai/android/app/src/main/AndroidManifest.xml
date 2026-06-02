@@ -19,7 +19,7 @@
     </queries>
 
     <application
-        android:label="AskMAI"
+        android:label="AMAi"
         android:icon="@mipmap/ic_launcher">
 
         <activity

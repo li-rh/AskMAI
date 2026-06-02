@@ -1,4 +1,4 @@
-# AskMAI - Project Instructions
+# AMAi - Project Instructions
 
 This project is a multi-LLM chat client built with Flutter that allows users to send queries to multiple AI services simultaneously and compare their responses in a unified interface.
 

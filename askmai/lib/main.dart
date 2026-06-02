@@ -99,7 +99,7 @@ class _MaterialAppWithTheme extends StatelessWidget {
         final themeMode = _getThemeModeFromString(settingsVM.themeMode);
 
         return MaterialApp(
-          title: 'AskMAI',
+          title: 'AMAi',
           theme: AppThemeConfig.buildLightTheme(),
           darkTheme: AppThemeConfig.buildDarkTheme(),
           themeMode: themeMode,

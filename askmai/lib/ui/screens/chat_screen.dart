@@ -395,7 +395,7 @@ class _ChatScreenState extends State<ChatScreen> {
           child: Scaffold(
           appBar: settingsVM.showAppBar
               ? AppBar(
-                  title: const Text('AskMAI - Multi-LLM Chat'),
+                  title: const Text('AMAi - Ask Multi-Ai'),
                   elevation: 0,
                   actions: [
                     Padding(
