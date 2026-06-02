@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../utils/theme_config.dart';
 import '../../models/exports.dart';
 import '../../services/exports.dart';
 import '../../viewmodels/exports.dart';
@@ -48,268 +47,291 @@ void showSettingsBottomSheet(BuildContext context) {
   );
 }
 
-class _SettingsBottomSheet extends StatelessWidget {
+class _SettingsBottomSheet extends StatefulWidget {
   final ScrollController scrollController;
 
   const _SettingsBottomSheet({required this.scrollController});
 
   @override
+  State<_SettingsBottomSheet> createState() => _SettingsBottomSheetState();
+}
+
+class _SettingsBottomSheetState extends State<_SettingsBottomSheet> {
+  late TabManagerVM _tabManagerVM;
+  late AppSettingsVM _appSettingsVM;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabManagerVM = context.read<TabManagerVM>();
+    _appSettingsVM = context.read<AppSettingsVM>();
+
+    _tabManagerVM.addListener(_onVMChanged);
+    _appSettingsVM.addListener(_onVMChanged);
+  }
+
+  @override
+  void dispose() {
+    _tabManagerVM.removeListener(_onVMChanged);
+    _appSettingsVM.removeListener(_onVMChanged);
+    super.dispose();
+  }
+
+  void _onVMChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Consumer<AppSettingsVM>(
-      builder: (context, settingsVM, _) {
-        final theme = Theme.of(context);
-        final colorScheme = theme.colorScheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
-        return SingleChildScrollView(
-          controller: scrollController,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+    return SingleChildScrollView(
+      controller: widget.scrollController,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
 
-              // 标题
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    '设置',
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+          // 标题
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                '设置',
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
                 ),
               ),
+            ),
+          ),
 
-              const SizedBox(height: 8),
+          const SizedBox(height: 8),
 
-              // 主题设置
-              _SettingsSection(
-                title: '主题',
-                child: Column(
-                  children: [
-                    _ThemeOption(
-                      title: '浅色',
-                      value: 'light',
-                      currentValue: settingsVM.themeMode,
-                      onChanged: (value) {
-                        settingsVM.setThemeMode(value);
-                      },
-                    ),
-                    _ThemeOption(
-                      title: '深色',
-                      value: 'dark',
-                      currentValue: settingsVM.themeMode,
-                      onChanged: (value) {
-                        settingsVM.setThemeMode(value);
-                      },
-                    ),
-                    _ThemeOption(
-                      title: '跟随系统',
-                      value: 'auto',
-                      currentValue: settingsVM.themeMode,
-                      onChanged: (value) {
-                        settingsVM.setThemeMode(value);
-                      },
-                    ),
-                  ],
+          // 主题设置
+          _SettingsSection(
+            title: '主题',
+            child: Column(
+              children: [
+                _ThemeOption(
+                  title: '浅色',
+                  value: 'light',
+                  currentValue: _appSettingsVM.themeMode,
+                  onChanged: (value) {
+                    _appSettingsVM.setThemeMode(value);
+                  },
                 ),
-              ),
+                _ThemeOption(
+                  title: '深色',
+                  value: 'dark',
+                  currentValue: _appSettingsVM.themeMode,
+                  onChanged: (value) {
+                    _appSettingsVM.setThemeMode(value);
+                  },
+                ),
+                _ThemeOption(
+                  title: '跟随系统',
+                  value: 'auto',
+                  currentValue: _appSettingsVM.themeMode,
+                  onChanged: (value) {
+                    _appSettingsVM.setThemeMode(value);
+                  },
+                ),
+              ],
+            ),
+          ),
 
-              const SizedBox(height: 16),
+          const SizedBox(height: 16),
 
-              // AppBar 可见性设置
-              _SettingsSection(
-                title: '显示',
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '显示标题栏',
-                              style: theme.textTheme.titleMedium,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '显示应用顶部的标题栏',
-                              style: theme.textTheme.bodySmall,
-                            ),
-                          ],
+          // AppBar 可见性设置
+          _SettingsSection(
+            title: '显示',
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '显示标题栏',
+                          style: theme.textTheme.titleMedium,
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      Switch(
-                        value: settingsVM.showAppBar,
-                        onChanged: (value) {
-                          settingsVM.setShowAppBar(value);
-                        },
-                        activeThumbColor: colorScheme.primary,
-                      ),
-                    ],
+                        const SizedBox(height: 4),
+                        Text(
+                          '显示应用顶部的标题栏',
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 16),
+                  Switch(
+                    value: _appSettingsVM.showAppBar,
+                    onChanged: (value) {
+                      _appSettingsVM.setShowAppBar(value);
+                    },
+                    activeThumbColor: colorScheme.primary,
+                  ),
+                ],
               ),
+            ),
+          ),
 
-              const SizedBox(height: 16),
+          const SizedBox(height: 16),
 
-              // 网页加载策略设置
-              _SettingsSection(
-                title: '网页加载策略',
-                child: Column(
-                  children: [
-                    _StrategyOption(
-                      title: '仅在切换时加载（极速）',
-                      subtitle: '最节省流量和内存，点击标签页才开始加载网页',
-                      value: 'lazy',
-                      currentValue: settingsVM.webLoadStrategy,
-                      onChanged: (value) {
-                        settingsVM.setWebLoadStrategy(value);
-                      },
+          // 网页加载策略设置
+          _SettingsSection(
+            title: '网页加载策略',
+            child: Column(
+              children: [
+                _StrategyOption(
+                  title: '仅在切换时加载（极速）',
+                  subtitle: '最节省流量和内存，点击标签页才开始加载网页',
+                  value: 'lazy',
+                  currentValue: _appSettingsVM.webLoadStrategy,
+                  onChanged: (value) {
+                    _appSettingsVM.setWebLoadStrategy(value);
+                  },
+                ),
+                _StrategyOption(
+                  title: '顺序排队加载（推荐，均衡）',
+                  subtitle: '先加载活跃网页，其余网页每隔 1.5 秒依次载入',
+                  value: 'sequential',
+                  currentValue: _appSettingsVM.webLoadStrategy,
+                  onChanged: (value) {
+                    _appSettingsVM.setWebLoadStrategy(value);
+                  },
+                ),
+                _StrategyOption(
+                  title: '同时并发加载（常规）',
+                  subtitle: '启动应用时在后台同时加载所有网页',
+                  value: 'concurrent',
+                  currentValue: _appSettingsVM.webLoadStrategy,
+                  onChanged: (value) {
+                    _appSettingsVM.setWebLoadStrategy(value);
+                  },
+                  isLast: true,
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // AI Tab 配置
+          _SettingsSection(
+            title: '已添加的 AI Tab',
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${_tabManagerVM.tabCount} 个标签页',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.7),
                     ),
-                    _StrategyOption(
-                      title: '顺序排队加载（推荐，均衡）',
-                      subtitle: '先加载活跃网页，其余网页每隔 1.5 秒依次载入',
-                      value: 'sequential',
-                      currentValue: settingsVM.webLoadStrategy,
-                      onChanged: (value) {
-                        settingsVM.setWebLoadStrategy(value);
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        _showTabsJsonEditor(context, _tabManagerVM);
                       },
+                      icon: const Icon(Icons.edit),
+                      label: const Text('编辑标签页配置'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colorScheme.primary,
+                        foregroundColor: colorScheme.onPrimary,
+                      ),
                     ),
-                    _StrategyOption(
-                      title: '同时并发加载（常规）',
-                      subtitle: '启动应用时在后台同时加载所有网页',
-                      value: 'concurrent',
-                      currentValue: settingsVM.webLoadStrategy,
-                      onChanged: (value) {
-                        settingsVM.setWebLoadStrategy(value);
+                  ),
+                  const SizedBox(height: 8),
+                  // 显示标签页列表
+                  if (_tabManagerVM.tabs.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    ReorderableListView(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      buildDefaultDragHandles: false,
+                      onReorder: (oldIndex, newIndex) {
+                        _tabManagerVM.reorderTabs(oldIndex, newIndex);
                       },
-                      isLast: true,
+                      children: _tabManagerVM.tabs.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final tab = entry.value;
+                        return _SettingsTabItem(
+                          key: ValueKey(tab.id),
+                          index: index,
+                          tab: tab,
+                          tabManagerVM: _tabManagerVM,
+                        );
+                      }).toList(),
                     ),
                   ],
-                ),
+                ],
               ),
+            ),
+          ),
 
-              const SizedBox(height: 16),
+          const SizedBox(height: 16),
 
-              // AI Tab 配置
-              Consumer<TabManagerVM>(
-                builder: (context, tabManagerVM, _) {
-                  return _SettingsSection(
-                    title: '已添加的 AI Tab',
+          // 关于
+          _SettingsSection(
+            title: '关于',
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  InkWell(
+                    onTap: () {
+                      _showGitHubDialog(context);
+                    },
+                    borderRadius: BorderRadius.circular(8),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            '${tabManagerVM.tabCount} 个标签页',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.7),
-                            ),
+                            '版本',
+                            style: theme.textTheme.titleMedium,
                           ),
-                          const SizedBox(height: 12),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: () {
-                                _showTabsJsonEditor(context, tabManagerVM);
-                              },
-                              icon: const Icon(Icons.edit),
-                              label: const Text('编辑标签页配置'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: colorScheme.primary,
-                                foregroundColor: colorScheme.onPrimary,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          // 显示标签页列表
-                          if (tabManagerVM.tabs.isNotEmpty) ...[
-                            const SizedBox(height: 8),
-                            ReorderableListView(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              buildDefaultDragHandles: false,
-                              onReorder: (oldIndex, newIndex) {
-                                tabManagerVM.reorderTabs(oldIndex, newIndex);
-                              },
-                              children: tabManagerVM.tabs.asMap().entries.map((entry) {
-                                final index = entry.key;
-                                final tab = entry.value;
-                                return _SettingsTabItem(
-                                  key: ValueKey(tab.id),
-                                  index: index,
-                                  tab: tab,
-                                  tabManagerVM: tabManagerVM,
-                                );
-                              }).toList(),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-
-              const SizedBox(height: 16),
-
-              // 关于
-              _SettingsSection(
-                title: '关于',
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      InkWell(
-                        onTap: () {
-                          _showGitHubDialog(context);
-                        },
-                        borderRadius: BorderRadius.circular(8),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          Row(
                             children: [
                               Text(
-                                '版本',
-                                style: theme.textTheme.titleMedium,
+                                _appSettingsVM.appVersion,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: theme.textTheme.bodySmall?.color,
+                                ),
                               ),
-                              Row(
-                                children: [
-                                  Text(
-                                    settingsVM.appVersion,
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: theme.textTheme.bodySmall?.color,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Icon(
-                                    Icons.chevron_right,
-                                    size: 16,
-                                    color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.7),
-                                  ),
-                                ],
+                              const SizedBox(width: 4),
+                              Icon(
+                                Icons.chevron_right,
+                                size: 16,
+                                color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.7),
                               ),
                             ],
                           ),
-                        ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
-
-              const SizedBox(height: 24),
-            ],
+            ),
           ),
-        );
-      },
+
+          const SizedBox(height: 24),
+        ],
+      ),
     );
   }
 
