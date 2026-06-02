@@ -4,6 +4,18 @@
 
 ---
 
+## 🚀 [v1.1.1] - 2026-06-02
+
+### 🐛 Release (AOT) 模式与指示灯优化
+- **手势冲突修复**：修复了在物理设备上，横向滚动的标签栏内 `GestureDetector` 的点击事件被微小滑动手势吞没导致的切换 Tab 失败问题。使用 `Material` + `InkWell` 重构，确保 100% 灵敏的点击交互。
+- **渲染冻结解决**：针对 Android 平台 WebView 启用 **Hybrid Composition** 混合渲染，解决了 Release 模式下隐藏在 `IndexedStack` 中的后台 WebView 切换到前台时发生的渲染挂起与画面冻结问题。
+- **后台指示灯卡灰修复**：在 WebView 的 `onPageFinished` 原生资源加载完毕阶段强制更新为 `loaded`（绿色）状态，解决了 Android 底层对后台 WebView 的 JavaScript 节流挂起（JS Throttling）而导致的指示灯初始化卡灰问题。
+- **指示灯抖动优化**：重构了 JS Observer 的 MutationObserver 触发机制，将所有状态决策统一收口至 `updateState()`。只有检测到实际的 AI 思考/生成特征（如停止按钮、思考块、流式光标等）时才会变黄闪烁，完美消除了页面资源加载完成初期 DOM 自身变动产生的黄色状态闪烁与状态抖动。
+- **AOT 依赖跟踪修复**：将 `chat_screen.dart` 中复杂的 `Consumer3` 拆解重构为分别针对 `TabManagerVM` 与 `InputDistributorVM` 的局部单泛型 Consumer，并在 `initState` 中增加原生底层同步监听，彻底避开了 Dart AOT 编译器在 Release 构建时过度剪枝/去活 InheritedWidget 更新通知的 Bug。
+- **虚拟导航栏干扰防护**：在物理键盘可见度计算逻辑中引入设备像素比（Device Pixel Ratio），解决 Android 高密度显示屏下系统底栏虚拟导航栏误触发“键盘已弹起”UI 隐藏逻辑的问题。
+
+---
+
 ## 🚀 [v1.1.0] - 2026-06-01
 
 ### 📂 WebView 多模态与文件上传支持
