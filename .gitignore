@@ -15,6 +15,9 @@ Thumbs.db
 # ==============================
 # AI Assistants / Custom Tools
 # ==============================
+docs/
+.superpowers/
+.superpowers
 .agents/
 .agents
 .antigravitycli/
