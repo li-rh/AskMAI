@@ -466,13 +466,13 @@ class _ChatScreenState extends State<ChatScreen> {
                                 final activeTabId = tabManagerVM.activeTabId;
                                 return IndexedStack(
                                   index: activeTabId != null
-                                      ? displayedTabs
+                                      ? tabManagerVM.tabs
                                               .indexWhere(
                                                 (tab) => tab.id == activeTabId,
                                               )
-                                              .clamp(0, displayedTabs.length - 1)
+                                              .clamp(0, tabManagerVM.tabs.length - 1)
                                       : 0,
-                                  children: displayedTabs.map((tab) {
+                                  children: tabManagerVM.tabs.map((tab) {
                                     final activeTabWithPreview = tabManagerVM.activeTab;
                                     final tabToUse =
                                         (activeTabWithPreview != null &&

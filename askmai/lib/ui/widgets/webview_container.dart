@@ -77,10 +77,17 @@ class _WebViewContainerState extends State<WebViewContainer> {
         _initializeWebView();
       }
     } else {
-      // 检查是否在延迟或懒加载策略中，由于切换激活需要立刻加载
-      final activeTabId = widget.tabManagerVM.activeTabId;
-      if (widget.tab != null && widget.tab!.id == activeTabId && !_hasLoadedRequest) {
-        _loadRequestNow();
+      // 如果 isDisplayed 从 false 变为 true，且还未加载过，则触发加载
+      final wasDisplayed = oldWidget.tab?.isDisplayed ?? false;
+      final isDisplayed = widget.tab?.isDisplayed ?? false;
+      if (!wasDisplayed && isDisplayed && !_hasLoadedRequest) {
+        _startLoadRequest();
+      } else {
+        // 检查是否在延迟或懒加载策略中，由于切换激活需要立刻加载
+        final activeTabId = widget.tabManagerVM.activeTabId;
+        if (widget.tab != null && widget.tab!.id == activeTabId && !_hasLoadedRequest) {
+          _loadRequestNow();
+        }
       }
     }
   }
@@ -357,6 +364,12 @@ class _WebViewContainerState extends State<WebViewContainer> {
   void _startLoadRequest() {
     if (!mounted || widget.tab == null) return;
     final tab = widget.tab!;
+
+    // 如果tab未显示（isDisplayed为false），先不加载它的网络请求，避免无意义加载
+    if (!tab.isDisplayed) {
+      widget.tabManagerVM.setWebStatus(tab.id, WebLoadingStatus.loading);
+      return;
+    }
 
     final settingsVM = Provider.of<AppSettingsVM>(context, listen: false);
     final strategy = settingsVM.webLoadStrategy;
