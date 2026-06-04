@@ -113,3 +113,8 @@ key.properties
 # ==============================
 **/windows/flutter/ephemeral/
 **/windows/CMakeLists.txt.bak
+
+# ==============================
+# Git Worktrees
+# ==============================
+.worktrees/
