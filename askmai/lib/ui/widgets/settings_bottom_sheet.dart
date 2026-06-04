@@ -242,10 +242,10 @@ class _SettingsBottomSheetState extends State<_SettingsBottomSheet> {
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        _showTabsJsonEditor(context, _tabManagerVM);
+                        _showSiteConfigEditor(context, _tabManagerVM);
                       },
-                      icon: const Icon(Icons.edit),
-                      label: const Text('编辑标签页配置'),
+                      icon: const Icon(Icons.settings),
+                      label: const Text('编辑网站配置'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: colorScheme.primary,
                         foregroundColor: colorScheme.onPrimary,
@@ -716,11 +716,14 @@ class _SettingsTabItemState extends State<_SettingsTabItem> {
   void _showEditTabDialog(BuildContext context) {
     final urlController = TextEditingController(text: widget.tab.url);
     final nameController = TextEditingController(text: widget.tab.displayName);
+    
+    // 获取该站点在注册表中的默认配置，以支持显示当前生效的 XPath
+    final siteConfig = SiteRegistry().getConfigByUrl(widget.tab.url);
     final inputXPathController = TextEditingController(
-      text: widget.tab.customInputXPath ?? '',
+      text: widget.tab.customInputXPath ?? siteConfig?.inputXPath ?? '',
     );
     final submitXPathController = TextEditingController(
-      text: widget.tab.customSubmitXPath ?? '',
+      text: widget.tab.customSubmitXPath ?? siteConfig?.submitXPath ?? '',
     );
     final viewportTopController = TextEditingController(
       text: widget.tab.viewportTop.toString(),
@@ -775,23 +778,19 @@ class _SettingsTabItemState extends State<_SettingsTabItem> {
                     TextField(
                       controller: inputXPathController,
                       decoration: const InputDecoration(
-                        labelText: '输入框 XPath（可选）',
+                        labelText: '输入框 XPath',
                         hintText: '//textarea[@placeholder="..."]',
                         border: OutlineInputBorder(),
                       ),
-                      minLines: 2,
-                      maxLines: 3,
                     ),
                     const SizedBox(height: 16),
                     TextField(
                       controller: submitXPathController,
                       decoration: const InputDecoration(
-                        labelText: '提交按钮 XPath（可选）',
+                        labelText: '提交按钮 XPath',
                         hintText: '//button[@id="send"]',
                         border: OutlineInputBorder(),
                       ),
-                      minLines: 2,
-                      maxLines: 3,
                     ),
                     const SizedBox(height: 16),
                     Row(
@@ -1118,76 +1117,6 @@ class _SettingsTabItemState extends State<_SettingsTabItem> {
     }
 }
 
-/// 显示标签页JSON编辑器
-void _showTabsJsonEditor(BuildContext context, TabManagerVM tabManagerVM) {
-  final jsonController = TextEditingController();
-  
-  // 将tabs转换为JSON
-  final tabsJson = tabManagerVM.tabs.map((tab) {
-    return {
-      'id': tab.id,
-      'url': tab.url,
-      'displayName': tab.displayName,
-      'isEnabled': tab.isEnabled,
-      'isDisplayed': tab.isDisplayed,
-      'customInputXPath': tab.customInputXPath,
-      'customSubmitXPath': tab.customSubmitXPath,
-      'viewportTop': tab.viewportTop,
-      'viewportBottom': tab.viewportBottom,
-      'viewportLeft': tab.viewportLeft,
-      'viewportRight': tab.viewportRight,
-      'viewportDisabled': tab.viewportDisabled,
-      'createdAt': tab.createdAt.toIso8601String(),
-    };
-  }).toList();
-  
-  jsonController.text = _prettyPrintJson(tabsJson);
-
-  showDialog(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        title: const Text('编辑标签页配置'),
-        content: SizedBox(
-          width: double.maxFinite,
-          height: 400,
-          child: TextField(
-            controller: jsonController,
-            maxLines: null,
-            expands: true,
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              hintText: '在此编辑JSON配置',
-              contentPadding: EdgeInsets.all(12),
-            ),
-            style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              try {
-                // 解析并应用配置
-                _applyTabsJson(context, jsonController.text, tabManagerVM);
-                Navigator.pop(context);
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('JSON格式错误: $e')),
-                );
-              }
-            },
-            child: const Text('保存'),
-          ),
-        ],
-      );
-    },
-  );
-}
-
 /// 美化打印JSON
 String _prettyPrintJson(dynamic json) {
   try {
@@ -1198,59 +1127,87 @@ String _prettyPrintJson(dynamic json) {
   }
 }
 
-/// 应用编辑后的JSON配置
-void _applyTabsJson(BuildContext context, String jsonStr, TabManagerVM tabManagerVM) {
-  try {
-    final List<dynamic> jsonList = jsonDecode(jsonStr);
-    
-    // 清空并重新添加tabs
-    final newTabs = <LLMTab>[];
-    for (final item in jsonList) {
-      if (item is! Map<String, dynamic>) continue;
-      
-      final tab = LLMTab(
-        id: item['id'] ?? '',
-        url: item['url'] ?? '',
-        displayName: item['displayName'] ?? 'Unnamed',
-        createdAt: item['createdAt'] != null
-            ? DateTime.parse(item['createdAt'])
-            : DateTime.now(),
-        isEnabled: item['isEnabled'] ?? true,
-        isDisplayed: item['isDisplayed'] ?? true,
-        customInputXPath: item['customInputXPath'],
-        customSubmitXPath: item['customSubmitXPath'],
-        viewportTop: (item['viewportTop'] as num?)?.toInt() ?? 0,
-        viewportBottom: (item['viewportBottom'] as num?)?.toInt() ?? 0,
-        viewportLeft: (item['viewportLeft'] as num?)?.toInt() ?? 0,
-        viewportRight: (item['viewportRight'] as num?)?.toInt() ?? 0,
-        viewportDisabled: item['viewportDisabled'] as bool? ?? false,
+/// 显示网站配置JSON编辑器
+void _showSiteConfigEditor(BuildContext context, TabManagerVM tabManagerVM) {
+  final jsonController = TextEditingController();
+  
+  // 从 SiteRegistry 获取当前合并后的配置，并转换为 JSON，同时传入 tabs 以保持开关状态同步
+  final siteRegistry = SiteRegistry();
+  final configMap = siteRegistry.toMap(tabManagerVM.tabs);
+  
+  jsonController.text = _prettyPrintJson(configMap);
+
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: const Text('编辑全局网站与 UserAgent 配置'),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 450,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '修改此处 JSON 将更新 XPath 字段、全局/各站 UserAgent 以及策略配置。直接贴入 site_config.json 格式的 JSON 即可。',
+                style: TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+              const SizedBox(height: 8),
+              Expanded(
+                child: TextField(
+                  controller: jsonController,
+                  maxLines: null,
+                  expands: true,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: '在此编辑或粘贴JSON配置',
+                    contentPadding: EdgeInsets.all(12),
+                  ),
+                  style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              try {
+                // 验证并应用配置
+                final jsonStr = jsonController.text;
+                // 确保能正常解析
+                final decoded = jsonDecode(jsonStr);
+                if (decoded is! Map<String, dynamic>) {
+                  throw const FormatException('配置根节点必须是 JSON 对象');
+                }
+                
+                tabManagerVM.updateCustomSiteConfig(jsonStr).then((_) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('网站配置已保存，WebView 已重新加载')),
+                    );
+                  }
+                });
+                
+                if (context.mounted) {
+                  Navigator.pop(context);
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('配置错误: $e')),
+                  );
+                }
+              }
+            },
+            child: const Text('保存'),
+          ),
+        ],
       );
-      newTabs.add(tab);
-    }
-    
-    // 替换tabs列表
-    tabManagerVM.clearAllTabs().then((_) {
-      for (final tab in newTabs) {
-        tabManagerVM.addTab(
-          tab.url,
-          tab.displayName,
-          id: tab.id,
-          customInputXPath: tab.customInputXPath,
-          customSubmitXPath: tab.customSubmitXPath,
-          isEnabled: tab.isEnabled,
-          isDisplayed: tab.isDisplayed,
-          viewportTop: tab.viewportTop,
-          viewportBottom: tab.viewportBottom,
-          viewportLeft: tab.viewportLeft,
-          viewportRight: tab.viewportRight,
-          viewportDisabled: tab.viewportDisabled,
-        );
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('配置已保存')),
-      );
-    });
-  } catch (e) {
-    throw Exception('Failed to parse JSON: $e');
-  }
+    },
+  );
 }

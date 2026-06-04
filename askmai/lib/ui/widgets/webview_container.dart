@@ -98,9 +98,12 @@ class _WebViewContainerState extends State<WebViewContainer> {
     // 默认初始状态为正在加载
     widget.tabManagerVM.setWebStatus(tab.id, WebLoadingStatus.loading);
 
+    final siteConfig = SiteRegistry().getConfigByUrl(tab.url);
+    final userAgent = siteConfig?.userAgent ?? SiteRegistry().userAgent;
+
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setUserAgent('Mozilla/5.0 (Linux; Android 13; Pixel 7 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Mobile Safari/537.36')
+      ..setUserAgent(userAgent)
       ..addJavaScriptChannel(
         'AskMAIDomChangeChannel',
         onMessageReceived: (JavaScriptMessage message) {

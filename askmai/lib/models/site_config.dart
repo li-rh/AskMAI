@@ -38,6 +38,12 @@ class SiteConfig {
   /// 注入策略名称 (例如: 'generic', 'react_fiber')
   final String? strategy;
 
+  /// 自定义 UserAgent (为空时使用全局 UserAgent)
+  final String? userAgent;
+
+  /// 是否禁用视口调整
+  final bool viewportDisabled;
+
   SiteConfig({
     required this.id,
     required this.urlPattern,
@@ -50,6 +56,8 @@ class SiteConfig {
     this.viewportLeft = 0,
     this.viewportRight = 0,
     this.strategy,
+    this.userAgent,
+    this.viewportDisabled = false,
   });
 
   /// 从JSON创建SiteConfig

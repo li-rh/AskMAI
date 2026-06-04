@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 import '../models/exports.dart';
@@ -225,6 +226,11 @@ class TabManagerVM extends ChangeNotifier {
                 url: startUrl,
                 displayName: config.displayName,
                 createdAt: DateTime.now(),
+                viewportTop: config.viewportTop,
+                viewportBottom: config.viewportBottom,
+                viewportLeft: config.viewportLeft,
+                viewportRight: config.viewportRight,
+                viewportDisabled: config.viewportDisabled,
               ));
               isNewTabAdded = true;
             }
@@ -265,6 +271,11 @@ class TabManagerVM extends ChangeNotifier {
           createdAt: DateTime.now(),
           isEnabled: isEnabled,
           isDisplayed: isEnabled,
+          viewportTop: config.viewportTop,
+          viewportBottom: config.viewportBottom,
+          viewportLeft: config.viewportLeft,
+          viewportRight: config.viewportRight,
+          viewportDisabled: config.viewportDisabled,
         );
         _tabs.add(newTab);
       }
@@ -295,11 +306,133 @@ class TabManagerVM extends ChangeNotifier {
     if (_activeTabId != null) {
       await _prefs.saveActiveTabId(_activeTabId!);
     }
+    await _syncTabsToCustomSiteConfig();
   }
 
   /// 公共方法：持久化tabs（供外部调用）
   Future<void> persistTabs() async {
     await _persistTabs();
+  }
+
+  /// 更新自定义网站配置，并重新加载
+  Future<void> updateCustomSiteConfig(String jsonStr) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      await _prefs.saveCustomSiteConfig(jsonStr);
+      await SiteRegistry().reloadConfigs();
+
+      // 自动合并/同步 site_config.json / custom_site_config 到活跃标签页列表中
+      final siteRegistry = SiteRegistry();
+      final configs = siteRegistry.getAllConfigs();
+      
+      final newTabs = <LLMTab>[];
+      
+      // 1. 先按配置文件中的顺序，处理配置文件中存在的所有站点
+      for (final config in configs) {
+        final existingTabIndex = _tabs.indexWhere((tab) => tab.displayName == config.displayName);
+        if (existingTabIndex != -1) {
+          final existingTab = _tabs[existingTabIndex];
+          final isDisplayed = config.isDisplay;
+          // 如果变为不显示，则同时禁用；否则保留或设为启用
+          final isEnabled = isDisplayed ? existingTab.isEnabled : false;
+          
+          newTabs.add(existingTab.copyWith(
+            url: config.urlPattern,
+            displayName: config.displayName,
+            viewportTop: config.viewportTop,
+            viewportBottom: config.viewportBottom,
+            viewportLeft: config.viewportLeft,
+            viewportRight: config.viewportRight,
+            viewportDisabled: config.viewportDisabled,
+            isDisplayed: isDisplayed,
+            isEnabled: isEnabled,
+          ));
+        } else {
+          // 不存在则新建一个，按照 isDisplay 决定是否显示/启用
+          newTabs.add(LLMTab(
+            id: const Uuid().v4(),
+            url: config.urlPattern,
+            displayName: config.displayName,
+            createdAt: DateTime.now(),
+            isEnabled: config.isDisplay,
+            isDisplayed: config.isDisplay,
+            viewportTop: config.viewportTop,
+            viewportBottom: config.viewportBottom,
+            viewportLeft: config.viewportLeft,
+            viewportRight: config.viewportRight,
+            viewportDisabled: config.viewportDisabled,
+          ));
+        }
+      }
+      
+      // 2. 对于不在配置文件中的自定义 tab，保留它们并追加在后面
+      for (final tab in _tabs) {
+        final inConfigs = configs.any((config) => config.displayName == tab.displayName);
+        if (!inConfigs) {
+          newTabs.add(tab);
+        }
+      }
+      
+      _tabs = newTabs;
+      
+      // 3. 校验并重新设定 activeTabId（如果原活跃标签页在这次更新中被隐藏或删除了）
+      if (_activeTabId != null) {
+        final activeTabExists = _tabs.any((tab) => tab.id == _activeTabId && tab.isDisplayed);
+        if (!activeTabExists && _tabs.isNotEmpty) {
+          try {
+            _activeTabId = _tabs.firstWhere((tab) => tab.isDisplayed).id;
+          } catch (_) {
+            _activeTabId = _tabs.isNotEmpty ? _tabs.first.id : null;
+          }
+        }
+      } else if (_tabs.isNotEmpty) {
+        try {
+          _activeTabId = _tabs.firstWhere((tab) => tab.isDisplayed).id;
+        } catch (_) {
+          _activeTabId = _tabs.first.id;
+        }
+      }
+      
+      await _prefs.saveTabUrls(_tabs);
+      if (_activeTabId != null) {
+        await _prefs.saveActiveTabId(_activeTabId!);
+      }
+
+      // 更新现有 WebViews 的 User-Agent，并重新加载
+      final webViewService = WebViewService();
+      for (final tab in _tabs) {
+        final controller = webViewService.getWebView(tab.id);
+        if (controller != null) {
+          final siteConfig = siteRegistry.getConfigByUrl(tab.url);
+          final newUserAgent = siteConfig?.userAgent ?? siteRegistry.userAgent;
+          await controller.setUserAgent(newUserAgent);
+          await controller.reload();
+        }
+      }
+    } catch (e) {
+      print('Error updating custom site config: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> _syncTabsToCustomSiteConfig() async {
+    try {
+      final siteRegistry = SiteRegistry();
+      // 获取基于当前 tabs 状态同步后的配置 Map
+      final configMap = siteRegistry.toMap(_tabs);
+      final jsonStr = const JsonEncoder.withIndent('  ').convert(configMap);
+      
+      // 保存至 SharedPreferences
+      await _prefs.saveCustomSiteConfig(jsonStr);
+      // 重新载入 SiteRegistry 状态使其生效
+      await siteRegistry.reloadConfigs();
+    } catch (e) {
+      print('Error syncing tabs to custom site config: $e');
+    }
   }
 
   @override

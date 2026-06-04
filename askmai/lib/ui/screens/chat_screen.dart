@@ -163,7 +163,7 @@ class _ChatScreenState extends State<ChatScreen> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: const Text('Add New Tab'),
+              title: const Text('添加新标签页'),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -181,7 +181,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     TextField(
                       controller: nameController,
                       decoration: const InputDecoration(
-                        labelText: 'Display Name',
+                        labelText: '显示名称',
                         hintText: 'ChatGPT',
                         border: OutlineInputBorder(),
                       ),
@@ -190,23 +190,19 @@ class _ChatScreenState extends State<ChatScreen> {
                     TextField(
                       controller: inputXPathController,
                       decoration: const InputDecoration(
-                        labelText: 'Input XPath (Optional)',
+                        labelText: '输入框 XPath',
                         hintText: '//textarea[@placeholder="..."]',
                         border: OutlineInputBorder(),
                       ),
-                      minLines: 2,
-                      maxLines: 3,
                     ),
                     const SizedBox(height: 16),
                     TextField(
                       controller: submitXPathController,
                       decoration: const InputDecoration(
-                        labelText: 'Submit Button XPath (Optional)',
+                        labelText: '提交按钮 XPath',
                         hintText: '//button[@id="send"]',
                         border: OutlineInputBorder(),
                       ),
-                      minLines: 2,
-                      maxLines: 3,
                     ),
                     const SizedBox(height: 16),
                     Row(
@@ -222,7 +218,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                   });
                                 },
                               ),
-                              const Text('Enabled'),
+                              const Text('启用'),
                             ],
                           ),
                         ),
@@ -237,7 +233,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                   });
                                 },
                               ),
-                              const Text('Display'),
+                              const Text('显示'),
                             ],
                           ),
                         ),
@@ -249,7 +245,7 @@ class _ChatScreenState extends State<ChatScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
+                  child: const Text('取消'),
                 ),
                 ElevatedButton(
                   onPressed: () {
@@ -259,7 +255,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     if (url.isEmpty || name.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Please fill in URL and Display Name'),
+                          content: Text('请填写 URL 和显示名称'),
                         ),
                       );
                       return;
@@ -271,7 +267,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text(
-                            'URL must start with http:// or https://',
+                            'URL 必须以 http:// 或 https:// 开头',
                           ),
                         ),
                       );
@@ -293,7 +289,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     );
                     Navigator.pop(context);
                   },
-                  child: const Text('Add'),
+                  child: const Text('添加'),
                 ),
               ],
             );

@@ -99,6 +99,28 @@ class PreferencesService {
     return _prefs.getKeys();
   }
 
+  // ==================== 自定义网站配置 ====================
+  static const String _customSiteConfigKey = 'custom_site_config';
+
+  /// 保存自定义网站配置JSON
+  Future<void> saveCustomSiteConfig(String jsonStr) async {
+    try {
+      await _prefs.setString(_customSiteConfigKey, jsonStr);
+    } catch (e) {
+      print('Error saving custom site config: $e');
+    }
+  }
+
+  /// 读取自定义网站配置JSON
+  String? getCustomSiteConfig() {
+    try {
+      return _prefs.getString(_customSiteConfigKey);
+    } catch (e) {
+      print('Error reading custom site config: $e');
+      return null;
+    }
+  }
+
   // ==================== 主题和设置管理 ====================
 
   static const String _themeModeKey = 'theme_mode';

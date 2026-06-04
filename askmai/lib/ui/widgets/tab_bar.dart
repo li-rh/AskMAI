@@ -209,10 +209,10 @@ class _ModernTabButtonState extends State<_ModernTabButton> with SingleTickerPro
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            // Refresh option - 第一
+                            // 刷新页面 - 第一
                             MenuOption(
                               icon: Icons.refresh,
-                              label: 'Refresh Page',
+                              label: '刷新页面',
                               iconColor: colorScheme.primary,
                               backgroundColor: colorScheme.primary.withValues(alpha: 0.1),
                               onTap: () {
@@ -220,10 +220,10 @@ class _ModernTabButtonState extends State<_ModernTabButton> with SingleTickerPro
                                 widget.onRefresh();
                               },
                             ),
-                            // Enable/Disable option - 第二
+                            // 启用/禁用 - 第二
                             MenuOption(
                               icon: widget.tab.isEnabled ? Icons.check_circle : Icons.radio_button_unchecked,
-                              label: widget.tab.isEnabled ? 'Disable Tab' : 'Enable Tab',
+                              label: widget.tab.isEnabled ? '禁用标签页' : '启用标签页',
                               iconColor: widget.tab.isEnabled ? Colors.orange : Colors.grey,
                               backgroundColor: (widget.tab.isEnabled ? Colors.orange : Colors.grey)
                                   .withValues(alpha: 0.1),
@@ -237,10 +237,10 @@ class _ModernTabButtonState extends State<_ModernTabButton> with SingleTickerPro
                                 tabManagerVM.updateTab(updatedTab);
                               },
                             ),
-                            // Hide option - 第三
+                            // 隐藏页面 - 第三
                             MenuOption(
                               icon: Icons.visibility_off,
-                              label: 'Hide Tab',
+                              label: '隐藏标签页',
                               iconColor: Colors.redAccent,
                               backgroundColor: Colors.redAccent.withValues(alpha: 0.1),
                               onTap: () {

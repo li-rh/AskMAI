@@ -1,4 +1,5 @@
 {
+  "userAgent": "Mozilla/5.0 (Linux; Android 13; Pixel 7 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Mobile Safari/537.36",
   "sites": {
     "chatgpt": {
       "id": "chatgpt",
@@ -11,6 +12,7 @@
       "viewportBottom": 0,
       "viewportLeft": 0,
       "viewportRight": 0,
+      "viewportDisabled": false,
       "strategy": "generic"
     },
     "claude": {
@@ -24,6 +26,7 @@
       "viewportBottom": 0,
       "viewportLeft": 0,
       "viewportRight": 0,
+      "viewportDisabled": false,
       "strategy": "generic"
     },
     "gemini": {
@@ -37,6 +40,7 @@
       "viewportBottom": 0,
       "viewportLeft": 0,
       "viewportRight": 0,
+      "viewportDisabled": false,
       "strategy": "generic"
     },
     "doubao": {
@@ -50,6 +54,7 @@
       "viewportBottom": 0,
       "viewportLeft": 0,
       "viewportRight": 0,
+      "viewportDisabled": false,
       "strategy": "generic"
     },
     "deepseek": {
@@ -63,6 +68,7 @@
       "viewportBottom": 0,
       "viewportLeft": 0,
       "viewportRight": 0,
+      "viewportDisabled": false,
       "strategy": "generic"
     },
     "qianwen": {
@@ -76,6 +82,7 @@
       "viewportBottom": 0,
       "viewportLeft": 0,
       "viewportRight": 0,
+      "viewportDisabled": false,
       "strategy": "react_fiber"
     },
     "qwen": {
@@ -89,6 +96,7 @@
       "viewportBottom": 0,
       "viewportLeft": 0,
       "viewportRight": 0,
+      "viewportDisabled": false,
       "strategy": "generic"
     },
     "yuanbao": {
@@ -102,6 +110,7 @@
       "viewportBottom": 0,
       "viewportLeft": 0,
       "viewportRight": 0,
+      "viewportDisabled": false,
       "strategy": "generic"
     },
     "kimi": {
@@ -115,6 +124,7 @@
       "viewportBottom": 0,
       "viewportLeft": 0,
       "viewportRight": 0,
+      "viewportDisabled": false,
       "strategy": "generic"
     },
     "zhipu": {
@@ -128,6 +138,7 @@
       "viewportBottom": 0,
       "viewportLeft": 0,
       "viewportRight": 0,
+      "viewportDisabled": false,
       "strategy": "generic"
     }
   }
