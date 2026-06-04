@@ -21,10 +21,13 @@ class _ChatScreenState extends State<ChatScreen> {
   OverlayEntry? _toastOverlayEntry;
   Timer? _toastTimer;
   late TabManagerVM _tabManagerVM;
+  late ScrollController _scrollController;
 
   @override
   void dispose() {
     _tabManagerVM.removeListener(_onTabManagerChanged);
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
     _toastTimer?.cancel();
     _toastOverlayEntry?.remove();
     _toastOverlayEntry = null;
@@ -127,14 +130,65 @@ class _ChatScreenState extends State<ChatScreen> {
     _tabManagerVM = context.read<TabManagerVM>();
     _tabManagerVM.addListener(_onTabManagerChanged);
 
+    _scrollController = ScrollController(
+      initialScrollOffset: 0.0,
+    );
+    _scrollController.addListener(_onScroll);
+
     // 应用启动时恢复标签页，ViewModel内部会处理初始化默认标签页
     Future.microtask(() async {
       await _tabManagerVM.restoreTabs();
     });
   }
 
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final double width = MediaQuery.of(context).size.width;
+    if (width <= 0) return;
+
+    final displayedTabs = _tabManagerVM.tabs.where((tab) => tab.isDisplayed).toList();
+    if (displayedTabs.isEmpty) return;
+
+    final double offset = _scrollController.offset;
+    final int index = (offset / width).round().clamp(0, displayedTabs.length - 1);
+
+    final targetTab = displayedTabs[index];
+    if (_tabManagerVM.activeTabId != targetTab.id) {
+      Future.microtask(() {
+        if (mounted && _tabManagerVM.activeTabId != targetTab.id) {
+          _tabManagerVM.switchTab(targetTab.id);
+        }
+      });
+    }
+  }
+
   void _onTabManagerChanged() {
     if (mounted) {
+      final displayedTabs = _tabManagerVM.tabs.where((tab) => tab.isDisplayed).toList();
+      final activeIndex = displayedTabs.indexWhere((tab) => tab.id == _tabManagerVM.activeTabId);
+      if (activeIndex != -1) {
+        final double width = MediaQuery.of(context).size.width;
+        if (width > 0) {
+          if (_scrollController.hasClients) {
+            final int currentScrollIndex = (_scrollController.offset / width).round();
+            if (currentScrollIndex != activeIndex) {
+              _scrollController.animateTo(
+                activeIndex * width,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+              );
+            }
+          } else {
+            final double initialOffset = activeIndex * width;
+            if (_scrollController.initialScrollOffset != initialOffset) {
+              _scrollController.removeListener(_onScroll);
+              _scrollController.dispose();
+              _scrollController = ScrollController(initialScrollOffset: initialOffset);
+              _scrollController.addListener(_onScroll);
+            }
+          }
+        }
+      }
       setState(() {});
     }
   }
@@ -457,34 +511,38 @@ class _ChatScreenState extends State<ChatScreen> {
                                 ],
                               ),
                             )
-                          : Builder(
-                              builder: (context) {
-                                final activeTabId = tabManagerVM.activeTabId;
-                                return IndexedStack(
-                                  index: activeTabId != null
-                                      ? tabManagerVM.tabs
-                                              .indexWhere(
-                                                (tab) => tab.id == activeTabId,
-                                              )
-                                              .clamp(0, tabManagerVM.tabs.length - 1)
-                                      : 0,
-                                  children: tabManagerVM.tabs.map((tab) {
-                                    final activeTabWithPreview = tabManagerVM.activeTab;
-                                    final tabToUse =
-                                        (activeTabWithPreview != null &&
-                                                activeTabWithPreview.id == tab.id)
-                                            ? activeTabWithPreview
-                                            : tab;
-                                    return WebViewContainer(
-                                      key: ValueKey(tab.id),
-                                      tab: tabToUse,
-                                      webViewService: webViewService,
-                                      tabManagerVM: tabManagerVM,
-                                    );
-                                  }).toList(),
+                          : LayoutBuilder(
+                              builder: (context, constraints) {
+                                final width = constraints.maxWidth;
+                                final height = constraints.maxHeight;
+
+                                return SingleChildScrollView(
+                                  controller: _scrollController,
+                                  scrollDirection: Axis.horizontal,
+                                  physics: const PageScrollPhysics(),
+                                  child: Row(
+                                    children: displayedTabs.map((tab) {
+                                      final activeTabWithPreview = tabManagerVM.activeTab;
+                                      final tabToUse =
+                                          (activeTabWithPreview != null &&
+                                                  activeTabWithPreview.id == tab.id)
+                                              ? activeTabWithPreview
+                                              : tab;
+                                      return SizedBox(
+                                        width: width,
+                                        height: height,
+                                        child: WebViewContainer(
+                                          key: ValueKey(tab.id),
+                                          tab: tabToUse,
+                                          webViewService: webViewService,
+                                          tabManagerVM: tabManagerVM,
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
                                 );
                               },
-                            ),
+                            )
                     ),
 
                     // 底部区域: 用户向网页输入时隐藏

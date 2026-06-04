@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:provider/provider.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
@@ -32,12 +34,28 @@ class WebViewContainer extends StatefulWidget {
   State<WebViewContainer> createState() => _WebViewContainerState();
 }
 
-class _WebViewContainerState extends State<WebViewContainer> {
+class _WebViewContainerState extends State<WebViewContainer> with AutomaticKeepAliveClientMixin<WebViewContainer> {
   late WebViewController _controller;
   bool _isLoading = false;
   bool _hasError = false;
   Offset? _pointerDownPosition;
   bool _isScrolling = false;
+  bool _allowWebViewHorizontalScroll = false;
+
+  @override
+  bool get wantKeepAlive => true;
+
+  Set<Factory<OneSequenceGestureRecognizer>> get _gestureRecognizers {
+    final recognizers = <Factory<OneSequenceGestureRecognizer>>{
+      Factory<OneSequenceGestureRecognizer>(() => VerticalDragGestureRecognizer()),
+    };
+    if (_allowWebViewHorizontalScroll) {
+      recognizers.add(
+        Factory<OneSequenceGestureRecognizer>(() => HorizontalDragGestureRecognizer()),
+      );
+    }
+    return recognizers;
+  }
 
   bool _hasLoadedRequest = false;
   Timer? _loadTimer;
@@ -114,6 +132,18 @@ class _WebViewContainerState extends State<WebViewContainer> {
             widget.tabManagerVM.setWebStatus(tab.id, WebLoadingStatus.active);
           } else if (text == 'idle') {
             widget.tabManagerVM.setWebStatus(tab.id, WebLoadingStatus.loaded);
+          }
+        },
+      )
+      ..addJavaScriptChannel(
+        'AskMAIScrollChannel',
+        onMessageReceived: (JavaScriptMessage message) {
+          if (!mounted) return;
+          final isScrollable = message.message == 'true';
+          if (_allowWebViewHorizontalScroll != isScrollable) {
+            setState(() {
+              _allowWebViewHorizontalScroll = isScrollable;
+            });
           }
         },
       )
@@ -587,6 +617,68 @@ class _WebViewContainerState extends State<WebViewContainer> {
           
           window.AskMAIDomObserver = observer;
           window.AskMAICheckInterval = checkInterval;
+
+          // Touch gesture listener to detect horizontal scrollability
+          function checkScrollable(el) {
+            if (!el) return false;
+            var node = el;
+            while (node && node !== document.body && node !== document.documentElement) {
+              var tag = node.tagName;
+              if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'PRE' || tag === 'CODE' || tag === 'TABLE') {
+                return true;
+              }
+              if (node.scrollWidth > node.clientWidth + 8) {
+                var style = window.getComputedStyle(node);
+                var overflowX = style.overflowX || style.overflow || '';
+                if (overflowX === 'auto' || overflowX === 'scroll') {
+                  return true;
+                }
+              }
+              node = node.parentElement;
+            }
+            return false;
+          }
+
+          window.addEventListener('touchstart', function(e) {
+            if (e.touches && e.touches.length > 0) {
+              var target = e.touches[0].target;
+              var scrollable = checkScrollable(target);
+              try {
+                if (window.AskMAIScrollChannel) {
+                  window.AskMAIScrollChannel.postMessage(scrollable ? 'true' : 'false');
+                } else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.AskMAIScrollChannel) {
+                  window.webkit.messageHandlers.AskMAIScrollChannel.postMessage(scrollable ? 'true' : 'false');
+                } else if (typeof AskMAIScrollChannel !== 'undefined') {
+                  AskMAIScrollChannel.postMessage(scrollable ? 'true' : 'false');
+                }
+              } catch(err) {}
+            }
+          }, { passive: true });
+
+          window.addEventListener('touchend', function(e) {
+            try {
+              if (window.AskMAIScrollChannel) {
+                window.AskMAIScrollChannel.postMessage('false');
+              } else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.AskMAIScrollChannel) {
+                window.webkit.messageHandlers.AskMAIScrollChannel.postMessage('false');
+              } else if (typeof AskMAIScrollChannel !== 'undefined') {
+                AskMAIScrollChannel.postMessage('false');
+              }
+            } catch(err) {}
+          }, { passive: true });
+
+          window.addEventListener('touchcancel', function(e) {
+            try {
+              if (window.AskMAIScrollChannel) {
+                window.AskMAIScrollChannel.postMessage('false');
+              } else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.AskMAIScrollChannel) {
+                window.webkit.messageHandlers.AskMAIScrollChannel.postMessage('false');
+              } else if (typeof AskMAIScrollChannel !== 'undefined') {
+                AskMAIScrollChannel.postMessage('false');
+              }
+            } catch(err) {}
+          }, { passive: true });
+
           return "initialized";
         })();
       ''';
@@ -598,6 +690,7 @@ class _WebViewContainerState extends State<WebViewContainer> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final tab = widget.tab;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -768,9 +861,13 @@ class _WebViewContainerState extends State<WebViewContainer> {
                   params: AndroidWebViewWidgetCreationParams(
                     controller: _controller.platform,
                     displayWithHybridComposition: true,
+                    gestureRecognizers: _gestureRecognizers,
                   ),
                 )
-              : WebViewWidget(controller: _controller),
+              : WebViewWidget(
+                  controller: _controller,
+                  gestureRecognizers: _gestureRecognizers,
+                ),
         );
 
         if (hasViewportAdjust) {
