@@ -354,7 +354,8 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _onRefreshTab(String tabId) {
-    context.read<WebViewService>().reloadWebView(tabId);
+    final tab = _tabManagerVM.getTab(tabId);
+    context.read<WebViewService>().reloadWebView(tabId, originalUrl: tab?.url);
   }
 
   /// 新建对话 - 重置所有tabs的URL为默认值，并重新加载

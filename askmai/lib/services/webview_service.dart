@@ -51,10 +51,23 @@ class WebViewService {
   int get webViewCount => _webViewControllers.length;
 
   /// 刷新指定tab的WebView
-  Future<void> reloadWebView(String tabId) async {
+  Future<void> reloadWebView(String tabId, {String? originalUrl}) async {
     final controller = _webViewControllers[tabId];
     if (controller != null) {
-      await controller.reload();
+      try {
+        final currentUrl = await controller.currentUrl();
+        if ((currentUrl == null || currentUrl == 'about:blank') && originalUrl != null) {
+          await controller.loadRequest(Uri.parse(originalUrl));
+        } else {
+          await controller.reload();
+        }
+      } catch (e) {
+        if (originalUrl != null) {
+          await controller.loadRequest(Uri.parse(originalUrl));
+        } else {
+          await controller.reload();
+        }
+      }
     }
   }
 

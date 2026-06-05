@@ -35,7 +35,7 @@
     },
     "gemini": {
       "id": "gemini",
-      "urlPattern": "https://gemini.google.com",
+      "urlPattern": "https://gemini.google.com/app",
       "inputXPath": "//div[@data-test-id='textarea-inner']//div[@role='textbox']",
       "submitXPath": "//mat-icon[@data-mat-icon-name='arrow_upward']",
       "displayName": "Gemini",

@@ -185,6 +185,13 @@ class _WebViewContainerState extends State<WebViewContainer> with AutomaticKeepA
           },
           onWebResourceError: (WebResourceError error) {
             if (error.isForMainFrame == true && mounted) {
+              // 过滤非致命的取消/中断类错误 (如 Android -3 net::ERR_ABORTED 或 iOS 102 Frame load interrupted)
+              final isAborted = error.errorCode == -3 || error.errorCode == 102;
+              if (isAborted) {
+                debugPrint('[WebView] Ignored non-fatal resource error code: ${error.errorCode}, description: ${error.description}');
+                return;
+              }
+
               _cancelPageTimeoutTimer();
               setState(() {
                 _hasError = true;
@@ -780,11 +787,24 @@ class _WebViewContainerState extends State<WebViewContainer> with AutomaticKeepA
                         _isLoading = true;
                         _showWebView = false;
                       });
+                      final targetUrl = widget.tab?.url;
                       if (widget.tab != null) {
                         widget.tabManagerVM.setWebStatus(widget.tab!.id, WebLoadingStatus.loading);
                       }
                       _startPageTimeoutTimer();
-                      _controller.reload();
+                      if (targetUrl != null) {
+                        _controller.currentUrl().then((url) {
+                          if (url == null || url == 'about:blank') {
+                            _controller.loadRequest(Uri.parse(targetUrl));
+                          } else {
+                            _controller.reload();
+                          }
+                        }).catchError((_) {
+                          _controller.loadRequest(Uri.parse(targetUrl));
+                        });
+                      } else {
+                        _controller.reload();
+                      }
                     },
                     icon: const Icon(Icons.refresh),
                     label: const Text('Retry'),
