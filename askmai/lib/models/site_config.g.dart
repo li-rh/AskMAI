@@ -13,13 +13,14 @@ SiteConfig _$SiteConfigFromJson(Map<String, dynamic> json) => SiteConfig(
   submitXPath: json['submitXPath'] as String,
   displayName: json['displayName'] as String,
   isDisplay: json['isDisplay'] as bool? ?? true,
+  isEnabled: json['isEnabled'] as bool? ?? true,
   viewportTop: (json['viewportTop'] as num?)?.toInt() ?? 0,
   viewportBottom: (json['viewportBottom'] as num?)?.toInt() ?? 0,
   viewportLeft: (json['viewportLeft'] as num?)?.toInt() ?? 0,
   viewportRight: (json['viewportRight'] as num?)?.toInt() ?? 0,
+  viewportEnabled: json['viewportEnabled'] as bool? ?? true,
   strategy: json['strategy'] as String?,
   userAgent: json['userAgent'] as String?,
-  viewportDisabled: json['viewportDisabled'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$SiteConfigToJson(SiteConfig instance) =>
@@ -30,11 +31,12 @@ Map<String, dynamic> _$SiteConfigToJson(SiteConfig instance) =>
       'submitXPath': instance.submitXPath,
       'displayName': instance.displayName,
       'isDisplay': instance.isDisplay,
+      'isEnabled': instance.isEnabled,
       'viewportTop': instance.viewportTop,
       'viewportBottom': instance.viewportBottom,
       'viewportLeft': instance.viewportLeft,
       'viewportRight': instance.viewportRight,
+      'viewportEnabled': instance.viewportEnabled,
       'strategy': instance.strategy,
       'userAgent': instance.userAgent,
-      'viewportDisabled': instance.viewportDisabled,
     };

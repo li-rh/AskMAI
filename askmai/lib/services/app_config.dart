@@ -13,13 +13,11 @@ class AppConfig {
   String _themeMode = 'auto';
   bool _showAppBar = false;
   String _webLoadStrategy = 'sequential';
-  List<String> _defaultEnabledTabs = ['ChatGPT', '豆包', 'DeepSeek', '千问', '元宝'];
   String _githubUrl = 'https://github.com/li-rh/AskMAI';
 
   String get themeMode => _themeMode;
   bool get showAppBar => _showAppBar;
   String get webLoadStrategy => _webLoadStrategy;
-  List<String> get defaultEnabledTabs => _defaultEnabledTabs;
   String get githubUrl => _githubUrl;
 
   /// 加载配置文件
@@ -31,11 +29,6 @@ class AppConfig {
       _themeMode = decoded['themeMode'] ?? 'auto';
       _showAppBar = decoded['showAppBar'] ?? false;
       _webLoadStrategy = decoded['webLoadStrategy'] ?? 'sequential';
-      
-      if (decoded['defaultEnabledTabs'] != null) {
-        _defaultEnabledTabs = List<String>.from(decoded['defaultEnabledTabs']);
-      }
-      
       _githubUrl = decoded['githubUrl'] ?? 'https://github.com/li-rh/AskMAI';
     } catch (e) {
       print('Error loading app config: $e');

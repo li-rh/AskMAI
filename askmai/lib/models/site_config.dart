@@ -23,6 +23,9 @@ class SiteConfig {
   /// 是否默认显示
   final bool isDisplay;
 
+  /// 是否默认启用
+  final bool isEnabled;
+
   /// 视口上边距 (px)，用于调整网页显示区域
   final int viewportTop;
 
@@ -35,14 +38,14 @@ class SiteConfig {
   /// 视口右边距 (px)
   final int viewportRight;
 
+  /// 是否启用视口调整
+  final bool viewportEnabled;
+
   /// 注入策略名称 (例如: 'generic', 'react_fiber')
   final String? strategy;
 
   /// 自定义 UserAgent (为空时使用全局 UserAgent)
   final String? userAgent;
-
-  /// 是否禁用视口调整
-  final bool viewportDisabled;
 
   SiteConfig({
     required this.id,
@@ -51,13 +54,14 @@ class SiteConfig {
     required this.submitXPath,
     required this.displayName,
     this.isDisplay = true,
+    this.isEnabled = true,
     this.viewportTop = 0,
     this.viewportBottom = 0,
     this.viewportLeft = 0,
     this.viewportRight = 0,
+    this.viewportEnabled = true,
     this.strategy,
     this.userAgent,
-    this.viewportDisabled = false,
   });
 
   /// 从JSON创建SiteConfig

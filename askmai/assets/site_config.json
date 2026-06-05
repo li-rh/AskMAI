@@ -7,13 +7,15 @@
       "inputXPath": "//div[@id='prompt-textarea']",
       "submitXPath": "//button[@data-testid='send-button']",
       "displayName": "ChatGPT",
-      "isDisplay": true,
+      "isDisplay": false,
+      "isEnabled": false,
       "viewportTop": 0,
-      "viewportBottom": 0,
+      "viewportBottom": 115,
       "viewportLeft": 0,
       "viewportRight": 0,
-      "viewportDisabled": false,
-      "strategy": "generic"
+      "viewportEnabled": true,
+      "strategy": "generic",
+      "userAgent": null
     },
     "claude": {
       "id": "claude",
@@ -21,13 +23,15 @@
       "inputXPath": "//textarea[@placeholder='Message Claude']",
       "submitXPath": "//button[contains(@aria-label, 'Send')]",
       "displayName": "Claude",
-      "isDisplay": true,
+      "isDisplay": false,
+      "isEnabled": false,
       "viewportTop": 0,
       "viewportBottom": 0,
       "viewportLeft": 0,
       "viewportRight": 0,
-      "viewportDisabled": false,
-      "strategy": "generic"
+      "viewportEnabled": true,
+      "strategy": "generic",
+      "userAgent": null
     },
     "gemini": {
       "id": "gemini",
@@ -35,13 +39,15 @@
       "inputXPath": "//div[@data-test-id='textarea-inner']//div[@role='textbox']",
       "submitXPath": "//mat-icon[@data-mat-icon-name='arrow_upward']",
       "displayName": "Gemini",
-      "isDisplay": true,
+      "isDisplay": false,
+      "isEnabled": false,
       "viewportTop": 0,
-      "viewportBottom": 0,
+      "viewportBottom": 115,
       "viewportLeft": 0,
       "viewportRight": 0,
-      "viewportDisabled": false,
-      "strategy": "generic"
+      "viewportEnabled": true,
+      "strategy": "generic",
+      "userAgent": null
     },
     "doubao": {
       "id": "doubao",
@@ -50,12 +56,14 @@
       "submitXPath": "//button[@id='flow-end-msg-send']",
       "displayName": "豆包",
       "isDisplay": true,
+      "isEnabled": true,
       "viewportTop": 0,
-      "viewportBottom": 0,
+      "viewportBottom": 125,
       "viewportLeft": 0,
       "viewportRight": 0,
-      "viewportDisabled": false,
-      "strategy": "generic"
+      "viewportEnabled": true,
+      "strategy": "generic",
+      "userAgent": null
     },
     "deepseek": {
       "id": "deepseek",
@@ -64,12 +72,14 @@
       "submitXPath": "//div[@role='button' and not(div[@class='ds-button__border']) and contains(@class,'ds-button--circle')]",
       "displayName": "DeepSeek",
       "isDisplay": true,
+      "isEnabled": true,
       "viewportTop": 0,
-      "viewportBottom": 0,
+      "viewportBottom": 156,
       "viewportLeft": 0,
       "viewportRight": 0,
-      "viewportDisabled": false,
-      "strategy": "generic"
+      "viewportEnabled": true,
+      "strategy": "generic",
+      "userAgent": null
     },
     "qianwen": {
       "id": "qianwen",
@@ -78,12 +88,14 @@
       "submitXPath": "//button[@aria-label='发送消息']",
       "displayName": "千问",
       "isDisplay": true,
+      "isEnabled": true,
       "viewportTop": 0,
-      "viewportBottom": 0,
+      "viewportBottom": 125,
       "viewportLeft": 0,
       "viewportRight": 0,
-      "viewportDisabled": false,
-      "strategy": "react_fiber"
+      "viewportEnabled": true,
+      "strategy": "react_fiber",
+      "userAgent": null
     },
     "qwen": {
       "id": "qianwen",
@@ -91,13 +103,15 @@
       "inputXPath": "//textarea[@class='message-input-textarea']",
       "submitXPath": "//button[contains(@class,'send-button')]",
       "displayName": "Qwen",
-      "isDisplay": true,
+      "isDisplay": false,
+      "isEnabled": false,
       "viewportTop": 0,
-      "viewportBottom": 0,
+      "viewportBottom": 90,
       "viewportLeft": 0,
       "viewportRight": 0,
-      "viewportDisabled": false,
-      "strategy": "generic"
+      "viewportEnabled": true,
+      "strategy": "generic",
+      "userAgent": null
     },
     "yuanbao": {
       "id": "yuanbao",
@@ -106,12 +120,14 @@
       "submitXPath": "//*[@id='yuanbao-send-btn']",
       "displayName": "元宝",
       "isDisplay": true,
+      "isEnabled": true,
       "viewportTop": 0,
-      "viewportBottom": 0,
+      "viewportBottom": 150,
       "viewportLeft": 0,
       "viewportRight": 0,
-      "viewportDisabled": false,
-      "strategy": "generic"
+      "viewportEnabled": true,
+      "strategy": "generic",
+      "userAgent": null
     },
     "kimi": {
       "id": "kimi",
@@ -119,13 +135,15 @@
       "inputXPath": "//div[@role='textbox']",
       "submitXPath": "//div[@class='send-button-container']",
       "displayName": "Kimi",
-      "isDisplay": true,
+      "isDisplay": false,
+      "isEnabled": false,
       "viewportTop": 0,
-      "viewportBottom": 0,
+      "viewportBottom": 156,
       "viewportLeft": 0,
       "viewportRight": 0,
-      "viewportDisabled": false,
-      "strategy": "generic"
+      "viewportEnabled": true,
+      "strategy": "generic",
+      "userAgent": null
     },
     "zhipu": {
       "id": "zhipu",
@@ -133,13 +151,15 @@
       "inputXPath": "//div[@id='search-input-box']//textarea",
       "submitXPath": "//div[@class='send-button-right']",
       "displayName": "智谱",
-      "isDisplay": true,
+      "isDisplay": false,
+      "isEnabled": false,
       "viewportTop": 0,
-      "viewportBottom": 0,
+      "viewportBottom": 80,
       "viewportLeft": 0,
       "viewportRight": 0,
-      "viewportDisabled": false,
-      "strategy": "generic"
+      "viewportEnabled": true,
+      "strategy": "generic",
+      "userAgent": null
     }
   }
 }

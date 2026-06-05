@@ -818,14 +818,14 @@ class _WebViewContainerState extends State<WebViewContainer> with AutomaticKeepA
       );
     }
 
-    final viewportDisabled = widget.tab?.viewportDisabled ?? false;
+    final viewportEnabled = widget.tab?.viewportEnabled ?? true;
     final viewportTop = widget.tab?.viewportTop ?? 0;
     final viewportBottom = widget.tab?.viewportBottom ?? 0;
     final viewportLeft = widget.tab?.viewportLeft ?? 0;
     final viewportRight = widget.tab?.viewportRight ?? 0;
     final extraWidth = viewportLeft + viewportRight;
     final extraHeight = viewportTop + viewportBottom;
-    final hasViewportAdjust = !viewportDisabled && (extraWidth > 0 || extraHeight > 0);
+    final hasViewportAdjust = viewportEnabled && (extraWidth > 0 || extraHeight > 0);
 
     return LayoutBuilder(
       builder: (context, constraints) {

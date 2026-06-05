@@ -739,7 +739,7 @@ class _SettingsTabItemState extends State<_SettingsTabItem> {
     );
     bool isEnabled = widget.tab.isEnabled;
     bool isDisplayed = widget.tab.isDisplayed;
-    bool viewportDisabled = widget.tab.viewportDisabled;
+    bool viewportEnabled = widget.tab.viewportEnabled;
 
     showDialog(
       context: context,
@@ -892,14 +892,14 @@ class _SettingsTabItemState extends State<_SettingsTabItem> {
                     Row(
                       children: [
                         Checkbox(
-                          value: viewportDisabled,
+                          value: viewportEnabled,
                           onChanged: (value) {
                             setState(() {
-                              viewportDisabled = value ?? false;
+                              viewportEnabled = value ?? true;
                             });
                           },
                         ),
-                        const Text('禁用视口调整'),
+                        const Text('启用视口调整'),
                       ],
                     ),
                   ],
@@ -955,7 +955,7 @@ class _SettingsTabItemState extends State<_SettingsTabItem> {
                       viewportBottom: vpBottom,
                       viewportLeft: vpLeft,
                       viewportRight: vpRight,
-                      viewportDisabled: viewportDisabled,
+                      viewportEnabled: viewportEnabled,
                     ));
                     Navigator.pop(context);
                   },

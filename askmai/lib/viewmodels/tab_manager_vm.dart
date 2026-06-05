@@ -59,7 +59,7 @@ class TabManagerVM extends ChangeNotifier {
     int viewportBottom = 0,
     int viewportLeft = 0,
     int viewportRight = 0,
-    bool viewportDisabled = false,
+    bool viewportEnabled = true,
   }) {
     final newTab = LLMTab(
       id: id ?? const Uuid().v4(),
@@ -74,7 +74,7 @@ class TabManagerVM extends ChangeNotifier {
       viewportBottom: viewportBottom,
       viewportLeft: viewportLeft,
       viewportRight: viewportRight,
-      viewportDisabled: viewportDisabled,
+      viewportEnabled: viewportEnabled,
     );
 
     _tabs.add(newTab);
@@ -216,24 +216,23 @@ class TabManagerVM extends ChangeNotifier {
         bool isNewTabAdded = false;
         
         for (final config in configs) {
-          if (config.isDisplay) {
-            final exists = _tabs.any((tab) => tab.displayName == config.displayName);
-            if (!exists) {
-              String startUrl = config.urlPattern;
-              
-              _tabs.add(LLMTab(
-                id: const Uuid().v4(),
-                url: startUrl,
-                displayName: config.displayName,
-                createdAt: DateTime.now(),
-                viewportTop: config.viewportTop,
-                viewportBottom: config.viewportBottom,
-                viewportLeft: config.viewportLeft,
-                viewportRight: config.viewportRight,
-                viewportDisabled: config.viewportDisabled,
-              ));
-              isNewTabAdded = true;
-            }
+          final exists = _tabs.any((tab) => tab.displayName == config.displayName);
+          if (!exists) {
+            String startUrl = config.urlPattern;
+            _tabs.add(LLMTab(
+              id: const Uuid().v4(),
+              url: startUrl,
+              displayName: config.displayName,
+              createdAt: DateTime.now(),
+              isEnabled: config.isDisplay && config.isEnabled,
+              isDisplayed: config.isDisplay,
+              viewportTop: config.viewportTop,
+              viewportBottom: config.viewportBottom,
+              viewportLeft: config.viewportLeft,
+              viewportRight: config.viewportRight,
+              viewportEnabled: config.viewportEnabled,
+            ));
+            isNewTabAdded = true;
           }
         }
         
@@ -257,28 +256,25 @@ class TabManagerVM extends ChangeNotifier {
     final siteRegistry = SiteRegistry();
     final configs = siteRegistry.getAllConfigs();
 
-    final defaultEnabledNames = AppConfig().defaultEnabledTabs.toSet();
-
     for (final config in configs) {
-      if (config.isDisplay) { // 只添加默认显示为 true 的
-        String startUrl = config.urlPattern;
-        final isEnabled = defaultEnabledNames.contains(config.displayName);
-        
-        final newTab = LLMTab(
-          id: const Uuid().v4(),
-          url: startUrl,
-          displayName: config.displayName,
-          createdAt: DateTime.now(),
-          isEnabled: isEnabled,
-          isDisplayed: isEnabled,
-          viewportTop: config.viewportTop,
-          viewportBottom: config.viewportBottom,
-          viewportLeft: config.viewportLeft,
-          viewportRight: config.viewportRight,
-          viewportDisabled: config.viewportDisabled,
-        );
-        _tabs.add(newTab);
-      }
+      String startUrl = config.urlPattern;
+      final isDisplayed = config.isDisplay;
+      final isEnabled = isDisplayed && config.isEnabled;
+      
+      final newTab = LLMTab(
+        id: const Uuid().v4(),
+        url: startUrl,
+        displayName: config.displayName,
+        createdAt: DateTime.now(),
+        isEnabled: isEnabled,
+        isDisplayed: isDisplayed,
+        viewportTop: config.viewportTop,
+        viewportBottom: config.viewportBottom,
+        viewportLeft: config.viewportLeft,
+        viewportRight: config.viewportRight,
+        viewportEnabled: config.viewportEnabled,
+      );
+      _tabs.add(newTab);
     }
 
     if (_tabs.isNotEmpty) {
@@ -345,24 +341,24 @@ class TabManagerVM extends ChangeNotifier {
             viewportBottom: config.viewportBottom,
             viewportLeft: config.viewportLeft,
             viewportRight: config.viewportRight,
-            viewportDisabled: config.viewportDisabled,
+            viewportEnabled: config.viewportEnabled,
             isDisplayed: isDisplayed,
             isEnabled: isEnabled,
           ));
         } else {
-          // 不存在则新建一个，按照 isDisplay 决定是否显示/启用
+          // 不存在则新建一个，按照 isDisplay/isEnabled 决定是否显示/启用
           newTabs.add(LLMTab(
             id: const Uuid().v4(),
             url: config.urlPattern,
             displayName: config.displayName,
             createdAt: DateTime.now(),
-            isEnabled: config.isDisplay,
+            isEnabled: config.isEnabled,
             isDisplayed: config.isDisplay,
             viewportTop: config.viewportTop,
             viewportBottom: config.viewportBottom,
             viewportLeft: config.viewportLeft,
             viewportRight: config.viewportRight,
-            viewportDisabled: config.viewportDisabled,
+            viewportEnabled: config.viewportEnabled,
           ));
         }
       }

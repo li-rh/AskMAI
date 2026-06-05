@@ -644,7 +644,7 @@ class _LeftButtonColumn extends StatelessWidget {
     return Consumer<TabManagerVM>(
       builder: (context, tabManagerVM, _) {
         final activeTab = tabManagerVM.activeTab;
-        final isViewportEnabled = activeTab != null && !activeTab.viewportDisabled;
+        final isViewportEnabled = activeTab != null && activeTab.viewportEnabled;
 
         return Container(
           width: 48,

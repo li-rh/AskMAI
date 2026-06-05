@@ -136,11 +136,12 @@ class SiteRegistry {
           
           jsonVal['urlPattern'] = matchingTab.url;
           jsonVal['isDisplay'] = matchingTab.isDisplayed;
+          jsonVal['isEnabled'] = matchingTab.isEnabled;
           jsonVal['viewportTop'] = matchingTab.viewportTop;
           jsonVal['viewportBottom'] = matchingTab.viewportBottom;
           jsonVal['viewportLeft'] = matchingTab.viewportLeft;
           jsonVal['viewportRight'] = matchingTab.viewportRight;
-          jsonVal['viewportDisabled'] = matchingTab.viewportDisabled;
+          jsonVal['viewportEnabled'] = matchingTab.viewportEnabled;
           
           // 如果实例覆盖了默认 XPath，将其同步写入全局字段
           if (matchingTab.customInputXPath != null) {
@@ -184,12 +185,14 @@ class SiteRegistry {
             'submitXPath': tab.customSubmitXPath ?? '',
             'displayName': tab.displayName,
             'isDisplay': tab.isDisplayed,
+            'isEnabled': tab.isEnabled,
             'viewportTop': tab.viewportTop,
             'viewportBottom': tab.viewportBottom,
             'viewportLeft': tab.viewportLeft,
             'viewportRight': tab.viewportRight,
-            'viewportDisabled': tab.viewportDisabled,
+            'viewportEnabled': tab.viewportEnabled,
             'strategy': 'generic',
+            'userAgent': null,
           };
         }
       }

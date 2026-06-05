@@ -17,7 +17,7 @@ class _ViewportAdjustDialogState extends State<ViewportAdjustDialog> {
   late int _bottom;
   late int _left;
   late int _right;
-  bool _isDisabled = false;
+  bool _isEnabled = true;
   bool _didSave = false;
 
   @override
@@ -27,7 +27,7 @@ class _ViewportAdjustDialogState extends State<ViewportAdjustDialog> {
     _bottom = widget.tab.viewportBottom;
     _left = widget.tab.viewportLeft;
     _right = widget.tab.viewportRight;
-    _isDisabled = widget.tab.viewportDisabled;
+    _isEnabled = widget.tab.viewportEnabled;
   }
 
   @override
@@ -46,7 +46,7 @@ class _ViewportAdjustDialogState extends State<ViewportAdjustDialog> {
       viewportBottom: bottom,
       viewportLeft: left,
       viewportRight: right,
-      viewportDisabled: _isDisabled,
+      viewportEnabled: _isEnabled,
     );
     tabManagerVM.updateTabPreview(previewTab);
   }
@@ -59,7 +59,7 @@ class _ViewportAdjustDialogState extends State<ViewportAdjustDialog> {
       viewportBottom: _bottom,
       viewportLeft: _left,
       viewportRight: _right,
-      viewportDisabled: _isDisabled,
+      viewportEnabled: _isEnabled,
     );
     tabManagerVM.updateTab(updatedTab);
     Navigator.pop(context);
@@ -72,15 +72,15 @@ class _ViewportAdjustDialogState extends State<ViewportAdjustDialog> {
     Navigator.pop(context);
   }
 
-  void _toggleDisabled() {
+  void _toggleEnabled() {
     setState(() {
-      _isDisabled = !_isDisabled;
+      _isEnabled = !_isEnabled;
     });
     _applyPreview(
-      _isDisabled ? 0 : _top,
-      _isDisabled ? 0 : _bottom,
-      _isDisabled ? 0 : _left,
-      _isDisabled ? 0 : _right,
+      _isEnabled ? _top : 0,
+      _isEnabled ? _bottom : 0,
+      _isEnabled ? _left : 0,
+      _isEnabled ? _right : 0,
     );
   }
 
@@ -114,7 +114,7 @@ class _ViewportAdjustDialogState extends State<ViewportAdjustDialog> {
                 children: [
                   Icon(
                     Icons.view_quilt_rounded,
-                    color: _isDisabled ? Colors.grey : colorScheme.primary,
+                    color: _isEnabled ? colorScheme.primary : Colors.grey,
                     size: 24,
                   ),
                   const SizedBox(width: 8),
@@ -123,28 +123,28 @@ class _ViewportAdjustDialogState extends State<ViewportAdjustDialog> {
                       '视图调整 - ${widget.tab.displayName}',
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: _isDisabled ? Colors.grey : null,
+                        color: _isEnabled ? null : Colors.grey,
                       ),
                     ),
                   ),
                   Tooltip(
-                    message: _isDisabled ? '启用视口调整' : '临时禁用视口调整',
+                    message: _isEnabled ? '临时禁用视口调整' : '启用视口调整',
                     child: IconButton(
-                      onPressed: _toggleDisabled,
+                      onPressed: _toggleEnabled,
                       icon: Icon(
-                        _isDisabled ? Icons.toggle_off : Icons.toggle_on,
-                        color: _isDisabled ? Colors.grey : colorScheme.primary,
+                        _isEnabled ? Icons.toggle_on : Icons.toggle_off,
+                        color: _isEnabled ? colorScheme.primary : Colors.grey,
                       ),
-                      tooltip: _isDisabled ? '启用' : '禁用',
+                      tooltip: _isEnabled ? '禁用' : '启用',
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 4),
               Text(
-                _isDisabled
-                    ? '视口调整已临时禁用，配置值已保留'
-                    : '拖动滑块实时调整网页视口边距，隐藏顶部工具栏和底部输入框',
+                _isEnabled
+                    ? '拖动滑块实时调整网页视口边距，隐藏顶部工具栏和底部输入框'
+                    : '视口调整已临时禁用，配置值已保留',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.textTheme.bodySmall?.color?.withValues(
                     alpha: 0.7,
@@ -157,7 +157,7 @@ class _ViewportAdjustDialogState extends State<ViewportAdjustDialog> {
                 label: '隐藏顶部',
                 icon: Icons.arrow_upward,
                 value: _effectiveTop,
-                enabled: !_isDisabled,
+                enabled: _isEnabled,
                 onChanged: (v) {
                   setState(() => _top = v);
                   _applyPreview(_top, _bottom, _left, _right);
@@ -170,7 +170,7 @@ class _ViewportAdjustDialogState extends State<ViewportAdjustDialog> {
                 label: '隐藏底部',
                 icon: Icons.arrow_downward,
                 value: _effectiveBottom,
-                enabled: !_isDisabled,
+                enabled: _isEnabled,
                 onChanged: (v) {
                   setState(() => _bottom = v);
                   _applyPreview(_top, _bottom, _left, _right);
@@ -183,7 +183,7 @@ class _ViewportAdjustDialogState extends State<ViewportAdjustDialog> {
                 label: '隐藏左侧',
                 icon: Icons.arrow_back,
                 value: _effectiveLeft,
-                enabled: !_isDisabled,
+                enabled: _isEnabled,
                 onChanged: (v) {
                   setState(() => _left = v);
                   _applyPreview(_top, _bottom, _left, _right);
@@ -196,7 +196,7 @@ class _ViewportAdjustDialogState extends State<ViewportAdjustDialog> {
                 label: '隐藏右侧',
                 icon: Icons.arrow_forward,
                 value: _effectiveRight,
-                enabled: !_isDisabled,
+                enabled: _isEnabled,
                 onChanged: (v) {
                   setState(() => _right = v);
                   _applyPreview(_top, _bottom, _left, _right);
