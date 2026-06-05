@@ -793,15 +793,7 @@ class _WebViewContainerState extends State<WebViewContainer> with AutomaticKeepA
                       }
                       _startPageTimeoutTimer();
                       if (targetUrl != null) {
-                        _controller.currentUrl().then((url) {
-                          if (url == null || url == 'about:blank') {
-                            _controller.loadRequest(Uri.parse(targetUrl));
-                          } else {
-                            _controller.reload();
-                          }
-                        }).catchError((_) {
-                          _controller.loadRequest(Uri.parse(targetUrl));
-                        });
+                        _controller.loadRequest(Uri.parse(targetUrl));
                       } else {
                         _controller.reload();
                       }
