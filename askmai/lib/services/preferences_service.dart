@@ -2,8 +2,16 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/exports.dart';
 
-/// SharedPreferences管理服务
+/// SharedPreferences管理服务 - 单例模式
 class PreferencesService {
+  static final PreferencesService _instance = PreferencesService._internal();
+
+  factory PreferencesService() {
+    return _instance;
+  }
+
+  PreferencesService._internal();
+
   static const String _tabUrlsKey = 'tab_urls';
   static const String _activeTabIdKey = 'active_tab_id';
 
