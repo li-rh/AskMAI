@@ -40,6 +40,7 @@ class LLMTabBar extends StatelessWidget {
               final status = submissionStatus[tab.id];
               final webStatus = tabManagerVM.getWebStatus(tab.id);
               return _ModernTabButton(
+                key: ValueKey(tab.id),
                 tab: tab,
                 isActive: tab.id == tabManagerVM.activeTabId,
                 status: status,
@@ -96,6 +97,7 @@ class _ModernTabButton extends StatefulWidget {
   final VoidCallback onRefresh;
 
   const _ModernTabButton({
+    Key? key,
     required this.tab,
     required this.isActive,
     required this.status,
@@ -103,7 +105,7 @@ class _ModernTabButton extends StatefulWidget {
     required this.onTap,
     required this.onClose,
     required this.onRefresh,
-  });
+  }) : super(key: key);
 
   @override
   State<_ModernTabButton> createState() => _ModernTabButtonState();

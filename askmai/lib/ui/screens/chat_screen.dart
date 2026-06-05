@@ -530,10 +530,10 @@ class _ChatScreenState extends State<ChatScreen> {
                                               ? activeTabWithPreview
                                               : tab;
                                       return SizedBox(
+                                        key: ValueKey(tab.id),
                                         width: width,
                                         height: height,
                                         child: WebViewContainer(
-                                          key: ValueKey(tab.id),
                                           tab: tabToUse,
                                           webViewService: webViewService,
                                           tabManagerVM: tabManagerVM,
