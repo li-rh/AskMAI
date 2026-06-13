@@ -96,7 +96,7 @@ class _ViewportAdjustDialogState extends State<ViewportAdjustDialog> {
 
     return PopScope(
       canPop: true,
-      onPopInvoked: (didPop) {
+      onPopInvokedWithResult: (didPop, result) {
         if (didPop && !_didSave) {
           final tabManagerVM = context.read<TabManagerVM>();
           tabManagerVM.clearTabPreview(widget.tab.id);

@@ -16,7 +16,7 @@ class ReactFiberStrategy extends InjectionStrategy {
     try {
       // 1. 双重聚焦序列：对抗通义千问的首次失焦保护
       final focus1Js = '''
-        ${helpersJS}
+        $helpersJS
         (function() {
           var editor = _findElement('${escapeJavaScript(inputXPath)}');
           if (!editor) return "not_found";
@@ -29,7 +29,7 @@ class ReactFiberStrategy extends InjectionStrategy {
       await Future.delayed(const Duration(milliseconds: 200));
 
       final focus2Js = '''
-        ${helpersJS}
+        $helpersJS
         (function() {
           var editor = _findElement('${escapeJavaScript(inputXPath)}');
           if (!editor) return "not_found";
@@ -43,7 +43,7 @@ class ReactFiberStrategy extends InjectionStrategy {
 
       // 2. 利用 React Fiber 注入文本：直接调用 Slate API
       final injectJs = '''
-        ${helpersJS}
+        $helpersJS
         (function() {
           try {
             var editor = _findElement('${escapeJavaScript(inputXPath)}');
@@ -151,7 +151,7 @@ class ReactFiberStrategy extends InjectionStrategy {
       await Future.delayed(const Duration(milliseconds: 200));
 
       final submitJs = '''
-        ${helpersJS}
+        $helpersJS
         (function() {
           try {
             var btn = _findElement('${escapeJavaScript(submitXPath)}');

@@ -126,17 +126,6 @@ class JavascriptService {
     }
     return null;
   }
-
-  /// 转义JavaScript中的特殊字符
-  static String _escapeJavaScript(String value) {
-    return value
-        .replaceAll('\\', '\\\\')
-        .replaceAll("'", "\\'")
-        .replaceAll('\n', '\\n')
-        .replaceAll('\r', '\\r')
-        .replaceAll('\t', '\\t');
-  }
-
   @override
   String toString() => 'JavascriptService()';
 }

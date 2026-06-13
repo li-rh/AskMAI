@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'package:flutter/services.dart';
 import '../models/exports.dart';
 import 'preferences_service.dart';
@@ -43,7 +44,7 @@ class SiteRegistry {
             siteData['id'] = key; // 添加id字段
             _sites[key] = SiteConfig.fromJson(siteData);
           } catch (e) {
-            print('Failed to parse default site config for $key: $e');
+            _log('Failed to parse default site config for $key', e);
           }
         });
       }
@@ -65,22 +66,26 @@ class SiteRegistry {
                 siteData['id'] = key; // 添加id字段
                 _sites[key] = SiteConfig.fromJson(siteData);
               } catch (e) {
-                print('Failed to parse custom site config for $key: $e');
+                _log('Failed to parse custom site config for $key', e);
               }
             });
           }
         }
       } catch (e) {
-        print('Error loading or merging custom site configurations: $e');
+        _log('Error loading or merging custom site configurations', e);
       }
 
       _isInitialized = true;
-      print('Loaded ${_sites.length} site configurations. Global UserAgent: $userAgent');
+      _log('Loaded ${_sites.length} site configurations. Global UserAgent: $userAgent');
     } catch (e) {
-      print('Error loading site configurations: $e');
+      _log('Error loading site configurations', e);
       _sites = {};
       _isInitialized = true;
     }
+  }
+
+  void _log(String message, [Object? error]) {
+    developer.log(message, name: 'SiteRegistry', error: error);
   }
 
   /// 重新加载配置

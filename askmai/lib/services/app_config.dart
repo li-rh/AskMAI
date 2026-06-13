@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'package:flutter/services.dart';
 
 /// 全局应用程序配置 - 单例模式
@@ -31,7 +32,7 @@ class AppConfig {
       _webLoadStrategy = decoded['webLoadStrategy'] ?? 'sequential';
       _githubUrl = decoded['githubUrl'] ?? 'https://github.com/li-rh/AskMAI';
     } catch (e) {
-      print('Error loading app config: $e');
+      developer.log('Error loading app config', name: 'AppConfig', error: e);
     }
   }
 }

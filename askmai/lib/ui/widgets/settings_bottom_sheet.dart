@@ -113,33 +113,29 @@ class _SettingsBottomSheetState extends State<_SettingsBottomSheet> {
           // 主题设置
           _SettingsSection(
             title: '主题',
-            child: Column(
-              children: [
-                _ThemeOption(
-                  title: '浅色',
-                  value: 'light',
-                  currentValue: _appSettingsVM.themeMode,
-                  onChanged: (value) {
-                    _appSettingsVM.setThemeMode(value);
-                  },
-                ),
-                _ThemeOption(
-                  title: '深色',
-                  value: 'dark',
-                  currentValue: _appSettingsVM.themeMode,
-                  onChanged: (value) {
-                    _appSettingsVM.setThemeMode(value);
-                  },
-                ),
-                _ThemeOption(
-                  title: '跟随系统',
-                  value: 'auto',
-                  currentValue: _appSettingsVM.themeMode,
-                  onChanged: (value) {
-                    _appSettingsVM.setThemeMode(value);
-                  },
-                ),
-              ],
+            child: RadioGroup<String>(
+              groupValue: _appSettingsVM.themeMode,
+              onChanged: (value) {
+                if (value != null) {
+                  _appSettingsVM.setThemeMode(value);
+                }
+              },
+              child: const Column(
+                children: [
+                  _ThemeOption(
+                    title: '浅色',
+                    value: 'light',
+                  ),
+                  _ThemeOption(
+                    title: '深色',
+                    value: 'dark',
+                  ),
+                  _ThemeOption(
+                    title: '跟随系统',
+                    value: 'auto',
+                  ),
+                ],
+              ),
             ),
           ),
 
@@ -187,37 +183,33 @@ class _SettingsBottomSheetState extends State<_SettingsBottomSheet> {
           // 网页加载策略设置
           _SettingsSection(
             title: '网页加载策略',
-            child: Column(
-              children: [
-                _StrategyOption(
-                  title: '仅在切换时加载（极速）',
-                  subtitle: '最节省流量和内存，点击标签页才开始加载网页',
-                  value: 'lazy',
-                  currentValue: _appSettingsVM.webLoadStrategy,
-                  onChanged: (value) {
-                    _appSettingsVM.setWebLoadStrategy(value);
-                  },
-                ),
-                _StrategyOption(
-                  title: '顺序排队加载（推荐，均衡）',
-                  subtitle: '先加载活跃网页，其余网页每隔 1.5 秒依次载入',
-                  value: 'sequential',
-                  currentValue: _appSettingsVM.webLoadStrategy,
-                  onChanged: (value) {
-                    _appSettingsVM.setWebLoadStrategy(value);
-                  },
-                ),
-                _StrategyOption(
-                  title: '同时并发加载（常规）',
-                  subtitle: '启动应用时在后台同时加载所有网页',
-                  value: 'concurrent',
-                  currentValue: _appSettingsVM.webLoadStrategy,
-                  onChanged: (value) {
-                    _appSettingsVM.setWebLoadStrategy(value);
-                  },
-                  isLast: true,
-                ),
-              ],
+            child: RadioGroup<String>(
+              groupValue: _appSettingsVM.webLoadStrategy,
+              onChanged: (value) {
+                if (value != null) {
+                  _appSettingsVM.setWebLoadStrategy(value);
+                }
+              },
+              child: const Column(
+                children: [
+                  _StrategyOption(
+                    title: '仅在切换时加载（极速）',
+                    subtitle: '最节省流量和内存，点击标签页才开始加载网页',
+                    value: 'lazy',
+                  ),
+                  _StrategyOption(
+                    title: '顺序排队加载（推荐，均衡）',
+                    subtitle: '先加载活跃网页，其余网页每隔 1.5 秒依次载入',
+                    value: 'sequential',
+                  ),
+                  _StrategyOption(
+                    title: '同时并发加载（常规）',
+                    subtitle: '启动应用时在后台同时加载所有网页',
+                    value: 'concurrent',
+                    isLast: true,
+                  ),
+                ],
+              ),
             ),
           ),
 
@@ -260,7 +252,7 @@ class _SettingsBottomSheetState extends State<_SettingsBottomSheet> {
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       buildDefaultDragHandles: false,
-                      onReorder: (oldIndex, newIndex) {
+                      onReorderItem: (oldIndex, newIndex) {
                         _tabManagerVM.reorderTabs(oldIndex, newIndex);
                       },
                       children: _tabManagerVM.tabs.asMap().entries.map((entry) {
@@ -448,14 +440,10 @@ class _SettingsSection extends StatelessWidget {
 class _ThemeOption extends StatelessWidget {
   final String title;
   final String value;
-  final String currentValue;
-  final Function(String) onChanged;
 
   const _ThemeOption({
     required this.title,
     required this.value,
-    required this.currentValue,
-    required this.onChanged,
   });
 
   @override
@@ -466,7 +454,9 @@ class _ThemeOption extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => onChanged(value),
+        onTap: () {
+          RadioGroup.maybeOf<String>(context)?.onChanged(value);
+        },
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
           decoration: BoxDecoration(
@@ -486,10 +476,6 @@ class _ThemeOption extends StatelessWidget {
               ),
               Radio<String>(
                 value: value,
-                groupValue: currentValue,
-                onChanged: (val) {
-                  if (val != null) onChanged(val);
-                },
                 activeColor: colorScheme.primary,
               ),
             ],
@@ -505,16 +491,12 @@ class _StrategyOption extends StatelessWidget {
   final String title;
   final String subtitle;
   final String value;
-  final String currentValue;
-  final Function(String) onChanged;
   final bool isLast;
 
   const _StrategyOption({
     required this.title,
     required this.subtitle,
     required this.value,
-    required this.currentValue,
-    required this.onChanged,
     this.isLast = false,
   });
 
@@ -522,12 +504,15 @@ class _StrategyOption extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final isSelected = currentValue == value;
+    final groupRegistry = RadioGroup.maybeOf<String>(context);
+    final isSelected = groupRegistry?.groupValue == value;
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => onChanged(value),
+        onTap: () {
+          RadioGroup.maybeOf<String>(context)?.onChanged(value);
+        },
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
           decoration: BoxDecoration(
@@ -565,10 +550,6 @@ class _StrategyOption extends StatelessWidget {
               const SizedBox(width: 8),
               Radio<String>(
                 value: value,
-                groupValue: currentValue,
-                onChanged: (val) {
-                  if (val != null) onChanged(val);
-                },
                 activeColor: colorScheme.primary,
               ),
             ],
@@ -659,7 +640,7 @@ class _SettingsTabItemState extends State<_SettingsTabItem> {
                     arrowHeight: arrowHeight,
                     borderRadius: borderRadius,
                   ),
-                  shadows: [],
+                  shadows: const [],
                 ),
                 child: SizedBox(
                   width: menuWidth,

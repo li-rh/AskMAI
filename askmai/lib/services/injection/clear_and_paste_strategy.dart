@@ -115,9 +115,9 @@ class ClearAndPasteStrategy extends InjectionStrategy {
     try {
       // 1. 聚焦与点击
       final focusJs = '''
-        \${helpersJS}
-        \$_focusInputJS
-        focusInput('\${escapeJavaScript(inputXPath)}');
+        $helpersJS
+        $_focusInputJS
+        focusInput('${escapeJavaScript(inputXPath)}');
       ''';
       final focusResult = await controller.runJavaScriptReturningResult(focusJs);
       final focusOk = parseResult(focusResult);
@@ -130,9 +130,9 @@ class ClearAndPasteStrategy extends InjectionStrategy {
 
       // 2. Ctrl+A + Delete 清空输入框
       final clearJs = '''
-        \${helpersJS}
-        \$_clearInputJS
-        clearInput('\${escapeJavaScript(inputXPath)}');
+        $helpersJS
+        $_clearInputJS
+        clearInput('${escapeJavaScript(inputXPath)}');
       ''';
       final clearResult = await controller.runJavaScriptReturningResult(clearJs);
       final clearOk = parseResult(clearResult);
@@ -145,9 +145,9 @@ class ClearAndPasteStrategy extends InjectionStrategy {
 
       // 3. 构造 DataTransfer 并触发 paste 事件
       final pasteJs = '''
-        \${helpersJS}
-        \$_pasteInputJS
-        pasteInput('\${escapeJavaScript(inputXPath)}', '\${escapeJavaScript(message)}');
+        $helpersJS
+        $_pasteInputJS
+        pasteInput('${escapeJavaScript(inputXPath)}', '${escapeJavaScript(message)}');
       ''';
       final pasteResult = await controller.runJavaScriptReturningResult(pasteJs);
       final pasteOk = parseResult(pasteResult);
@@ -166,9 +166,9 @@ class ClearAndPasteStrategy extends InjectionStrategy {
 
       // 4. 点击发送按钮
       final clickJs = '''
-        \${helpersJS}
-        \$_clickSubmitJS
-        clickSubmit('\${escapeJavaScript(submitXPath)}');
+        $helpersJS
+        $_clickSubmitJS
+        clickSubmit('${escapeJavaScript(submitXPath)}');
       ''';
       final clickResult = await controller.runJavaScriptReturningResult(clickJs);
       final clickOk = parseResult(clickResult);

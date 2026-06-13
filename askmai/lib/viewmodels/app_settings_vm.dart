@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../services/exports.dart';
@@ -43,7 +44,7 @@ class AppSettingsVM extends ChangeNotifier {
       _appVersion = packageInfo.version;
       notifyListeners();
     } catch (e) {
-      print('Error loading package info: $e');
+      developer.log('Error loading package info', name: 'AppSettingsVM', error: e);
     }
   }
 

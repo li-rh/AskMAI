@@ -1,5 +1,6 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
+import 'dart:developer' as developer;
+import 'package:flutter/widgets.dart';
 import 'package:uuid/uuid.dart';
 import '../models/exports.dart';
 import '../services/exports.dart';
@@ -42,7 +43,9 @@ class TabManagerVM extends ChangeNotifier {
   void setWebStatus(String tabId, WebLoadingStatus status) {
     if (_webStatuses[tabId] != status) {
       _webStatuses[tabId] = status;
-      notifyListeners();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        notifyListeners();
+      });
     }
   }
 
@@ -174,9 +177,6 @@ class TabManagerVM extends ChangeNotifier {
 
   /// 重新排序标签页
   void reorderTabs(int oldIndex, int newIndex) {
-    if (oldIndex < newIndex) {
-      newIndex -= 1;
-    }
     final tab = _tabs.removeAt(oldIndex);
     _tabs.insert(newIndex, tab);
     notifyListeners();
@@ -241,7 +241,7 @@ class TabManagerVM extends ChangeNotifier {
         }
       }
     } catch (e) {
-      print('Error restoring tabs: $e');
+      _log('Error restoring tabs', e);
       if (_tabs.isEmpty) {
         _initDefaultTabs();
       }
@@ -408,7 +408,7 @@ class TabManagerVM extends ChangeNotifier {
         }
       }
     } catch (e) {
-      print('Error updating custom site config: $e');
+      _log('Error updating custom site config', e);
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -427,8 +427,12 @@ class TabManagerVM extends ChangeNotifier {
       // 重新载入 SiteRegistry 状态使其生效
       await siteRegistry.reloadConfigs();
     } catch (e) {
-      print('Error syncing tabs to custom site config: $e');
+      _log('Error syncing tabs to custom site config', e);
     }
+  }
+
+  void _log(String message, [Object? error]) {
+    developer.log(message, name: 'TabManagerVM', error: error);
   }
 
   @override

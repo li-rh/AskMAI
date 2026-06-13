@@ -131,7 +131,7 @@ class GenericStrategy extends InjectionStrategy {
   ) async {
     try {
       final focusJs = '''
-        ${helpersJS}
+        $helpersJS
         $_focusInputJS
         focusInput('${escapeJavaScript(inputXPath)}');
       ''';
@@ -145,7 +145,7 @@ class GenericStrategy extends InjectionStrategy {
       await Future.delayed(const Duration(milliseconds: 300));
 
       final fillJs = '''
-        ${helpersJS}
+        $helpersJS
         $_fillInputJS
         fillInput('${escapeJavaScript(inputXPath)}', '${escapeJavaScript(message)}');
       ''';
@@ -164,7 +164,7 @@ class GenericStrategy extends InjectionStrategy {
       await Future.delayed(const Duration(milliseconds: 500));
 
       final clickJs = '''
-        ${helpersJS}
+        $helpersJS
         $_clickSubmitJS
         clickSubmit('${escapeJavaScript(submitXPath)}');
       ''';

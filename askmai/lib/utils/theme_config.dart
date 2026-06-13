@@ -31,7 +31,7 @@ class AppThemeConfig {
     BoxShadow(
       color: isDark ? Colors.white.withValues(alpha: 0.5) : Colors.black.withValues(alpha: 0.5),
       blurRadius: shadowBlur,
-      offset: Offset(0, shadowBlur / 2),
+      offset: const Offset(0, shadowBlur / 2),
     ),
   ];
 

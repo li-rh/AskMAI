@@ -46,7 +46,7 @@ class LLMTab {
   final bool viewportEnabled;
 
   /// WebView控制器（不序列化）
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   WebViewController? webViewController;
 
   LLMTab({

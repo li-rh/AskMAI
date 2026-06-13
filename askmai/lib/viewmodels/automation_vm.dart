@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import '../models/exports.dart';
 import '../services/exports.dart';
@@ -68,9 +69,7 @@ class AutomationVM extends ChangeNotifier {
         strategyName = siteConfig?.strategy;
       }
 
-      print(
-        'Submitting to tab: $tabId (${tab.displayName})',
-      );
+      _log('Submitting to tab: $tabId (${tab.displayName})');
 
       // 执行JavaScript提交
       final result = await _jsService.executeSubmit(
@@ -82,7 +81,7 @@ class AutomationVM extends ChangeNotifier {
         strategyName: strategyName,
       );
 
-      print('Submission result for $tabId: ${result.getStatusString()}');
+      _log('Submission result for $tabId: ${result.getStatusString()}');
       return result;
     } catch (e) {
       return SubmissionResult(
@@ -108,7 +107,7 @@ class AutomationVM extends ChangeNotifier {
       final enabledTabs = tabManagerVM.tabs.where((tab) => tab.isEnabled).toList();
       
       if (enabledTabs.isEmpty) {
-        print('No enabled tabs to submit to');
+        _log('No enabled tabs to submit to');
         return [];
       }
 
@@ -120,9 +119,13 @@ class AutomationVM extends ChangeNotifier {
       // 并发执行
       return await Future.wait(futures);
     } catch (e) {
-      print('Error in parallel submission: $e');
+      _log('Error in parallel submission', e);
       return [];
     }
+  }
+
+  void _log(String message, [Object? error]) {
+    developer.log(message, name: 'AutomationVM', error: error);
   }
 
   @override

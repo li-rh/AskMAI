@@ -6,7 +6,6 @@ import '../../utils/theme_config.dart';
 import '../../services/exports.dart';
 import '../../viewmodels/exports.dart';
 import '../widgets/exports.dart';
-import '../widgets/viewport_adjust_dialog.dart';
 
 /// 主聊天屏幕
 class ChatScreen extends StatefulWidget {
@@ -382,6 +381,7 @@ class _ChatScreenState extends State<ChatScreen> {
     );
 
     if (confirmed != true) return;
+    if (!mounted) return;
 
     final tabVM = context.read<TabManagerVM>();
     final webViewService = context.read<WebViewService>();
@@ -568,7 +568,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                       ? Colors.white.withValues(alpha: 0.08)
                                       : Colors.black.withValues(alpha: 0.08),
                                   blurRadius: AppThemeConfig.shadowBlur,
-                                  offset: Offset(0, AppThemeConfig.shadowOffsetY),
+                                  offset: const Offset(0, AppThemeConfig.shadowOffsetY),
                                 ),
                               ],
                             ),

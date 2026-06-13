@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import '../models/exports.dart';
 import 'automation_vm.dart';
@@ -69,7 +70,7 @@ class InputDistributorVM extends ChangeNotifier {
       // 记录统计信息
       _logSubmissionStats();
     } catch (e) {
-      print('Error during broadcast: $e');
+      _log('Error during broadcast', e);
     } finally {
       _isSubmitting = false;
       notifyListeners();
@@ -82,16 +83,16 @@ class InputDistributorVM extends ChangeNotifier {
     final success = getSuccessCount();
     final failed = getFailureCount();
 
-    print(
-      'Submission Stats - Total: $total, Success: $success, Failed: $failed',
-    );
+    _log('Submission Stats - Total: $total, Success: $success, Failed: $failed');
 
     for (var entry in _submissionStatus.entries) {
       final result = entry.value;
-      print(
-        '  ${result.tabId}: ${result.getStatusString()}',
-      );
+      _log('  ${result.tabId}: ${result.getStatusString()}');
     }
+  }
+
+  void _log(String message, [Object? error]) {
+    developer.log(message, name: 'InputDistributorVM', error: error);
   }
 
   @override

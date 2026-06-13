@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/exports.dart';
 
@@ -29,7 +30,7 @@ class PreferencesService {
       final jsonString = jsonEncode(jsonList);
       await _prefs.setString(_tabUrlsKey, jsonString);
     } catch (e) {
-      print('Error saving tab URLs: $e');
+      _log('Error saving tab URLs', e);
     }
   }
 
@@ -46,7 +47,7 @@ class PreferencesService {
           .map((tab) => LLMTab.fromJson(tab as Map<String, dynamic>))
           .toList();
     } catch (e) {
-      print('Error reading tab URLs: $e');
+      _log('Error reading tab URLs', e);
       return [];
     }
   }
@@ -56,7 +57,7 @@ class PreferencesService {
     try {
       await _prefs.setString(_activeTabIdKey, tabId);
     } catch (e) {
-      print('Error saving active tab ID: $e');
+      _log('Error saving active tab ID', e);
     }
   }
 
@@ -65,7 +66,7 @@ class PreferencesService {
     try {
       return _prefs.getString(_activeTabIdKey);
     } catch (e) {
-      print('Error reading active tab ID: $e');
+      _log('Error reading active tab ID', e);
       return null;
     }
   }
@@ -78,7 +79,7 @@ class PreferencesService {
       tabs.add(tab);
       await saveTabUrls(tabs);
     } catch (e) {
-      print('Error saving single tab: $e');
+      _log('Error saving single tab', e);
     }
   }
 
@@ -89,7 +90,7 @@ class PreferencesService {
       tabs.removeWhere((t) => t.id == tabId);
       await saveTabUrls(tabs);
     } catch (e) {
-      print('Error removing tab: $e');
+      _log('Error removing tab', e);
     }
   }
 
@@ -98,7 +99,7 @@ class PreferencesService {
     try {
       await _prefs.clear();
     } catch (e) {
-      print('Error clearing preferences: $e');
+      _log('Error clearing preferences', e);
     }
   }
 
@@ -115,7 +116,7 @@ class PreferencesService {
     try {
       await _prefs.setString(_customSiteConfigKey, jsonStr);
     } catch (e) {
-      print('Error saving custom site config: $e');
+      _log('Error saving custom site config', e);
     }
   }
 
@@ -124,7 +125,7 @@ class PreferencesService {
     try {
       return _prefs.getString(_customSiteConfigKey);
     } catch (e) {
-      print('Error reading custom site config: $e');
+      _log('Error reading custom site config', e);
       return null;
     }
   }
@@ -140,7 +141,7 @@ class PreferencesService {
     try {
       await _prefs.setString(_webLoadStrategyKey, strategy);
     } catch (e) {
-      print('Error saving web load strategy: $e');
+      _log('Error saving web load strategy', e);
     }
   }
 
@@ -149,7 +150,7 @@ class PreferencesService {
     try {
       return _prefs.getString(_webLoadStrategyKey);
     } catch (e) {
-      print('Error reading web load strategy: $e');
+      _log('Error reading web load strategy', e);
       return null;
     }
   }
@@ -159,7 +160,7 @@ class PreferencesService {
     try {
       await _prefs.setString(_themeModeKey, mode);
     } catch (e) {
-      print('Error saving theme mode: $e');
+      _log('Error saving theme mode', e);
     }
   }
 
@@ -168,7 +169,7 @@ class PreferencesService {
     try {
       return _prefs.getString(_themeModeKey);
     } catch (e) {
-      print('Error reading theme mode: $e');
+      _log('Error reading theme mode', e);
       return null;
     }
   }
@@ -178,7 +179,7 @@ class PreferencesService {
     try {
       await _prefs.setBool(_showAppBarKey, show);
     } catch (e) {
-      print('Error saving show app bar: $e');
+      _log('Error saving show app bar', e);
     }
   }
 
@@ -187,7 +188,7 @@ class PreferencesService {
     try {
       return _prefs.getBool(_showAppBarKey);
     } catch (e) {
-      print('Error reading show app bar: $e');
+      _log('Error reading show app bar', e);
       return null;
     }
   }
@@ -202,7 +203,7 @@ class PreferencesService {
     try {
       await _prefs.setDouble(_virtualTopGapKey, gap);
     } catch (e) {
-      print('Error saving virtual top gap: $e');
+      _log('Error saving virtual top gap', e);
     }
   }
 
@@ -211,7 +212,7 @@ class PreferencesService {
     try {
       return _prefs.getDouble(_virtualTopGapKey) ?? 0.0;
     } catch (e) {
-      print('Error reading virtual top gap: $e');
+      _log('Error reading virtual top gap', e);
       return 0.0;
     }
   }
@@ -221,7 +222,7 @@ class PreferencesService {
     try {
       await _prefs.setDouble(_virtualBottomGapKey, gap);
     } catch (e) {
-      print('Error saving virtual bottom gap: $e');
+      _log('Error saving virtual bottom gap', e);
     }
   }
 
@@ -230,9 +231,13 @@ class PreferencesService {
     try {
       return _prefs.getDouble(_virtualBottomGapKey) ?? 0.0;
     } catch (e) {
-      print('Error reading virtual bottom gap: $e');
+      _log('Error reading virtual bottom gap', e);
       return 0.0;
     }
+  }
+
+  void _log(String message, [Object? error]) {
+    developer.log(message, name: 'PreferencesService', error: error);
   }
 
   @override
