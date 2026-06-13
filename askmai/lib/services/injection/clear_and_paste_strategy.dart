@@ -2,10 +2,13 @@ import 'package:webview_flutter/webview_flutter.dart';
 import '../../models/exports.dart';
 import 'injection_strategy.dart';
 
-/// 清空并粘贴的注入策略 (第三种方式)
-/// 模拟 Ctrl+A + Delete 清空输入框，再通过 ClipboardEvent('paste') 注入内容
+/// 清空并粘贴策略（第三种填充方式）
+///
+/// 适用场景：输入框内容残留导致 dom_input / contenteditable 策略无法清除旧内容时，
+/// 先模拟 Ctrl+A + Delete 全选清空，再通过 ClipboardEvent('paste') 注入新内容。
+/// 不使用 Enter 键兜底（Android WebView 不支持）。
 class ClearAndPasteStrategy extends InjectionStrategy {
-  static const String _focusInputJS = '''
+  static const String _focusInputJS = r'''
     function focusInput(inputSelector) {
       try {
         var el = _findElement(inputSelector);
@@ -21,7 +24,7 @@ class ClearAndPasteStrategy extends InjectionStrategy {
     }
   ''';
 
-  static const String _clearInputJS = '''
+  static const String _clearInputJS = r'''
     function clearInput(inputSelector) {
       try {
         var el = _findElement(inputSelector);
@@ -37,7 +40,7 @@ class ClearAndPasteStrategy extends InjectionStrategy {
     }
   ''';
 
-  static const String _pasteInputJS = '''
+  static const String _pasteInputJS = r'''
     function pasteInput(inputSelector, messageText) {
       try {
         var el = _findElement(inputSelector);
@@ -47,13 +50,12 @@ class ClearAndPasteStrategy extends InjectionStrategy {
         var clipboardData = new DataTransfer();
         clipboardData.setData('text/plain', messageText);
         var pasteEvent = new ClipboardEvent('paste', {
-          clipboardData: clipboardData, 
-          bubbles: true, 
+          clipboardData: clipboardData,
+          bubbles: true,
           cancelable: true
         });
         el.dispatchEvent(pasteEvent);
-        
-        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('input',  { bubbles: true }));
         el.dispatchEvent(new Event('change', { bubbles: true }));
         return JSON.stringify({ success: true, step: 'paste' });
       } catch (e) {
@@ -62,42 +64,18 @@ class ClearAndPasteStrategy extends InjectionStrategy {
     }
   ''';
 
-  static const String _clickSubmitJS = '''
+  static const String _clickSubmitJS = r'''
     function clickSubmit(submitSelector) {
       try {
         var btn = _findElement(submitSelector);
         if (!btn) {
-          var ae = document.activeElement;
-          if (ae) {
-            ae.dispatchEvent(new KeyboardEvent('keydown', {
-              key: 'Enter', code: 'Enter', keyCode: 13, which: 13,
-              bubbles: true, cancelable: true
-            }));
-            ae.dispatchEvent(new KeyboardEvent('keyup', {
-              key: 'Enter', code: 'Enter', keyCode: 13, which: 13,
-              bubbles: true, cancelable: true
-            }));
-            return JSON.stringify({ success: true, method: 'enter' });
-          }
           return JSON.stringify({ success: false, error: 'Submit button not found', step: 'click' });
         }
         if (_isDisabled(btn)) {
-          var ae = document.activeElement;
-          if (ae) {
-            ae.dispatchEvent(new KeyboardEvent('keydown', {
-              key: 'Enter', code: 'Enter', keyCode: 13, which: 13,
-              bubbles: true, cancelable: true
-            }));
-            ae.dispatchEvent(new KeyboardEvent('keyup', {
-              key: 'Enter', code: 'Enter', keyCode: 13, which: 13,
-              bubbles: true, cancelable: true
-            }));
-            return JSON.stringify({ success: true, method: 'enter_fallback' });
-          }
-          return JSON.stringify({ success: false, error: 'Submit button is disabled', step: 'click' });
+          return JSON.stringify({ success: false, error: 'Submit button is disabled (paste may not have been recognized by the framework)', step: 'click' });
         }
-        _simulateClick(btn);
-        return JSON.stringify({ success: true, method: 'click' });
+        _simulateSubmit(btn);
+        return JSON.stringify({ success: true, method: 'click', step: 'click' });
       } catch (e) {
         return JSON.stringify({ success: false, error: e.message, step: 'click' });
       }
@@ -123,7 +101,7 @@ class ClearAndPasteStrategy extends InjectionStrategy {
       final focusOk = parseResult(focusResult);
 
       if (focusOk == null || focusOk['success'] != true) {
-        // 聚焦失败可以继续尝试，但记录警告
+        // 聚焦失败可以继续尝试，不阻断流程
       }
 
       await Future.delayed(const Duration(milliseconds: 100));
@@ -134,12 +112,7 @@ class ClearAndPasteStrategy extends InjectionStrategy {
         $_clearInputJS
         clearInput('${escapeJavaScript(inputXPath)}');
       ''';
-      final clearResult = await controller.runJavaScriptReturningResult(clearJs);
-      final clearOk = parseResult(clearResult);
-
-      if (clearOk == null || clearOk['success'] != true) {
-        // 清空失败，继续尝试粘贴
-      }
+      await controller.runJavaScriptReturningResult(clearJs);
 
       await Future.delayed(const Duration(milliseconds: 100));
 
@@ -164,7 +137,7 @@ class ClearAndPasteStrategy extends InjectionStrategy {
       // 等待粘贴的内容被框架/DOM 识别，同步 UI 状态
       await Future.delayed(const Duration(milliseconds: 500));
 
-      // 4. 点击发送按钮
+      // 4. 点击发送按钮（不使用 Enter 兜底）
       final clickJs = '''
         $helpersJS
         $_clickSubmitJS
@@ -184,14 +157,14 @@ class ClearAndPasteStrategy extends InjectionStrategy {
 
       return SubmissionResult(
         success: false,
-        error: 'Unexpected click result type: \${clickResult.runtimeType}',
+        error: 'Unexpected result from click step: ${clickResult.runtimeType}',
         timestamp: DateTime.now(),
         tabId: tabId,
       );
     } catch (e) {
       return SubmissionResult(
         success: false,
-        error: 'JavaScript execution error: \$e',
+        error: 'ClearAndPasteStrategy error: $e',
         timestamp: DateTime.now(),
         tabId: tabId,
       );

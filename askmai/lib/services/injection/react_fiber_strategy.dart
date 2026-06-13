@@ -2,8 +2,9 @@ import 'package:webview_flutter/webview_flutter.dart';
 import '../../models/exports.dart';
 import 'injection_strategy.dart';
 
-/// 通用的 React + Slate.js 注入策略 (原针对千问开发)
-/// 利用 React Fiber 直接访问 Slate 实例，绕过所有 DOM 拦截，实现 100% 状态同步
+/// React Fiber + Slate.js 注入策略（针对千问等 React SPA）
+/// 利用 React Fiber 直接访问 Slate Editor 实例，绕过所有 DOM 拦截，实现 100% 状态同步。
+/// 不使用 Enter 键兜底（Android WebView 不支持），按钮 disabled 时直接报错而非强行解锁。
 class ReactFiberStrategy extends InjectionStrategy {
   @override
   Future<SubmissionResult> executeSubmit(
@@ -160,13 +161,12 @@ class ReactFiberStrategy extends InjectionStrategy {
             
             if (!btn) return JSON.stringify({ success: false, error: '未找到发送按钮' });
 
-            // 强行尝试激活按钮（作为兜底）
+            // 检查按钮是否被禁用（React 按钮 disabled 由 state 控制，不能强行移除 attribute）
             if (btn.disabled) {
-                btn.removeAttribute('disabled');
-                btn.classList.remove('cursor-not-allowed');
+                return JSON.stringify({ success: false, error: '发送按钮被禁用，Fiber 注入可能未被 React 状态识别，请重试' });
             }
-            
-            _simulateClick(btn);
+
+            _simulateSubmit(btn);
             return JSON.stringify({ success: true });
           } catch (e) {
             return JSON.stringify({ success: false, error: e.message });

@@ -14,7 +14,7 @@
       "viewportLeft": 0,
       "viewportRight": 0,
       "viewportEnabled": true,
-      "strategy": "generic",
+      "strategy": "dom_input",
       "userAgent": null
     },
     "claude": {
@@ -30,7 +30,7 @@
       "viewportLeft": 0,
       "viewportRight": 0,
       "viewportEnabled": true,
-      "strategy": "generic",
+      "strategy": "dom_input",
       "userAgent": null
     },
     "gemini": {
@@ -46,7 +46,7 @@
       "viewportLeft": 0,
       "viewportRight": 0,
       "viewportEnabled": true,
-      "strategy": "generic",
+      "strategy": "dom_input",
       "userAgent": null
     },
     "doubao": {
@@ -62,7 +62,7 @@
       "viewportLeft": 0,
       "viewportRight": 0,
       "viewportEnabled": true,
-      "strategy": "generic",
+      "strategy": "dom_input",
       "userAgent": null
     },
     "deepseek": {
@@ -78,7 +78,7 @@
       "viewportLeft": 0,
       "viewportRight": 0,
       "viewportEnabled": true,
-      "strategy": "generic",
+      "strategy": "dom_input",
       "userAgent": null
     },
     "qianwen": {
@@ -110,7 +110,7 @@
       "viewportLeft": 0,
       "viewportRight": 0,
       "viewportEnabled": true,
-      "strategy": "generic",
+      "strategy": "dom_input",
       "userAgent": null
     },
     "yuanbao": {
@@ -126,7 +126,7 @@
       "viewportLeft": 0,
       "viewportRight": 0,
       "viewportEnabled": true,
-      "strategy": "generic",
+      "strategy": "dom_input",
       "userAgent": null
     },
     "kimi": {
@@ -142,14 +142,14 @@
       "viewportLeft": 0,
       "viewportRight": 0,
       "viewportEnabled": true,
-      "strategy": "generic",
+      "strategy": "dom_input",
       "userAgent": null
     },
     "zhipu": {
       "id": "zhipu",
       "urlPattern": "https://chatglm.cn",
       "inputXPath": "//div[@id='search-input-box']//textarea",
-      "submitXPath": "//div[@class='send-button-right']",
+      "submitXPath": "//div[@class='send-button-right']//div[@class='button-right-inner']",
       "displayName": "智谱",
       "isDisplay": false,
       "isEnabled": false,
@@ -158,7 +158,7 @@
       "viewportLeft": 0,
       "viewportRight": 0,
       "viewportEnabled": true,
-      "strategy": "generic",
+      "strategy": "dom_input",
       "userAgent": null
     }
   }

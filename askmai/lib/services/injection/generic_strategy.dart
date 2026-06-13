@@ -2,9 +2,16 @@ import 'package:webview_flutter/webview_flutter.dart';
 import '../../models/exports.dart';
 import 'injection_strategy.dart';
 
-/// 通用的注入与提交策略
+/// @deprecated 已拆分为更专注的独立策略，此类仅供向后兼容。
+/// 请迁移到：
+///   - [DomInputStrategy]       → strategy: "dom_input"      (textarea/input)
+///   - [ContentEditableStrategy] → strategy: "contenteditable" (div[contenteditable])
+///   - [ClearAndPasteStrategy]  → strategy: "clear_and_paste" (粘贴注入)
+///   - [ReactFiberStrategy]     → strategy: "react_fiber"     (React + Slate.js SPA)
+///
+/// GenericStrategy 保留原有逻辑（不再维护），用于向后兼容没有指定 strategy 的旧配置。
 class GenericStrategy extends InjectionStrategy {
-  static const String _focusInputJS = '''
+  static const String _focusInputJS = r'''
     function focusInput(inputSelector) {
       try {
         var el = _findElement(inputSelector);
@@ -29,7 +36,7 @@ class GenericStrategy extends InjectionStrategy {
     }
   ''';
 
-  static const String _fillInputJS = '''
+  static const String _fillInputJS = r'''
     function fillInput(inputSelector, messageText) {
       try {
         var el = _findElement(inputSelector);
@@ -38,15 +45,12 @@ class GenericStrategy extends InjectionStrategy {
         }
         if (el.isContentEditable || el.contentEditable === 'true') {
           el.focus();
-          
           var sel = window.getSelection();
           var rng = document.createRange();
           rng.selectNodeContents(el);
           sel.removeAllRanges();
           sel.addRange(rng);
-          
           var success = document.execCommand('insertText', false, messageText);
-          
           if (!success) {
             var dataTransfer = new DataTransfer();
             dataTransfer.setData('text/plain', messageText);
@@ -56,10 +60,9 @@ class GenericStrategy extends InjectionStrategy {
               cancelable: true
             });
             el.dispatchEvent(pasteEvent);
-            
             if (!el.textContent.includes(messageText)) {
               el.textContent = messageText;
-              el.dispatchEvent(new Event('input', { bubbles: true }));
+              el.dispatchEvent(new Event('input',  { bubbles: true }));
               el.dispatchEvent(new Event('change', { bubbles: true }));
             }
           }
@@ -69,7 +72,7 @@ class GenericStrategy extends InjectionStrategy {
             : window.HTMLInputElement.prototype;
           var setter = Object.getOwnPropertyDescriptor(proto, 'value').set;
           setter.call(el, messageText);
-          el.dispatchEvent(new Event('input', { bubbles: true }));
+          el.dispatchEvent(new Event('input',  { bubbles: true }));
           el.dispatchEvent(new Event('change', { bubbles: true }));
         }
         return JSON.stringify({ success: true, step: 'fill' });
@@ -79,41 +82,18 @@ class GenericStrategy extends InjectionStrategy {
     }
   ''';
 
-  static const String _clickSubmitJS = '''
+  /// 注意：移除了 Enter 兜底，按钮 disabled / 未找到时直接返回失败。
+  static const String _clickSubmitJS = r'''
     function clickSubmit(submitSelector) {
       try {
         var btn = _findElement(submitSelector);
         if (!btn) {
-          var ae = document.activeElement;
-          if (ae) {
-            ae.dispatchEvent(new KeyboardEvent('keydown', {
-              key: 'Enter', code: 'Enter', keyCode: 13, which: 13,
-              bubbles: true, cancelable: true
-            }));
-            ae.dispatchEvent(new KeyboardEvent('keyup', {
-              key: 'Enter', code: 'Enter', keyCode: 13, which: 13,
-              bubbles: true, cancelable: true
-            }));
-            return JSON.stringify({ success: true, method: 'enter' });
-          }
           return JSON.stringify({ success: false, error: 'Submit button not found', step: 'click' });
         }
         if (_isDisabled(btn)) {
-          var ae = document.activeElement;
-          if (ae) {
-            ae.dispatchEvent(new KeyboardEvent('keydown', {
-              key: 'Enter', code: 'Enter', keyCode: 13, which: 13,
-              bubbles: true, cancelable: true
-            }));
-            ae.dispatchEvent(new KeyboardEvent('keyup', {
-              key: 'Enter', code: 'Enter', keyCode: 13, which: 13,
-              bubbles: true, cancelable: true
-            }));
-            return JSON.stringify({ success: true, method: 'enter_fallback' });
-          }
           return JSON.stringify({ success: false, error: 'Submit button is disabled', step: 'click' });
         }
-        _simulateClick(btn);
+        _simulateSubmit(btn);
         return JSON.stringify({ success: true, method: 'click' });
       } catch (e) {
         return JSON.stringify({ success: false, error: e.message, step: 'click' });
@@ -139,7 +119,7 @@ class GenericStrategy extends InjectionStrategy {
       final focusOk = parseResult(focusResult);
 
       if (focusOk == null || focusOk['success'] != true) {
-        // Warning
+        // 聚焦失败可继续，不阻断
       }
 
       await Future.delayed(const Duration(milliseconds: 300));

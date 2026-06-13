@@ -54,15 +54,64 @@ abstract class InjectionStrategy {
       return document.querySelector(selector);
     }
     function _simulateClick(el) {
+      if (!el) return;
       var r = el.getBoundingClientRect();
       var cx = r.left + r.width / 2;
       var cy = r.top + r.height / 2;
       var o = { bubbles: true, cancelable: true, clientX: cx, clientY: cy };
+      
+      // 移动端 Touch 事件分发
+      if (window.TouchEvent) {
+        try {
+          var touch = new Touch({
+            identifier: Date.now(),
+            target: el,
+            clientX: cx,
+            clientY: cy,
+            screenX: cx,
+            screenY: cy,
+            pageX: cx,
+            pageY: cy
+          });
+          var touchOpts = { 
+            bubbles: true, 
+            cancelable: true, 
+            touches: [touch], 
+            targetTouches: [touch], 
+            changedTouches: [touch] 
+          };
+          el.dispatchEvent(new TouchEvent('touchstart', touchOpts));
+          el.dispatchEvent(new TouchEvent('touchend', touchOpts));
+        } catch (e) {
+          el.dispatchEvent(new Event('touchstart', o));
+          el.dispatchEvent(new Event('touchend', o));
+        }
+      } else {
+        el.dispatchEvent(new Event('touchstart', o));
+        el.dispatchEvent(new Event('touchend', o));
+      }
+      
       el.dispatchEvent(new PointerEvent('pointerdown', o));
       el.dispatchEvent(new MouseEvent('mousedown', o));
       el.dispatchEvent(new PointerEvent('pointerup', o));
       el.dispatchEvent(new MouseEvent('mouseup', o));
       el.dispatchEvent(new MouseEvent('click', o));
+    }
+    function _simulateSubmit(el) {
+      if (!el) return;
+      _simulateClick(el);
+      try {
+        if (el.__vue__ || el._vnode) {
+          if (el.__vue__ && el.__vue__.\$emit) {
+            el.__vue__.\$emit('click');
+          }
+          if (el._vnode && el._vnode.props && el._vnode.props.onClick) {
+            el._vnode.props.onClick();
+          }
+        }
+      } catch (e) {
+        console.warn('Vue bypass event failed:', e);
+      }
     }
     function _isDisabled(el) {
       if (el.disabled === true) return true;
