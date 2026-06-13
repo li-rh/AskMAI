@@ -11,6 +11,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../models/exports.dart';
 import '../../services/exports.dart';
 import '../../viewmodels/exports.dart';
+import '../../utils/exports.dart';
 import 'desktop_web_viewer.dart';
 
 /// 检查是否是移动平台
@@ -157,7 +158,7 @@ class _WebViewContainerState extends State<WebViewContainer> with AutomaticKeepA
                 _hasError = false;
               });
               widget.tabManagerVM.setWebStatus(tab.id, WebLoadingStatus.loading);
-              _startPageTimeoutTimer();
+              _startPageTimeoutTimer(url: url);
             }
           },
           onPageFinished: (String url) async {
@@ -453,16 +454,52 @@ class _WebViewContainerState extends State<WebViewContainer> with AutomaticKeepA
         _isLoading = true;
       });
       widget.tabManagerVM.setWebStatus(widget.tab!.id, WebLoadingStatus.loading);
-      _startPageTimeoutTimer();
+      _startPageTimeoutTimer(url: widget.tab!.url);
       _controller.loadRequest(Uri.parse(widget.tab!.url));
     }
   }
 
-  void _startPageTimeoutTimer() {
+  bool _isAuthOrVerificationUrl(String url) {
+    final lowerUrl = url.toLowerCase();
+    final keywords = [
+      'auth',
+      'login',
+      'signin',
+      'signup',
+      'oauth',
+      'challenge',
+      'captcha',
+      'turnstile',
+      'verify',
+      'verification',
+      'register',
+      'authorize',
+      'passport',
+      'cloudflare',
+      'accounts.google.com',
+      'appleid.apple.com',
+      'auth0.com',
+      'challenges.cloudflare.com',
+    ];
+    return keywords.any((keyword) => lowerUrl.contains(keyword));
+  }
+
+  void _startPageTimeoutTimer({String? url}) {
     _pageTimeoutTimer?.cancel();
-    _pageTimeoutTimer = Timer(const Duration(seconds: 12), () {
+
+    final targetUrl = url ?? widget.tab?.url;
+    if (targetUrl != null && _isAuthOrVerificationUrl(targetUrl)) {
+      debugPrint('[WebView] Auth/Verification URL detected: $targetUrl. Skipping page load timeout.');
+      _pageTimeoutTimer = null;
+      return;
+    }
+
+    const timeoutDuration = Duration(milliseconds: AppConstants.webViewLoadTimeoutMs);
+    debugPrint('[WebView] Starting page load timeout timer for $timeoutDuration.');
+
+    _pageTimeoutTimer = Timer(timeoutDuration, () {
       if (mounted && _isLoading && !_hasError) {
-        debugPrint('[WebView] Page load timed out after 12 seconds.');
+        debugPrint('[WebView] Page load timed out after ${timeoutDuration.inSeconds} seconds.');
         try {
           _controller.loadRequest(Uri.parse('about:blank'));
         } catch (e) {
@@ -791,7 +828,7 @@ class _WebViewContainerState extends State<WebViewContainer> with AutomaticKeepA
                       if (widget.tab != null) {
                         widget.tabManagerVM.setWebStatus(widget.tab!.id, WebLoadingStatus.loading);
                       }
-                      _startPageTimeoutTimer();
+                      _startPageTimeoutTimer(url: targetUrl);
                       if (targetUrl != null) {
                         _controller.loadRequest(Uri.parse(targetUrl));
                       } else {
