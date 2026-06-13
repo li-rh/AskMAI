@@ -19,7 +19,7 @@
     </queries>
 
     <application
-        android:label="AMAi"
+        android:label="${appName}"
         android:icon="@mipmap/ic_launcher">
 
         <activity

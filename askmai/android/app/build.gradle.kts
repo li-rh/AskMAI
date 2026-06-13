@@ -33,6 +33,7 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["appName"] = "AMAi"
     }
 
     signingConfigs {
@@ -51,6 +52,11 @@ android {
             } else {
                 signingConfigs.getByName("debug")
             }
+            manifestPlaceholders["appName"] = "AMAi"
+        }
+        debug {
+            applicationIdSuffix = ".debug"
+            manifestPlaceholders["appName"] = "AMAi (Debug)"
         }
     }
 }
