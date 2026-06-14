@@ -14,7 +14,7 @@
       "viewportLeft": 0,
       "viewportRight": 0,
       "viewportEnabled": true,
-      "strategy": "dom_input",
+      "strategy": "contenteditable",
       "userAgent": null
     },
     "claude": {
@@ -46,7 +46,7 @@
       "viewportLeft": 0,
       "viewportRight": 0,
       "viewportEnabled": true,
-      "strategy": "dom_input",
+      "strategy": "contenteditable",
       "userAgent": null
     },
     "doubao": {
