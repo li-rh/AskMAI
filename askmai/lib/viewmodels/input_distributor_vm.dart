@@ -87,7 +87,9 @@ class InputDistributorVM extends ChangeNotifier {
 
     for (var entry in _submissionStatus.entries) {
       final result = entry.value;
-      _log('  ${result.tabId}: ${result.getStatusString()}');
+      final tab = _tabManagerVM.getTab(result.tabId);
+      final label = tab?.displayName ?? result.tabId;
+      _log('  $label: ${result.getStatusString()}');
     }
   }
 

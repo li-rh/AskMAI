@@ -69,7 +69,7 @@ class AutomationVM extends ChangeNotifier {
         strategyName = siteConfig?.strategy;
       }
 
-      _log('Submitting to tab: $tabId (${tab.displayName})');
+      _log('Submitting to tab: ${tab.displayName} ($tabId)');
 
       // 执行JavaScript提交
       final result = await _jsService.executeSubmit(
@@ -81,7 +81,7 @@ class AutomationVM extends ChangeNotifier {
         strategyName: strategyName,
       );
 
-      _log('Submission result for $tabId: ${result.getStatusString()}');
+      _log('Submission result for ${tab.displayName} ($tabId): ${result.getStatusString()}');
       return result;
     } catch (e) {
       return SubmissionResult(
