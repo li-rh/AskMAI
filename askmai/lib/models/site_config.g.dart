@@ -21,6 +21,8 @@ SiteConfig _$SiteConfigFromJson(Map<String, dynamic> json) => SiteConfig(
   viewportEnabled: json['viewportEnabled'] as bool? ?? true,
   strategy: json['strategy'] as String?,
   userAgent: json['userAgent'] as String?,
+  copyButtonXPath: json['copyButtonXPath'] as String?,
+  responseXPath: json['responseXPath'] as String?,
 );
 
 Map<String, dynamic> _$SiteConfigToJson(SiteConfig instance) =>
@@ -39,4 +41,6 @@ Map<String, dynamic> _$SiteConfigToJson(SiteConfig instance) =>
       'viewportEnabled': instance.viewportEnabled,
       'strategy': instance.strategy,
       'userAgent': instance.userAgent,
+      'copyButtonXPath': instance.copyButtonXPath,
+      'responseXPath': instance.responseXPath,
     };

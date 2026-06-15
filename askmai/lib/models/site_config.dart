@@ -47,6 +47,12 @@ class SiteConfig {
   /// 自定义 UserAgent (为空时使用全局 UserAgent)
   final String? userAgent;
 
+  /// 复制按钮的XPath表达式（用于提取AI回答，点击触发站点复制逻辑）
+  final String? copyButtonXPath;
+
+  /// AI回答内容的XPath表达式（innerText回退方案）
+  final String? responseXPath;
+
   SiteConfig({
     required this.id,
     required this.urlPattern,
@@ -62,6 +68,8 @@ class SiteConfig {
     this.viewportEnabled = true,
     this.strategy,
     this.userAgent,
+    this.copyButtonXPath,
+    this.responseXPath,
   });
 
   /// 从JSON创建SiteConfig

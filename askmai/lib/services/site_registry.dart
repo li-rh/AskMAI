@@ -63,8 +63,14 @@ class SiteRegistry {
             customSites.forEach((key, value) {
               try {
                 final siteData = (value as Map<String, dynamic>).cast<String, dynamic>();
-                siteData['id'] = key; // 添加id字段
-                _sites[key] = SiteConfig.fromJson(siteData);
+                siteData['id'] = key;
+                if (_sites.containsKey(key)) {
+                  final baseJson = _sites[key]!.toJson();
+                  baseJson.addAll(siteData);
+                  _sites[key] = SiteConfig.fromJson(baseJson);
+                } else {
+                  _sites[key] = SiteConfig.fromJson(siteData);
+                }
               } catch (e) {
                 _log('Failed to parse custom site config for $key', e);
               }

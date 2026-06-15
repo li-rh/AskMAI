@@ -181,7 +181,7 @@ class _WebViewContainerState extends State<WebViewContainer> with AutomaticKeepA
               }
               // Set the status to loaded as baseline since resource load is complete
               widget.tabManagerVM.setWebStatus(tab.id, WebLoadingStatus.loaded);
-              _injectDomObserver();
+              await _injectDomObserver();
             }
           },
           onWebResourceError: (WebResourceError error) {
@@ -727,6 +727,9 @@ class _WebViewContainerState extends State<WebViewContainer> with AutomaticKeepA
         })();
       ''';
       await _controller.runJavaScript(js);
+      if (mounted) {
+        await context.read<JavascriptService>().installClipboardHook(_controller);
+      }
     } catch (e) {
       debugPrint("Error injecting DOM observer: \$e");
     }

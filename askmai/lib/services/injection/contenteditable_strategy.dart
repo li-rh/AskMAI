@@ -24,34 +24,82 @@ class ContentEditableStrategy extends InjectionStrategy {
           return JSON.stringify({ success: false, error: 'Element is not contenteditable (got: ' + el.contentEditable + ')', step: 'fill' });
         }
 
+        // 定位到最深层的 contenteditable 子元素（编辑器可能在内层子元素中管理状态）
+        var inner = el.querySelector('[contenteditable="true"]');
+        var target = inner || el;
+
         // 聚焦并将光标移至末尾
-        el.focus();
+        target.focus();
         var sel = window.getSelection();
         var rng = document.createRange();
-        rng.selectNodeContents(el);
+        rng.selectNodeContents(target);
         sel.removeAllRanges();
         sel.addRange(rng);
 
-        // 尝试方案 1: execCommand insertText（最佳兼容性）
-        var ok = document.execCommand('insertText', false, messageText);
+        // 方案 1: Quill 编辑器 API 直接注入（最可靠）
+        var quillRoot = target.closest('.ql-editor') || (target.__quill ? target : null);
+        if (quillRoot && quillRoot.__quill) {
+          try {
+            var quill = quillRoot.__quill;
+            var length = quill.getLength();
+            quill.insertText(length - 1, messageText, 'user');
+            return JSON.stringify({ success: true, method: 'quill_api', step: 'fill' });
+          } catch (qe) {}
+        }
 
-        // 尝试方案 2: ClipboardEvent paste（execCommand 不可用时）
-        if (!ok) {
+        // 方案 2: Selection API — 删除选区后插入文本（保留 DOM 结构，触发框架事件）
+        try {
+          sel = window.getSelection();
+          rng = document.createRange();
+          rng.selectNodeContents(target);
+          sel.removeAllRanges();
+          sel.addRange(rng);
+          sel.deleteFromDocument();
+          var insertOk = sel.insertText(messageText);
+          if (insertOk) {
+            target.dispatchEvent(new Event('input',  { bubbles: true }));
+            target.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        } catch (se) {}
+
+        // 验证写入结果（取前10个字符防止截断问题）
+        var actual = target.textContent || '';
+        var prefix = messageText.substring(0, Math.min(messageText.length, 10));
+        if (prefix.length > 0 && !actual.includes(prefix)) {
+          // 方案 3: execCommand insertText（标准兼容性）
+          target.focus();
+          sel = window.getSelection();
+          rng = document.createRange();
+          rng.selectNodeContents(target);
+          sel.removeAllRanges();
+          sel.addRange(rng);
+          document.execCommand('insertText', false, messageText);
+          actual = target.textContent || '';
+        }
+
+        if (prefix.length > 0 && !actual.includes(prefix)) {
+          // 方案 4: ClipboardEvent paste 兜底
+          target.focus();
           var dt = new DataTransfer();
           dt.setData('text/plain', messageText);
-          el.dispatchEvent(new ClipboardEvent('paste', {
+          target.dispatchEvent(new ClipboardEvent('paste', {
             clipboardData: dt,
             bubbles: true,
             cancelable: true
           }));
-          el.dispatchEvent(new Event('input', { bubbles: true }));
+          target.dispatchEvent(new Event('input', { bubbles: true }));
+          actual = target.textContent || '';
         }
 
-        // 验证写入结果（取前10个字符防止截断问题）
-        var actual = el.textContent || '';
-        var prefix = messageText.substring(0, Math.min(messageText.length, 10));
         if (prefix.length > 0 && !actual.includes(prefix)) {
-          return JSON.stringify({ success: false, error: 'Fill verification failed: text not found in contenteditable element', step: 'fill' });
+          // 方案 5: 直接 DOM 赋值最终兜底
+          target.textContent = messageText;
+          target.dispatchEvent(new Event('input',  { bubbles: true }));
+          target.dispatchEvent(new Event('change', { bubbles: true }));
+          actual = target.textContent || '';
+          if (prefix.length > 0 && !actual.includes(prefix)) {
+            return JSON.stringify({ success: false, error: 'Fill verification failed: text not found in contenteditable element', step: 'fill' });
+          }
         }
 
         return JSON.stringify({ success: true, step: 'fill' });

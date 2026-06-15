@@ -5,3 +5,5 @@ export 'preferences_service.dart';
 export 'focus_manager.dart';
 export 'keyboard_visibility_manager.dart';
 export 'app_config.dart';
+export 'response_extractor.dart';
+export 'prompt_composer.dart';

@@ -11,11 +11,13 @@ class InputDistributorVM extends ChangeNotifier {
 
   final Map<String, SubmissionResult> _submissionStatus = {};
   bool _isSubmitting = false;
+  String? _lastBroadcastMessage;
 
   InputDistributorVM(this._automationVM, this._tabManagerVM);
 
   // Getters
   bool get isSubmitting => _isSubmitting;
+  String? get lastBroadcastMessage => _lastBroadcastMessage;
   Map<String, SubmissionResult> get submissionStatus => _submissionStatus;
   SubmissionResult? getStatus(String tabId) => _submissionStatus[tabId];
 
@@ -46,6 +48,8 @@ class InputDistributorVM extends ChangeNotifier {
     if (message.trim().isEmpty) {
       return;
     }
+
+    _lastBroadcastMessage = message;
 
     if (_tabManagerVM.tabs.isEmpty) {
       return;

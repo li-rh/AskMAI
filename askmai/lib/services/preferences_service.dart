@@ -193,6 +193,27 @@ class PreferencesService {
     }
   }
 
+  // ==================== 聚合设置 ====================
+
+  static const String _lastAggregateTargetIdKey = 'last_aggregate_target_id';
+
+  Future<void> setLastAggregateTargetId(String tabId) async {
+    try {
+      await _prefs.setString(_lastAggregateTargetIdKey, tabId);
+    } catch (e) {
+      _log('Error saving last aggregate target ID', e);
+    }
+  }
+
+  String? getLastAggregateTargetId() {
+    try {
+      return _prefs.getString(_lastAggregateTargetIdKey);
+    } catch (e) {
+      _log('Error reading last aggregate target ID', e);
+      return null;
+    }
+  }
+
   // ==================== 虚拟显示设置 ====================
 
   static const String _virtualTopGapKey = 'virtual_top_gap';

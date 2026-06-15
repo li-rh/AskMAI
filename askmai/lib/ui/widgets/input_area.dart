@@ -1,7 +1,9 @@
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/exports.dart';
 import '../../viewmodels/exports.dart';
+import 'aggregate_dialog.dart';
 
 /// 输入框区域 - 用户输入和发送按钮
 class InputArea extends StatefulWidget {
@@ -103,8 +105,8 @@ class _InputAreaState extends State<InputArea> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer2<InputDistributorVM, TabManagerVM>(
-      builder: (context, distributorVM, tabManagerVM, _) {
+    return Consumer3<InputDistributorVM, TabManagerVM, AggregationVM>(
+      builder: (context, distributorVM, tabManagerVM, aggVM, _) {
         // 计算显示的和启用的tab数量
         final displayedTabs = tabManagerVM.tabs
             .where((tab) => tab.isDisplayed)
@@ -116,6 +118,7 @@ class _InputAreaState extends State<InputArea> {
         final isDisabled = distributorVM.isSubmitting || enabledTabs.isEmpty;
         final theme = Theme.of(context);
         final colorScheme = theme.colorScheme;
+        final showAggregate = Platform.isAndroid || Platform.isIOS;
 
         return Container(
           decoration: BoxDecoration(color: theme.scaffoldBackgroundColor),
@@ -130,6 +133,73 @@ class _InputAreaState extends State<InputArea> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  if (showAggregate)
+                    Align(
+                      alignment: Alignment.center,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: Container(
+                            height: 40,
+                            width: 40,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: enabledTabs.isEmpty || aggVM.isAggregating
+                                  ? LinearGradient(
+                                      colors: [
+                                        colorScheme.onSurface.withValues(
+                                          alpha: 0.2,
+                                        ),
+                                        colorScheme.onSurface.withValues(
+                                          alpha: 0.3,
+                                        ),
+                                      ],
+                                    )
+                                  : LinearGradient(
+                                      colors: [
+                                        colorScheme.primary,
+                                        colorScheme.primary.withValues(
+                                          alpha: 0.8,
+                                        ),
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: enabledTabs.isEmpty || aggVM.isAggregating
+                                    ? null
+                                    : () => showAggregateDialog(context),
+                                borderRadius: BorderRadius.circular(20),
+                                child: Center(
+                                  child: aggVM.isAggregating
+                                      ? SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                                    colorScheme.onPrimary),
+                                          ),
+                                        )
+                                      : Icon(
+                                          Icons.merge_type_rounded,
+                                          color: colorScheme.onPrimary,
+                                          size: 18,
+                                        ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (showAggregate) const SizedBox(width: 8),
+
                   // 输入框
                   Expanded(
                     child: Container(

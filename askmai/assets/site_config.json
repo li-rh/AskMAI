@@ -15,7 +15,9 @@
       "viewportRight": 0,
       "viewportEnabled": true,
       "strategy": "contenteditable",
-      "userAgent": null
+      "userAgent": null,
+      "copyButtonXPath": "(//section[@data-turn='assistant'])[last()]//button[@data-testid='copy-turn-action-button']",
+      "responseXPath": "TODO_FILL_ME"
     },
     "claude": {
       "id": "claude",
@@ -31,7 +33,9 @@
       "viewportRight": 0,
       "viewportEnabled": true,
       "strategy": "dom_input",
-      "userAgent": null
+      "userAgent": null,
+      "copyButtonXPath": "TODO_FILL_ME",
+      "responseXPath": "TODO_FILL_ME"
     },
     "gemini": {
       "id": "gemini",
@@ -47,7 +51,9 @@
       "viewportRight": 0,
       "viewportEnabled": true,
       "strategy": "contenteditable",
-      "userAgent": null
+      "userAgent": null,
+      "copyButtonXPath": "(//button[@aria-label='Copy' and contains(@class, 'mdc-icon-button')])[last()]",
+      "responseXPath": "TODO_FILL_ME"
     },
     "doubao": {
       "id": "doubao",
@@ -63,7 +69,9 @@
       "viewportRight": 0,
       "viewportEnabled": true,
       "strategy": "dom_input",
-      "userAgent": null
+      "userAgent": null,
+      "copyButtonXPath": "(//div[@data-foundation-type='receive-message-action-bar'])[last()]//div[contains(@class, 'message-action-button-main')]/button[1]",
+      "responseXPath": "TODO_FILL_ME"
     },
     "deepseek": {
       "id": "deepseek",
@@ -79,7 +87,9 @@
       "viewportRight": 0,
       "viewportEnabled": true,
       "strategy": "dom_input",
-      "userAgent": null
+      "userAgent": null,
+      "copyButtonXPath": "(//div[contains(@class, '_4f9bf79')])[last()]//div[contains(@class, '_0a3d93b')]//div[@role='button'][1]",
+      "responseXPath": "TODO_FILL_ME"
     },
     "qianwen": {
       "id": "qianwen",
@@ -95,7 +105,9 @@
       "viewportRight": 0,
       "viewportEnabled": true,
       "strategy": "react_fiber",
-      "userAgent": null
+      "userAgent": null,
+      "copyButtonXPath": "TODO_FILL_ME",
+      "responseXPath": "TODO_FILL_ME"
     },
     "qwen": {
       "id": "qianwen",
@@ -111,7 +123,9 @@
       "viewportRight": 0,
       "viewportEnabled": true,
       "strategy": "dom_input",
-      "userAgent": null
+      "userAgent": null,
+      "copyButtonXPath": "(//div[contains(@class, 'qwen-chat-message-assistant')]//div[contains(@class, 'qwen-chat-package-comp-new-action-control-container-copy')])[last()]",
+      "responseXPath": "TODO_FILL_ME"
     },
     "yuanbao": {
       "id": "yuanbao",
@@ -126,8 +140,10 @@
       "viewportLeft": 0,
       "viewportRight": 0,
       "viewportEnabled": true,
-      "strategy": "dom_input",
-      "userAgent": null
+      "strategy": "contenteditable",
+      "userAgent": null,
+      "copyButtonXPath": "(//div[@data-conv-speaker='ai'])[last()]//div[@aria-label='复制']",
+      "responseXPath": "TODO_FILL_ME"
     },
     "kimi": {
       "id": "kimi",
@@ -142,8 +158,10 @@
       "viewportLeft": 0,
       "viewportRight": 0,
       "viewportEnabled": true,
-      "strategy": "dom_input",
-      "userAgent": null
+      "strategy": "clear_and_paste",
+      "userAgent": null,
+      "copyButtonXPath": "(//div[contains(@class, 'chat-content-item-assistant')])[last()]//div[contains(@class, 'segment-assistant-actions')]//div[contains(@class, 'icon-button')][1]",
+      "responseXPath": "TODO_FILL_ME"
     },
     "zhipu": {
       "id": "zhipu",
@@ -159,7 +177,9 @@
       "viewportRight": 0,
       "viewportEnabled": true,
       "strategy": "dom_input",
-      "userAgent": null
+      "userAgent": null,
+      "copyButtonXPath": "",
+      "responseXPath": "(//div[contains(@class, 'answer')])[last()]"
     }
   }
 }

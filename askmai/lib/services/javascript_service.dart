@@ -108,7 +108,209 @@ class JavascriptService {
     }
   }
 
-  /// 解析 runJavaScriptReturningResult 的返回值（处理 Android 双重 JSON 编码）
+  Future<void> installClipboardHook(WebViewController controller) async {
+    const js = '''
+      (function() {
+        if (!window.__amaiCaptured) window.__amaiCaptured = '';
+        if (!window.__amaiCaptureSeq) window.__amaiCaptureSeq = 0;
+        if (!window.__amaiCopyHooked) {
+          window.__amaiCopyHooked = true;
+          document.addEventListener('copy', function(e) {
+            try {
+              var text = e.clipboardData.getData('text/plain');
+              if (text) {
+                window.__amaiCaptured = text;
+                window.__amaiCaptureSeq++;
+              }
+            } catch(err) {}
+          }, true);
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText && !window.__amaiWriteTextHooked) {
+          window.__amaiWriteTextHooked = true;
+          Object.defineProperty(navigator.clipboard, 'writeText', {
+            value: function(text) {
+              window.__amaiCaptured = text;
+              window.__amaiCaptureSeq++;
+              return Promise.resolve();
+            },
+            writable: true,
+            configurable: true
+          });
+        }
+        if (navigator.clipboard && navigator.clipboard.write && !window.__amaiWriteHooked) {
+          window.__amaiWriteHooked = true;
+          Object.defineProperty(navigator.clipboard, 'write', {
+            value: function(items) {
+              try {
+                items.forEach(function(item) {
+                  if (item.types) item.types.forEach(function(t) {
+                    if (t === 'text/plain') item.getType('text/plain').then(function(blob) {
+                      var reader = new FileReader();
+                      reader.onload = function() {
+                        window.__amaiCaptured = reader.result;
+                        window.__amaiCaptureSeq++;
+                      };
+                      reader.readAsText(blob);
+                    });
+                  });
+                });
+              } catch(e) {}
+              return Promise.resolve();
+            },
+            writable: true,
+            configurable: true
+          });
+        }
+        if (!window.__amaiExecCmdHooked) {
+          window.__amaiExecCmdHooked = true;
+          var origExecCommand = document.execCommand.bind(document);
+          document.execCommand = function(cmd) {
+            if (cmd === 'copy') {
+              try {
+                var sel = window.getSelection();
+                if (sel && sel.toString()) {
+                  window.__amaiCaptured = sel.toString();
+                  window.__amaiCaptureSeq++;
+                }
+              } catch(err) {}
+              return true;
+            }
+            return origExecCommand.apply(document, arguments);
+          };
+        }
+        if (!window.__amaiPromptHooked) {
+          window.__amaiPromptHooked = true;
+          window.__amaiOrigPrompt = window.prompt;
+          window.prompt = function(msg, def) {
+            if (def && typeof def === 'string' && def.length > 10) {
+              window.__amaiCaptured = def;
+              window.__amaiCaptureSeq++;
+              return def;
+            }
+            if (msg && typeof msg === 'string' && /copy to clipboard|ctrl\\+c|ctrl\\+insert|复制|剪贴板/i.test(msg)) {
+              return null;
+            }
+            return window.__amaiOrigPrompt ? window.__amaiOrigPrompt.call(window, msg, def) : null;
+          };
+        }
+        if (!window.__amaiConfirmHooked) {
+          window.__amaiConfirmHooked = true;
+          window.__amaiOrigConfirm = window.confirm;
+          window.confirm = function(msg) {
+            if (typeof msg === 'string' && msg.length > 10) {
+              window.__amaiCaptured = msg;
+              window.__amaiCaptureSeq++;
+              return true;
+            }
+            return window.__amaiOrigConfirm ? window.__amaiOrigConfirm.call(window, msg) : true;
+          };
+        }
+        window.__amaiDebug = function() {
+          return { hooked: true, capturedLen: window.__amaiCaptured.length, seq: window.__amaiCaptureSeq };
+        };
+      })();
+    ''';
+    try {
+      await controller.runJavaScript(js);
+    } catch (e) {
+      debugPrint('[JavascriptService] installClipboardHook error: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>?> clickAndCapture(
+    WebViewController controller,
+    String xpath, {
+    int timeoutMs = 1500,
+  }) async {
+    try {
+      final initResult = await controller.runJavaScriptReturningResult('''
+        (function() {
+          var seqBefore = window.__amaiCaptureSeq || 0;
+          var btn = document.evaluate(${jsonEncode(xpath)}, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+          if (!btn) return JSON.stringify({phase:'done',success:false,reason:'button_not_found'});
+          btn.style.display = 'block';
+          btn.style.pointerEvents = 'auto';
+          btn.click();
+          setTimeout(function() {
+            btn.dispatchEvent(new MouseEvent('click', {bubbles:true,cancelable:true,view:window}));
+          }, 500);
+          window.__amaiCaptureStart = Date.now();
+          window.__amaiCaptureSeqBefore = seqBefore;
+          return JSON.stringify({phase:'polling'});
+        })();
+      ''');
+      debugPrint('[JavascriptService] clickAndCapture init type=${initResult.runtimeType}, value=$initResult');
+      final initParsed = _parseResult(initResult);
+      if (initParsed != null && initParsed['phase'] == 'done') {
+        debugPrint('[JavascriptService] clickAndCapture button not found');
+        return initParsed;
+      }
+    } catch (e) {
+      debugPrint('[JavascriptService] clickAndCapture init error: $e');
+      return null;
+    }
+
+    final startTime = DateTime.now();
+    final deadline = startTime.add(Duration(milliseconds: timeoutMs));
+    while (DateTime.now().isBefore(deadline)) {
+      await Future.delayed(const Duration(milliseconds: 100));
+      try {
+        final pollResult = await controller.runJavaScriptReturningResult('''
+          (function() {
+            if ((window.__amaiCaptureSeq||0) > (window.__amaiCaptureSeqBefore||0) && window.__amaiCaptured) {
+              return JSON.stringify({phase:'done',success:true,text:window.__amaiCaptured,elapsedMs:Date.now()-window.__amaiCaptureStart});
+            }
+            if (Date.now() - (window.__amaiCaptureStart||0) >= $timeoutMs) {
+              return JSON.stringify({phase:'done',success:false,reason:'timeout',elapsedMs:Date.now()-(window.__amaiCaptureStart||0)});
+            }
+            return JSON.stringify({phase:'waiting'});
+          })();
+        ''');
+        final parsed = _parseResult(pollResult);
+        if (parsed != null && parsed['phase'] == 'done') {
+          debugPrint('[JavascriptService] clickAndCapture result=$parsed');
+          return parsed;
+        }
+      } catch (e) {
+        debugPrint('[JavascriptService] clickAndCapture poll error: $e');
+      }
+    }
+    debugPrint('[JavascriptService] clickAndCapture dart_timeout');
+    return {'success': false, 'reason': 'dart_timeout'};
+  }
+
+  Future<String?> extractInnerText(
+    WebViewController controller,
+    String xpath,
+  ) async {
+    final js = '''
+      (function() {
+        try {
+          var el = document.evaluate(${jsonEncode(xpath)}, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+          if (el) return el.innerText.trim();
+          return null;
+        } catch(e) {
+          return null;
+        }
+      })();
+    ''';
+    try {
+      final result = await controller.runJavaScriptReturningResult(js);
+      debugPrint('[JavascriptService] extractInnerText rawResult type=${result.runtimeType}, value=$result');
+      var text = result is String ? result : result.toString();
+      if (text.startsWith('"') && text.endsWith('"')) {
+        try {
+          text = jsonDecode(text);
+        } catch (_) {}
+      }
+      debugPrint('[JavascriptService] extractInnerText decoded text: ${text.isEmpty ? "EMPTY" : "len=${text.length}"}');
+      return text.isEmpty ? null : text;
+    } catch (e) {
+      debugPrint('[JavascriptService] extractInnerText error: $e');
+      return null;
+    }
+  }
+
   Map<String, dynamic>? _parseResult(dynamic rawResult) {
     if (rawResult is Map) {
       return rawResult.map((k, v) => MapEntry(k.toString(), v));
