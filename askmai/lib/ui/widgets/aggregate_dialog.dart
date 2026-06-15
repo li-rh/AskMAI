@@ -103,6 +103,7 @@ class _AggregateDialogContentState extends State<_AggregateDialogContent> {
                     onPressed: (_selectedTabId == null || aggVM.isAggregating)
                         ? null
                         : () async {
+                            FocusManager.instance.primaryFocus?.unfocus();
                             final result =
                                 await aggVM.aggregate(_selectedTabId!);
                             if (context.mounted) {

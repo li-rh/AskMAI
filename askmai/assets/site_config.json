@@ -107,7 +107,7 @@
       "strategy": "react_fiber",
       "userAgent": null,
       "copyButtonXPath": "TODO_FILL_ME",
-      "responseXPath": "TODO_FILL_ME"
+      "responseXPath": "(//div[contains(@class, 'answer-common-card')])[last()]"
     },
     "qwen": {
       "id": "qianwen",
@@ -178,7 +178,7 @@
       "viewportEnabled": true,
       "strategy": "dom_input",
       "userAgent": null,
-      "copyButtonXPath": "",
+      "copyButtonXPath": "TODO_FILL_ME",
       "responseXPath": "(//div[contains(@class, 'answer')])[last()]"
     }
   }

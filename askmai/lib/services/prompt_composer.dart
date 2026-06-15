@@ -19,7 +19,7 @@ class PromptComposer {
       buf.writeln();
     }
 
-    buf.writeln('请综合分析以上回答的异同与优劣，给出最终建议。');
+    buf.write('请综合分析以上回答的异同与优劣，给出最终建议。');
     return buf.toString();
   }
 }
