@@ -9,9 +9,20 @@ import 'aggregate_dialog.dart';
 class InputArea extends StatefulWidget {
   final VoidCallback onNewChat;
   final VoidCallback onSettings;
+  final GestureDragStartCallback? onHorizontalDragStart;
+  final GestureDragUpdateCallback? onHorizontalDragUpdate;
+  final GestureDragEndCallback? onHorizontalDragEnd;
+  final VoidCallback? onHorizontalDragCancel;
 
-  const InputArea({Key? key, required this.onNewChat, required this.onSettings})
-    : super(key: key);
+  const InputArea({
+    Key? key,
+    required this.onNewChat,
+    required this.onSettings,
+    this.onHorizontalDragStart,
+    this.onHorizontalDragUpdate,
+    this.onHorizontalDragEnd,
+    this.onHorizontalDragCancel,
+  }) : super(key: key);
 
   @override
   State<InputArea> createState() => _InputAreaState();
@@ -105,6 +116,8 @@ class _InputAreaState extends State<InputArea> {
 
   @override
   Widget build(BuildContext context) {
+    final isFocused = context.watch<InputFocusManager>().hasFocus;
+
     return Consumer3<InputDistributorVM, TabManagerVM, AggregationVM>(
       builder: (context, distributorVM, tabManagerVM, aggVM, _) {
         // 计算显示的和启用的tab数量
@@ -202,67 +215,84 @@ class _InputAreaState extends State<InputArea> {
 
                   // 输入框
                   Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        color: colorScheme.surface,
-                        border: Border.all(
-                          color: theme.brightness == Brightness.light
-                              ? Colors.black.withValues(alpha: 0.06)
-                              : Colors.white.withValues(alpha: 0.12),
-                          width: 1,
+                    child: Stack(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            color: colorScheme.surface,
+                            border: Border.all(
+                              color: theme.brightness == Brightness.light
+                                  ? Colors.black.withValues(alpha: 0.06)
+                                  : Colors.white.withValues(alpha: 0.12),
+                              width: 1,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: theme.brightness == Brightness.light
+                                    ? Colors.black.withValues(alpha: 0.08)
+                                    : Colors.white.withValues(alpha: 0.08),
+                                blurRadius: 16,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: TextField(
+                            controller: _controller,
+                            focusNode: _focusNode,
+                            enabled: !isDisabled,
+                            maxLines: 5,
+                            minLines: 2,
+                            textInputAction: TextInputAction.newline,
+                            decoration: InputDecoration(
+                              hintText: enabledTabs.isEmpty
+                                  ? 'Enable a tab first...'
+                                  : 'Ask ${enabledTabs.length} LLM${enabledTabs.length != 1 ? 's' : ''}...',
+                              hintStyle: TextStyle(
+                                color:
+                                    theme.textTheme.bodySmall?.color ??
+                                    Colors.grey[400],
+                                fontSize: 14,
+                              ),
+                              filled: true,
+                              fillColor: Colors.transparent,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(20),
+                                borderSide: BorderSide.none,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(20),
+                                borderSide: BorderSide.none,
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(20),
+                                borderSide: BorderSide.none,
+                              ),
+                              disabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(20),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                          ),
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: theme.brightness == Brightness.light
-                                ? Colors.black.withValues(alpha: 0.08)
-                                : Colors.white.withValues(alpha: 0.08),
-                            blurRadius: 16,
-                            offset: const Offset(0, 4),
+                        if (!isFocused)
+                          Positioned.fill(
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () {
+                                _focusNode.requestFocus();
+                              },
+                              onHorizontalDragStart: widget.onHorizontalDragStart,
+                              onHorizontalDragUpdate: widget.onHorizontalDragUpdate,
+                              onHorizontalDragEnd: widget.onHorizontalDragEnd,
+                              onHorizontalDragCancel: widget.onHorizontalDragCancel,
+                            ),
                           ),
-                        ],
-                      ),
-                      child: TextField(
-                        controller: _controller,
-                        focusNode: _focusNode,
-                        enabled: !isDisabled,
-                        maxLines: 5,
-                        minLines: 2,
-                        textInputAction: TextInputAction.newline,
-                        decoration: InputDecoration(
-                          hintText: enabledTabs.isEmpty
-                              ? 'Enable a tab first...'
-                              : 'Ask ${enabledTabs.length} LLM${enabledTabs.length != 1 ? 's' : ''}...',
-                          hintStyle: TextStyle(
-                            color:
-                                theme.textTheme.bodySmall?.color ??
-                                Colors.grey[400],
-                            fontSize: 14,
-                          ),
-                          filled: true,
-                          fillColor: Colors.transparent,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            borderSide: BorderSide.none,
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            borderSide: BorderSide.none,
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            borderSide: BorderSide.none,
-                          ),
-                          disabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                      ),
+                      ],
                     ),
                   ),
                   const SizedBox(width: 8),

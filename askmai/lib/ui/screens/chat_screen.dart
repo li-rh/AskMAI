@@ -572,41 +572,28 @@ class _ChatScreenState extends State<ChatScreen> {
                                               );
                                             },
                                           ),
-                                          Stack(
-                                            children: [
-                                              InputArea(
-                                                onNewChat: _handleNewChat,
-                                                onSettings: _handleSettings,
-                                              ),
-                                              if (!isFlutterInputFocused)
-                                                Positioned.fill(
-                                                  child: GestureDetector(
-                                                    behavior: HitTestBehavior.opaque,
-                                                    onTap: () {
-                                                      focusManager.inputFocusNode?.requestFocus();
-                                                    },
-                                                    onHorizontalDragStart: (details) {
-                                                      if (_pageController.hasClients) {
-                                                        _drag?.cancel();
-                                                        _drag = _pageController.position.drag(details, () {
-                                                          _drag = null;
-                                                        });
-                                                      }
-                                                    },
-                                                    onHorizontalDragUpdate: (details) {
-                                                      _drag?.update(details);
-                                                    },
-                                                    onHorizontalDragEnd: (details) {
-                                                      _drag?.end(details);
-                                                      _drag = null;
-                                                    },
-                                                    onHorizontalDragCancel: () {
-                                                      _drag?.cancel();
-                                                      _drag = null;
-                                                    },
-                                                  ),
-                                                ),
-                                            ],
+                                          InputArea(
+                                            onNewChat: _handleNewChat,
+                                            onSettings: _handleSettings,
+                                            onHorizontalDragStart: (details) {
+                                              if (_pageController.hasClients) {
+                                                _drag?.cancel();
+                                                _drag = _pageController.position.drag(details, () {
+                                                  _drag = null;
+                                                });
+                                              }
+                                            },
+                                            onHorizontalDragUpdate: (details) {
+                                              _drag?.update(details);
+                                            },
+                                            onHorizontalDragEnd: (details) {
+                                              _drag?.end(details);
+                                              _drag = null;
+                                            },
+                                            onHorizontalDragCancel: () {
+                                              _drag?.cancel();
+                                              _drag = null;
+                                            },
                                           ),
                                         ],
                                       ),
