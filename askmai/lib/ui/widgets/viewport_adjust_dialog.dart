@@ -19,10 +19,12 @@ class _ViewportAdjustDialogState extends State<ViewportAdjustDialog> {
   late int _right;
   bool _isEnabled = true;
   bool _didSave = false;
+  late TabManagerVM _tabManagerVM;
 
   @override
   void initState() {
     super.initState();
+    _tabManagerVM = context.read<TabManagerVM>();
     _top = widget.tab.viewportTop;
     _bottom = widget.tab.viewportBottom;
     _left = widget.tab.viewportLeft;
@@ -33,14 +35,12 @@ class _ViewportAdjustDialogState extends State<ViewportAdjustDialog> {
   @override
   void dispose() {
     if (!_didSave) {
-      final tabManagerVM = context.read<TabManagerVM>();
-      tabManagerVM.clearTabPreview(widget.tab.id);
+      _tabManagerVM.clearTabPreview(widget.tab.id);
     }
     super.dispose();
   }
 
   void _applyPreview(int top, int bottom, int left, int right) {
-    final tabManagerVM = context.read<TabManagerVM>();
     final previewTab = widget.tab.copyWith(
       viewportTop: top,
       viewportBottom: bottom,
@@ -48,12 +48,11 @@ class _ViewportAdjustDialogState extends State<ViewportAdjustDialog> {
       viewportRight: right,
       viewportEnabled: _isEnabled,
     );
-    tabManagerVM.updateTabPreview(previewTab);
+    _tabManagerVM.updateTabPreview(previewTab);
   }
 
   void _saveAndClose() {
     _didSave = true;
-    final tabManagerVM = context.read<TabManagerVM>();
     final updatedTab = widget.tab.copyWith(
       viewportTop: _top,
       viewportBottom: _bottom,
@@ -61,14 +60,13 @@ class _ViewportAdjustDialogState extends State<ViewportAdjustDialog> {
       viewportRight: _right,
       viewportEnabled: _isEnabled,
     );
-    tabManagerVM.updateTab(updatedTab);
+    _tabManagerVM.updateTab(updatedTab);
     Navigator.pop(context);
   }
 
   void _cancelAndClose() {
     _didSave = false;
-    final tabManagerVM = context.read<TabManagerVM>();
-    tabManagerVM.clearTabPreview(widget.tab.id);
+    _tabManagerVM.clearTabPreview(widget.tab.id);
     Navigator.pop(context);
   }
 
@@ -94,18 +92,11 @@ class _ViewportAdjustDialogState extends State<ViewportAdjustDialog> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return PopScope(
-      canPop: true,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop && !_didSave) {
-          final tabManagerVM = context.read<TabManagerVM>();
-          tabManagerVM.clearTabPreview(widget.tab.id);
-        }
-      },
-      child: Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+        child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,

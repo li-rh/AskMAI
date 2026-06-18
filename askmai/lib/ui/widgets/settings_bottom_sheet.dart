@@ -274,6 +274,42 @@ class _SettingsBottomSheetState extends State<_SettingsBottomSheet> {
 
           const SizedBox(height: 16),
 
+          // 聚合模版设置
+          _SettingsSection(
+            title: '聚合 Prompt 模版',
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '自定义聚合多个 AI 回答发送给目标 AI 时使用的 Prompt 提示词模版。',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.7),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        _showPromptTemplateEditor(context, _appSettingsVM);
+                      },
+                      icon: const Icon(Icons.edit_note),
+                      label: const Text('编辑聚合模版'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colorScheme.primary,
+                        foregroundColor: colorScheme.onPrimary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
           // 关于
           _SettingsSection(
             title: '关于',
@@ -1183,6 +1219,121 @@ void _showSiteConfigEditor(BuildContext context, TabManagerVM tabManagerVM) {
                     SnackBar(content: Text('配置错误: $e')),
                   );
                 }
+              }
+            },
+            child: const Text('保存'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+/// 显示聚合 Prompt 模版编辑器
+void _showPromptTemplateEditor(BuildContext context, AppSettingsVM appSettingsVM) {
+  final promptController = TextEditingController(text: appSettingsVM.promptTemplate);
+  final theme = Theme.of(context);
+  final colorScheme = theme.colorScheme;
+
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: const Text('编辑聚合 Prompt 模版'),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 460,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primaryContainer.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '占位符说明：',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '• {question} : 原问题文本\n'
+                        '• {if_question}...{endif} : 原提问不为空时保留内容\n'
+                        '• {each_response}...{endeach} : 循环每一条 AI 的回答\n'
+                        '• {ai_name} : AI 名字 (仅用于循环体内)\n'
+                        '• {response_text} : AI 回答内容 (仅用于循环体内)',
+                        style: theme.textTheme.bodySmall?.copyWith(height: 1.5),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                
+                Text(
+                  '聚合模版内容',
+                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: promptController,
+                  maxLines: 12,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: '输入自定义聚合模版结构，必须包含 {each_response} 和 {endeach}',
+                    contentPadding: EdgeInsets.all(12),
+                  ),
+                  style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              // 恢复默认 (从 PromptComposer 的系统缺省值读取)
+              promptController.text = PromptComposer.defaultPromptTemplate;
+            },
+            child: const Text('恢复默认', style: TextStyle(color: Colors.orange)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final promptTemplate = promptController.text.trim();
+              
+              if (promptTemplate.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('模版内容不能为空')),
+                );
+                return;
+              }
+              
+              if (!promptTemplate.contains('{each_response}') || !promptTemplate.contains('{endeach}')) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('模版中必须包含循环占位符 {each_response} 和 {endeach}')),
+                );
+                return;
+              }
+              
+              await appSettingsVM.setPromptTemplate(promptTemplate);
+              
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('聚合模版已保存')),
+                );
+                Navigator.pop(context);
               }
             },
             child: const Text('保存'),

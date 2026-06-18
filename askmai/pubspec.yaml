@@ -58,6 +58,7 @@ flutter:
   assets:
     - assets/site_config.json
     - assets/app_config.json
+    - assets/prompt_template.json
 
   # 取消注释以下行以使用自定义字体
   # fonts:

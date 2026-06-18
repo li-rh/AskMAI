@@ -15,10 +15,14 @@ class AppSettingsVM extends ChangeNotifier {
   late String _webLoadStrategy;
   String _appVersion = '1.0.0';
 
+  // 聚合 Prompt 模版设置
+  late String _promptTemplate;
+
   String get themeMode => _themeMode;
   bool get showAppBar => _showAppBar;
   String get webLoadStrategy => _webLoadStrategy;
   String get appVersion => _appVersion;
+  String get promptTemplate => _promptTemplate;
 
   // 虚拟显示设置
   double _virtualTopGap = 0.0;
@@ -34,6 +38,7 @@ class AppSettingsVM extends ChangeNotifier {
     _webLoadStrategy = _prefsService.getWebLoadStrategy() ?? appConfig.webLoadStrategy;
     _virtualTopGap = _prefsService.getVirtualTopGap();
     _virtualBottomGap = _prefsService.getVirtualBottomGap();
+    _promptTemplate = _prefsService.getPromptTemplate() ?? PromptComposer.defaultPromptTemplate;
     _initSettings();
   }
 
@@ -91,15 +96,27 @@ class AppSettingsVM extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 设置聚合 Prompt 模版
+  Future<void> setPromptTemplate(String template) async {
+    if (_promptTemplate == template) return;
+    _promptTemplate = template;
+    await _prefsService.setPromptTemplate(template);
+    notifyListeners();
+  }
+
   /// 重置所有设置到默认值
   Future<void> resetToDefaults() async {
     final appConfig = AppConfig();
     _themeMode = appConfig.themeMode;
     _showAppBar = appConfig.showAppBar;
     _webLoadStrategy = appConfig.webLoadStrategy;
+    _promptTemplate = PromptComposer.defaultPromptTemplate;
+
     await _prefsService.setThemeMode(_themeMode);
     await _prefsService.setShowAppBar(_showAppBar);
     await _prefsService.setWebLoadStrategy(_webLoadStrategy);
+    await _prefsService.setPromptTemplate(_promptTemplate);
+
     notifyListeners();
   }
 }

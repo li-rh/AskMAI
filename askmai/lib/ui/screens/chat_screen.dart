@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/gestures.dart';
 import 'package:provider/provider.dart';
 import '../../utils/theme_config.dart';
 import '../../services/exports.dart';
@@ -20,10 +21,15 @@ class _ChatScreenState extends State<ChatScreen> {
   OverlayEntry? _toastOverlayEntry;
   Timer? _toastTimer;
   late TabManagerVM _tabManagerVM;
+  late PageController _pageController;
+  bool _hasInitializedPage = false;
+  Drag? _drag;
 
   @override
   void dispose() {
     _tabManagerVM.removeListener(_onTabManagerChanged);
+    _pageController.dispose();
+    _drag = null;
     _toastTimer?.cancel();
     _toastOverlayEntry?.remove();
     _toastOverlayEntry = null;
@@ -126,6 +132,14 @@ class _ChatScreenState extends State<ChatScreen> {
     _tabManagerVM = context.read<TabManagerVM>();
     _tabManagerVM.addListener(_onTabManagerChanged);
 
+    // 如果初始化时已经有标签页，找到当前活跃页面索引
+    final displayedTabs = _tabManagerVM.tabs.where((tab) => tab.isDisplayed).toList();
+    final activeIndex = displayedTabs.indexWhere((tab) => tab.id == _tabManagerVM.activeTabId);
+    _pageController = PageController(initialPage: activeIndex != -1 ? activeIndex : 0);
+    if (activeIndex != -1) {
+      _hasInitializedPage = true;
+    }
+
     // 应用启动时恢复标签页，ViewModel内部会处理初始化默认标签页
     Future.microtask(() async {
       await _tabManagerVM.restoreTabs();
@@ -134,6 +148,24 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void _onTabManagerChanged() {
     if (mounted) {
+      final displayedTabs = _tabManagerVM.tabs.where((tab) => tab.isDisplayed).toList();
+      final activeIndex = displayedTabs.indexWhere((tab) => tab.id == _tabManagerVM.activeTabId);
+      if (activeIndex != -1 && _pageController.hasClients) {
+        final currentScrollIndex = _pageController.page?.round() ?? 0;
+        if (currentScrollIndex != activeIndex) {
+          final isInitialLoad = !_hasInitializedPage;
+          if (isInitialLoad) {
+            _hasInitializedPage = true;
+            _pageController.jumpToPage(activeIndex);
+          } else {
+            _pageController.animateToPage(
+              activeIndex,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+            );
+          }
+        }
+      }
       setState(() {});
     }
   }
@@ -458,10 +490,19 @@ class _ChatScreenState extends State<ChatScreen> {
                                 ],
                               ),
                             )
-                          : IndexedStack(
-                              index: displayedTabs.indexWhere((tab) => tab.id == tabManagerVM.activeTabId) == -1
-                                  ? 0
-                                  : displayedTabs.indexWhere((tab) => tab.id == tabManagerVM.activeTabId),
+                          : PageView(
+                              controller: _pageController,
+                              physics: const NeverScrollableScrollPhysics(
+                                parent: PageScrollPhysics(),
+                              ),
+                              onPageChanged: (index) {
+                                if (index >= 0 && index < displayedTabs.length) {
+                                  final targetTab = displayedTabs[index];
+                                  if (tabManagerVM.activeTabId != targetTab.id) {
+                                    tabManagerVM.switchTab(targetTab.id);
+                                  }
+                                }
+                              },
                               children: displayedTabs.map((tab) {
                                 final activeTabWithPreview = tabManagerVM.activeTab;
                                 final tabToUse =
@@ -531,9 +572,41 @@ class _ChatScreenState extends State<ChatScreen> {
                                               );
                                             },
                                           ),
-                                          InputArea(
-                                            onNewChat: _handleNewChat,
-                                            onSettings: _handleSettings,
+                                          Stack(
+                                            children: [
+                                              InputArea(
+                                                onNewChat: _handleNewChat,
+                                                onSettings: _handleSettings,
+                                              ),
+                                              if (!isFlutterInputFocused)
+                                                Positioned.fill(
+                                                  child: GestureDetector(
+                                                    behavior: HitTestBehavior.opaque,
+                                                    onTap: () {
+                                                      focusManager.inputFocusNode?.requestFocus();
+                                                    },
+                                                    onHorizontalDragStart: (details) {
+                                                      if (_pageController.hasClients) {
+                                                        _drag?.cancel();
+                                                        _drag = _pageController.position.drag(details, () {
+                                                          _drag = null;
+                                                        });
+                                                      }
+                                                    },
+                                                    onHorizontalDragUpdate: (details) {
+                                                      _drag?.update(details);
+                                                    },
+                                                    onHorizontalDragEnd: (details) {
+                                                      _drag?.end(details);
+                                                      _drag = null;
+                                                    },
+                                                    onHorizontalDragCancel: () {
+                                                      _drag?.cancel();
+                                                      _drag = null;
+                                                    },
+                                                  ),
+                                                ),
+                                            ],
                                           ),
                                         ],
                                       ),

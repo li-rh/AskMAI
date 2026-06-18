@@ -196,6 +196,8 @@ class PreferencesService {
   // ==================== 聚合设置 ====================
 
   static const String _lastAggregateTargetIdKey = 'last_aggregate_target_id';
+  static const String _promptTemplateKey = 'prompt_template';
+  static const String _responseItemTemplateKey = 'response_item_template';
 
   Future<void> setLastAggregateTargetId(String tabId) async {
     try {
@@ -210,6 +212,44 @@ class PreferencesService {
       return _prefs.getString(_lastAggregateTargetIdKey);
     } catch (e) {
       _log('Error reading last aggregate target ID', e);
+      return null;
+    }
+  }
+
+  /// 保存聚合 Prompt 模版
+  Future<void> setPromptTemplate(String template) async {
+    try {
+      await _prefs.setString(_promptTemplateKey, template);
+    } catch (e) {
+      _log('Error saving prompt template', e);
+    }
+  }
+
+  /// 读取聚合 Prompt 模版
+  String? getPromptTemplate() {
+    try {
+      return _prefs.getString(_promptTemplateKey);
+    } catch (e) {
+      _log('Error reading prompt template', e);
+      return null;
+    }
+  }
+
+  /// 保存回答条目模版
+  Future<void> setResponseItemTemplate(String template) async {
+    try {
+      await _prefs.setString(_responseItemTemplateKey, template);
+    } catch (e) {
+      _log('Error saving response item template', e);
+    }
+  }
+
+  /// 读取回答条目模版
+  String? getResponseItemTemplate() {
+    try {
+      return _prefs.getString(_responseItemTemplateKey);
+    } catch (e) {
+      _log('Error reading response item template', e);
       return null;
     }
   }

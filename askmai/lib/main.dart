@@ -31,17 +31,27 @@ void main() async {
   final siteRegistry = SiteRegistry();
   await siteRegistry.loadConfigs();
 
-  runApp(MyApp(prefsService: prefsService, siteRegistry: siteRegistry));
+  // 初始化PromptComposer并加载默认模版配置
+  final promptComposer = PromptComposer(prefsService);
+  await promptComposer.loadDefaultTemplates();
+
+  runApp(MyApp(
+    prefsService: prefsService,
+    siteRegistry: siteRegistry,
+    promptComposer: promptComposer,
+  ));
 }
 
 class MyApp extends StatelessWidget {
   final PreferencesService prefsService;
   final SiteRegistry siteRegistry;
+  final PromptComposer promptComposer;
 
   const MyApp({
     Key? key,
     required this.prefsService,
     required this.siteRegistry,
+    required this.promptComposer,
   }) : super(key: key);
 
   @override
@@ -83,7 +93,7 @@ class MyApp extends StatelessWidget {
             context.read<TabManagerVM>(),
             context.read<InputDistributorVM>(),
             ResponseExtractor(context.read<JavascriptService>()),
-            PromptComposer(),
+            promptComposer,
             context.read<WebViewService>(),
             siteRegistry,
             prefsService,
