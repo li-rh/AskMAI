@@ -146,73 +146,6 @@ class _InputAreaState extends State<InputArea> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  if (showAggregate)
-                    Align(
-                      alignment: Alignment.center,
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: Container(
-                            height: 40,
-                            width: 40,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: enabledTabs.isEmpty || aggVM.isAggregating
-                                  ? LinearGradient(
-                                      colors: [
-                                        colorScheme.onSurface.withValues(
-                                          alpha: 0.2,
-                                        ),
-                                        colorScheme.onSurface.withValues(
-                                          alpha: 0.3,
-                                        ),
-                                      ],
-                                    )
-                                  : LinearGradient(
-                                      colors: [
-                                        colorScheme.primary,
-                                        colorScheme.primary.withValues(
-                                          alpha: 0.8,
-                                        ),
-                                      ],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                            ),
-                            child: Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                onTap: enabledTabs.isEmpty || aggVM.isAggregating
-                                    ? null
-                                    : () => showAggregateDialog(context),
-                                borderRadius: BorderRadius.circular(20),
-                                child: Center(
-                                  child: aggVM.isAggregating
-                                      ? SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            valueColor:
-                                                AlwaysStoppedAnimation<Color>(
-                                                    colorScheme.onPrimary),
-                                          ),
-                                        )
-                                      : Icon(
-                                          Icons.merge_type_rounded,
-                                          color: colorScheme.onPrimary,
-                                          size: 18,
-                                        ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  if (showAggregate) const SizedBox(width: 8),
-
                   // 输入框
                   Expanded(
                     child: Stack(
@@ -297,73 +230,143 @@ class _InputAreaState extends State<InputArea> {
                   ),
                   const SizedBox(width: 8),
 
-                  // 右侧发送按钮
-                  Align(
-                    alignment: Alignment.center,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: Container(
-                          height: 40,
-                          width: 40,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: isDisabled
-                                ? LinearGradient(
-                                    colors: [
-                                      colorScheme.onSurface.withValues(
-                                        alpha: 0.2,
-                                      ),
-                                      colorScheme.onSurface.withValues(
-                                        alpha: 0.3,
-                                      ),
-                                    ],
-                                  )
-                                : LinearGradient(
-                                    colors: [
-                                      colorScheme.primary,
-                                      colorScheme.primary.withValues(
-                                        alpha: 0.8,
-                                      ),
-                                    ],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                          ),
+                  // 右侧按钮列（聚合发送 + 发送按钮）
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (showAggregate)
+                        SizedBox(
+                          height: 30,
+                          width: 30,
                           child: Material(
                             color: Colors.transparent,
-                            child: InkWell(
-                              onTap: isDisabled
-                                  ? null
-                                  : () => _handleSend(
-                                      distributorVM,
-                                      tabManagerVM,
-                                    ),
-                              borderRadius: BorderRadius.circular(20),
-                              child: Center(
-                                child: distributorVM.isSubmitting
-                                    ? SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          valueColor:
-                                              AlwaysStoppedAnimation<Color>(
-                                                  colorScheme.onPrimary),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: enabledTabs.isEmpty || aggVM.isAggregating
+                                      ? LinearGradient(
+                                          colors: [
+                                            colorScheme.onSurface.withValues(
+                                              alpha: 0.2,
+                                            ),
+                                            colorScheme.onSurface.withValues(
+                                              alpha: 0.3,
+                                            ),
+                                          ],
+                                        )
+                                      : LinearGradient(
+                                          colors: [
+                                            colorScheme.primary,
+                                            colorScheme.primary.withValues(
+                                              alpha: 0.8,
+                                            ),
+                                          ],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
                                         ),
+                                ),
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    onTap: enabledTabs.isEmpty || aggVM.isAggregating
+                                        ? null
+                                        : () => showAggregateDialog(context),
+                                    borderRadius: BorderRadius.circular(15),
+                                    child: Center(
+                                      child: aggVM.isAggregating
+                                          ? SizedBox(
+                                              width: 15,
+                                              height: 15,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 1.5,
+                                                valueColor:
+                                                    AlwaysStoppedAnimation<Color>(
+                                                        colorScheme.onPrimary),
+                                              ),
+                                            )
+                                          : Icon(
+                                              Icons.merge_type_rounded,
+                                              color: colorScheme.onPrimary,
+                                              size: 14,
+                                            ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      if (showAggregate) const SizedBox(height: 4),
+                      // 发送按钮
+                      SizedBox(
+                        height: 40,
+                        width: 40,
+                        child: Material(
+                          color: Colors.transparent,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: isDisabled
+                                    ? LinearGradient(
+                                        colors: [
+                                          colorScheme.onSurface.withValues(
+                                            alpha: 0.2,
+                                          ),
+                                          colorScheme.onSurface.withValues(
+                                            alpha: 0.3,
+                                          ),
+                                        ],
                                       )
-                                    : Icon(
-                                        Icons.send_rounded,
-                                        color: colorScheme.onPrimary,
-                                        size: 18,
+                                    : LinearGradient(
+                                        colors: [
+                                          colorScheme.primary,
+                                          colorScheme.primary.withValues(
+                                            alpha: 0.8,
+                                          ),
+                                        ],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
                                       ),
+                              ),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: isDisabled
+                                      ? null
+                                      : () => _handleSend(
+                                          distributorVM,
+                                          tabManagerVM,
+                                        ),
+                                  borderRadius: BorderRadius.circular(20),
+                                  child: Center(
+                                    child: distributorVM.isSubmitting
+                                        ? SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor:
+                                                  AlwaysStoppedAnimation<Color>(
+                                                      colorScheme.onPrimary),
+                                            ),
+                                          )
+                                        : Icon(
+                                            Icons.send_rounded,
+                                            color: colorScheme.onPrimary,
+                                            size: 18,
+                                          ),
+                                  ),
+                                ),
                               ),
                             ),
                           ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
                 ],
               ),
