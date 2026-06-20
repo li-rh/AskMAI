@@ -15,6 +15,24 @@ import 'text_filler.dart';
 /// | "react_slate"       | ReactSlateFiller       | React Fiber + Slate Editor API       | 千问                      |
 /// | "generic" (默认)    | GenericStrategy        | 旧版兼容（不推荐）                    | 旧配置向后兼容            |
 class StrategyFactory {
+  static const List<String> availableStrategies = [
+    'dom_input',
+    'exec_command',
+    'input_event',
+    'clipboard_paste',
+    'react_slate',
+    'generic',
+  ];
+
+  static const Map<String, String> strategyLabels = {
+    'dom_input': 'DOM Input',
+    'exec_command': 'Exec Command',
+    'input_event': 'Input Event',
+    'clipboard_paste': 'Clipboard Paste',
+    'react_slate': 'React Slate',
+    'generic': 'Generic (旧版)',
+  };
+
   static InjectionStrategy getStrategy(String? strategyName) {
     switch (strategyName) {
       case 'dom_input':

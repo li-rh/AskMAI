@@ -7,3 +7,4 @@ export 'keyboard_visibility_manager.dart';
 export 'app_config.dart';
 export 'response_extractor.dart';
 export 'prompt_composer.dart';
+export 'injection/exports.dart';

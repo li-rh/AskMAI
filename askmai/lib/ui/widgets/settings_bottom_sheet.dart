@@ -757,6 +757,7 @@ class _SettingsTabItemState extends State<_SettingsTabItem> {
     bool isEnabled = widget.tab.isEnabled;
     bool isDisplayed = widget.tab.isDisplayed;
     bool viewportEnabled = widget.tab.viewportEnabled;
+    String? selectedStrategy = widget.tab.customStrategy ?? siteConfig?.strategy;
 
     showDialog(
       context: context,
@@ -808,6 +809,25 @@ class _SettingsTabItemState extends State<_SettingsTabItem> {
                         hintText: '//button[@id="send"]',
                         border: OutlineInputBorder(),
                       ),
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      initialValue: selectedStrategy,
+                      decoration: const InputDecoration(
+                        labelText: '填入策略',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: StrategyFactory.availableStrategies.map((s) {
+                        return DropdownMenuItem(
+                          value: s,
+                          child: Text(StrategyFactory.strategyLabels[s] ?? s),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          selectedStrategy = value;
+                        });
+                      },
                     ),
                     const SizedBox(height: 16),
                     Row(
@@ -966,6 +986,9 @@ class _SettingsTabItemState extends State<_SettingsTabItem> {
                       customSubmitXPath: submitXPathController.text.trim().isEmpty
                           ? null
                           : submitXPathController.text.trim(),
+                      customStrategy: selectedStrategy == siteConfig?.strategy
+                          ? null
+                          : selectedStrategy,
                       isEnabled: isEnabled,
                       isDisplayed: isDisplayed,
                       viewportTop: vpTop,

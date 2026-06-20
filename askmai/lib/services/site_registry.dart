@@ -161,6 +161,9 @@ class SiteRegistry {
           if (matchingTab.customSubmitXPath != null) {
             jsonVal['submitXPath'] = matchingTab.customSubmitXPath;
           }
+          if (matchingTab.customStrategy != null) {
+            jsonVal['strategy'] = matchingTab.customStrategy;
+          }
         } catch (_) {
           // 未匹配到则保留原样
         }
@@ -202,7 +205,7 @@ class SiteRegistry {
             'viewportLeft': tab.viewportLeft,
             'viewportRight': tab.viewportRight,
             'viewportEnabled': tab.viewportEnabled,
-            'strategy': 'generic',
+            'strategy': tab.customStrategy ?? 'generic',
             'userAgent': null,
           };
         }

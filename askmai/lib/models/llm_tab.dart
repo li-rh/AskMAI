@@ -30,6 +30,9 @@ class LLMTab {
   /// 自定义提交按钮XPath（为空时使用site_config中的配置）
   final String? customSubmitXPath;
 
+  /// 自定义填入策略（为空时使用site_config中的默认策略）
+  final String? customStrategy;
+
   /// 视口上边距 (px)，用于调整当前tab的网页显示区域
   final int viewportTop;
 
@@ -58,6 +61,7 @@ class LLMTab {
     this.isDisplayed = true,
     this.customInputXPath,
     this.customSubmitXPath,
+    this.customStrategy,
     this.viewportTop = 0,
     this.viewportBottom = 0,
     this.viewportLeft = 0,
@@ -82,6 +86,7 @@ class LLMTab {
     bool? isDisplayed,
     String? customInputXPath,
     String? customSubmitXPath,
+    String? customStrategy,
     int? viewportTop,
     int? viewportBottom,
     int? viewportLeft,
@@ -98,6 +103,7 @@ class LLMTab {
       isDisplayed: isDisplayed ?? this.isDisplayed,
       customInputXPath: customInputXPath ?? this.customInputXPath,
       customSubmitXPath: customSubmitXPath ?? this.customSubmitXPath,
+      customStrategy: customStrategy ?? this.customStrategy,
       viewportTop: viewportTop ?? this.viewportTop,
       viewportBottom: viewportBottom ?? this.viewportBottom,
       viewportLeft: viewportLeft ?? this.viewportLeft,

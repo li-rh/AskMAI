@@ -67,14 +67,14 @@ class AutomationVM extends ChangeNotifier {
             tabId: tabId,
           );
         }
-        strategyName = siteConfig.strategy;
+        strategyName = tab.customStrategy ?? siteConfig.strategy;
         inputXPath = tab.customInputXPath ?? siteConfig.inputXPath;
         submitXPath = tab.customSubmitXPath ?? siteConfig.submitXPath;
         _log('[Stage4-SingleTab] XPath from site_config: strategy=$strategyName');
       } else {
         // 如果使用了自定义配置，仍尝试获取strategy用于匹配策略
         final siteConfig = _siteRegistry.getConfigByUrl(tab.url);
-        strategyName = siteConfig?.strategy;
+        strategyName = tab.customStrategy ?? siteConfig?.strategy;
         _log('[Stage4-SingleTab] XPath from tab custom: strategy=$strategyName');
       }
 
