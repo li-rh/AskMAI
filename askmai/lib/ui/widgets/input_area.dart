@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -58,8 +59,10 @@ class _InputAreaState extends State<InputArea> {
     TabManagerVM tabManagerVM,
   ) async {
     final message = _controller.text.trim();
+    _log('[Stage1-Input] Send triggered. message.length=${message.length}, preview="${message.length > 50 ? '${message.substring(0, 50)}...' : message}"');
 
     if (message.isEmpty) {
+      _log('[Stage1-Input] REJECTED: empty message');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please enter a message'),
@@ -73,8 +76,13 @@ class _InputAreaState extends State<InputArea> {
     final enabledTabs = tabManagerVM.tabs
         .where((tab) => tab.isDisplayed && tab.isEnabled)
         .toList();
+    _log('[Stage1-Input] Total tabs: ${tabManagerVM.tabs.length}, displayed+enabled: ${enabledTabs.length}');
+    for (var tab in enabledTabs) {
+      _log('[Stage1-Input]   -> tab: ${tab.displayName} (${tab.id}), url=${tab.url}');
+    }
 
     if (enabledTabs.isEmpty) {
+      _log('[Stage1-Input] REJECTED: no enabled tabs');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please enable at least one tab'),
@@ -86,6 +94,7 @@ class _InputAreaState extends State<InputArea> {
 
     _controller.clear();
     _focusNode.unfocus();
+    _log('[Stage1-Input] Input cleared, calling broadcastInput...');
 
     await distributorVM.broadcastInput(message);
 
@@ -93,6 +102,7 @@ class _InputAreaState extends State<InputArea> {
     if (mounted) {
       final successCount = distributorVM.getSuccessCount();
       final failureCount = distributorVM.getFailureCount();
+      _log('[Stage1-Input] Broadcast complete. success=$successCount, failed=$failureCount');
 
       if (successCount > 0 && failureCount == 0) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -114,10 +124,12 @@ class _InputAreaState extends State<InputArea> {
     }
   }
 
+  void _log(String message, [Object? error]) {
+    developer.log(message, name: 'InputArea', error: error);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final isFocused = context.watch<InputFocusManager>().hasFocus;
-
     return Consumer3<InputDistributorVM, TabManagerVM, AggregationVM>(
       builder: (context, distributorVM, tabManagerVM, aggVM, _) {
         // 计算显示的和启用的tab数量
@@ -212,19 +224,23 @@ class _InputAreaState extends State<InputArea> {
                             ),
                           ),
                         ),
-                        if (!isFocused)
-                          Positioned.fill(
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () {
-                                _focusNode.requestFocus();
-                              },
-                              onHorizontalDragStart: widget.onHorizontalDragStart,
-                              onHorizontalDragUpdate: widget.onHorizontalDragUpdate,
-                              onHorizontalDragEnd: widget.onHorizontalDragEnd,
-                              onHorizontalDragCancel: widget.onHorizontalDragCancel,
-                            ),
-                          ),
+                        Consumer<InputFocusManager>(
+                          builder: (_, focusMgr, __) {
+                            if (focusMgr.hasFocus) return const SizedBox.shrink();
+                            return Positioned.fill(
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () {
+                                  _focusNode.requestFocus();
+                                },
+                                onHorizontalDragStart: widget.onHorizontalDragStart,
+                                onHorizontalDragUpdate: widget.onHorizontalDragUpdate,
+                                onHorizontalDragEnd: widget.onHorizontalDragEnd,
+                                onHorizontalDragCancel: widget.onHorizontalDragCancel,
+                              ),
+                            );
+                          },
+                        ),
                       ],
                     ),
                   ),

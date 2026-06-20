@@ -1,5 +1,7 @@
+import 'dart:developer' as developer;
 import 'package:webview_flutter/webview_flutter.dart';
 import '../../models/exports.dart';
+import '../../utils/json_utils.dart';
 import 'injection_strategy.dart';
 
 /// @deprecated 已拆分为更专注的独立策略，此类仅供向后兼容。
@@ -107,35 +109,71 @@ class GenericStrategy extends InjectionStrategy {
     String inputXPath,
     String submitXPath,
     String message,
-    String tabId,
-  ) async {
+    String tabId, {
+    String? displayName,
+  }) async {
+    final name = displayName ?? tabId;
+    final totalStart = DateTime.now();
+    _log('[Generic:$name] ====== STRATEGY START ====== msg.length=${message.length}');
+
     try {
+      // Phase 0: 元素预检测（含重试）
+      _log('[Generic:$name] Phase0-Detect: checking input element...');
+      final inputDetect = await waitForElement(
+        controller: controller,
+        xpath: inputXPath,
+        name: name,
+        label: 'input element',
+      );
+      if (inputDetect == null) {
+        _log('[Generic:$name] Phase0-Detect ABORT: input element NOT found after retries');
+        return SubmissionResult(
+          success: false,
+          error: 'Input element not found',
+          timestamp: DateTime.now(),
+          tabId: tabId,
+        );
+      }
+      _log('[Generic:$name] Phase0-Detect: input found, tag=${inputDetect['tag']}, editable=${inputDetect['editable']}');
+
+      // Phase 1: 聚焦输入框
+      _log('[Generic:$name] Phase1-Focus: focusing input element...');
+      final focusStart = DateTime.now();
       final focusJs = '''
         $helpersJS
         $_focusInputJS
         focusInput('${escapeJavaScript(inputXPath)}');
       ''';
       final focusResult = await controller.runJavaScriptReturningResult(focusJs);
-      final focusOk = parseResult(focusResult);
+      final focusOk = safeParseJsonResult(focusResult);
+      final focusMs = DateTime.now().difference(focusStart).inMilliseconds;
+      _log('[Generic:$name] Phase1-Focus result (${focusMs}ms): $focusOk');
 
       if (focusOk == null || focusOk['success'] != true) {
-        // 聚焦失败可继续，不阻断
+        _log('[Generic:$name] Phase1-Focus: element not found, continuing anyway...');
       }
 
       await Future.delayed(const Duration(milliseconds: 300));
 
+      // Phase 2: 填充内容
+      _log('[Generic:$name] Phase2-Fill: filling input...');
+      final fillStart = DateTime.now();
       final fillJs = '''
         $helpersJS
         $_fillInputJS
         fillInput('${escapeJavaScript(inputXPath)}', '${escapeJavaScript(message)}');
       ''';
       final fillResult = await controller.runJavaScriptReturningResult(fillJs);
-      final fillOk = parseResult(fillResult);
+      final fillOk = safeParseJsonResult(fillResult);
+      final fillMs = DateTime.now().difference(fillStart).inMilliseconds;
+      _log('[Generic:$name] Phase2-Fill result (${fillMs}ms): $fillOk');
 
       if (fillOk == null || fillOk['success'] != true) {
+        final error = (fillOk?['error'] as String?) ?? 'Fill input failed';
+        _log('[Generic:$name] Phase2-Fill FAILED: $error');
         return SubmissionResult(
           success: false,
-          error: (fillOk?['error'] as String?) ?? 'Fill input failed',
+          error: error,
           timestamp: DateTime.now(),
           tabId: tabId,
         );
@@ -143,30 +181,28 @@ class GenericStrategy extends InjectionStrategy {
 
       await Future.delayed(const Duration(milliseconds: 500));
 
-      final clickJs = '''
-        $helpersJS
-        $_clickSubmitJS
-        clickSubmit('${escapeJavaScript(submitXPath)}');
-      ''';
-      final clickResult = await controller.runJavaScriptReturningResult(clickJs);
-      final clickOk = parseResult(clickResult);
-
-      if (clickOk != null) {
-        return SubmissionResult(
-          success: clickOk['success'] as bool? ?? false,
-          error: clickOk['error'] as String?,
-          timestamp: DateTime.now(),
-          tabId: tabId,
-        );
-      }
-
-      return SubmissionResult(
-        success: false,
-        error: 'Unexpected click result type: ${clickResult.runtimeType}',
-        timestamp: DateTime.now(),
+      // Phase 3: 点击发送按钮（含重试验证）
+      final clickResult = await submitWithRetry(
+        controller: controller,
+        inputXPath: inputXPath,
+        submitXPath: submitXPath,
+        clickJs: '''
+          $helpersJS
+          $_clickSubmitJS
+          clickSubmit('${escapeJavaScript(submitXPath)}');
+        ''',
         tabId: tabId,
+        displayName: displayName,
       );
-    } catch (e) {
+
+      final totalMs = DateTime.now().difference(totalStart).inMilliseconds;
+      _log('[Generic:$name] ====== STRATEGY END (${totalMs}ms) ======');
+
+      return clickResult;
+    } catch (e, stack) {
+      final totalMs = DateTime.now().difference(totalStart).inMilliseconds;
+      _log('[Generic:$name] EXCEPTION (${totalMs}ms): $e');
+      _log('[Generic:$name] Stack: $stack');
       return SubmissionResult(
         success: false,
         error: 'JavaScript execution error: $e',
@@ -174,5 +210,9 @@ class GenericStrategy extends InjectionStrategy {
         tabId: tabId,
       );
     }
+  }
+
+  void _log(String message, [Object? error]) {
+    developer.log(message, name: 'GenericStrategy', error: error);
   }
 }

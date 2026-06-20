@@ -22,9 +22,13 @@ class AutomationVM extends ChangeNotifier {
     String message,
     LLMTab tab,
   ) async {
+    final startTime = DateTime.now();
+    _log('[Stage4-SingleTab] START tab=${tab.displayName} ($tabId), message.length=${message.length}');
+
     try {
       // 检查tab是否启用
       if (!tab.isEnabled) {
+        _log('[Stage4-SingleTab] SKIP tab=${tab.displayName}: tab is disabled');
         return SubmissionResult(
           success: false,
           error: 'Tab is disabled',
@@ -36,6 +40,7 @@ class AutomationVM extends ChangeNotifier {
       // 获取WebViewController
       final controller = _webViewService.getWebView(tabId);
       if (controller == null) {
+        _log('[Stage4-SingleTab] FAIL tab=${tab.displayName}: WebView controller NOT found for tabId=$tabId');
         return SubmissionResult(
           success: false,
           error: 'WebView not found for tab: $tabId',
@@ -43,6 +48,7 @@ class AutomationVM extends ChangeNotifier {
           tabId: tabId,
         );
       }
+      _log('[Stage4-SingleTab] WebView controller obtained for tab=${tab.displayName}');
 
       // 获取网站配置或使用自定义XPath
       String inputXPath = tab.customInputXPath ?? '';
@@ -53,6 +59,7 @@ class AutomationVM extends ChangeNotifier {
       if (inputXPath.isEmpty || submitXPath.isEmpty) {
         final siteConfig = _siteRegistry.getConfigByUrl(tab.url);
         if (siteConfig == null) {
+          _log('[Stage4-SingleTab] FAIL tab=${tab.displayName}: Site config NOT found for URL=${tab.url}');
           return SubmissionResult(
             success: false,
             error: 'Site configuration not found for URL: ${tab.url}',
@@ -63,15 +70,21 @@ class AutomationVM extends ChangeNotifier {
         strategyName = siteConfig.strategy;
         inputXPath = tab.customInputXPath ?? siteConfig.inputXPath;
         submitXPath = tab.customSubmitXPath ?? siteConfig.submitXPath;
+        _log('[Stage4-SingleTab] XPath from site_config: strategy=$strategyName');
       } else {
         // 如果使用了自定义配置，仍尝试获取strategy用于匹配策略
         final siteConfig = _siteRegistry.getConfigByUrl(tab.url);
         strategyName = siteConfig?.strategy;
+        _log('[Stage4-SingleTab] XPath from tab custom: strategy=$strategyName');
       }
 
-      _log('Submitting to tab: ${tab.displayName} ($tabId)');
+      _log('[Stage4-SingleTab] Resolved XPaths for tab=${tab.displayName}:');
+      _log('[Stage4-SingleTab]   inputXPath="$inputXPath"');
+      _log('[Stage4-SingleTab]   submitXPath="$submitXPath"');
+      _log('[Stage4-SingleTab]   strategy="$strategyName"');
 
       // 执行JavaScript提交
+      _log('[Stage4-SingleTab] Delegating to JavascriptService.executeSubmit...');
       final result = await _jsService.executeSubmit(
         controller,
         inputXPath,
@@ -79,11 +92,19 @@ class AutomationVM extends ChangeNotifier {
         message,
         tabId,
         strategyName: strategyName,
+        displayName: tab.displayName,
       );
 
-      _log('Submission result for ${tab.displayName} ($tabId): ${result.getStatusString()}');
+      final elapsed = DateTime.now().difference(startTime).inMilliseconds;
+      _log('[Stage4-SingleTab] DONE tab=${tab.displayName} ($tabId): ${result.getStatusString()} (${elapsed}ms)');
+      if (!result.success) {
+        _log('[Stage4-SingleTab]   error: ${result.error}');
+      }
       return result;
-    } catch (e) {
+    } catch (e, stack) {
+      final elapsed = DateTime.now().difference(startTime).inMilliseconds;
+      _log('[Stage4-SingleTab] EXCEPTION tab=${tab.displayName}: $e (${elapsed}ms)');
+      _log('[Stage4-SingleTab]   stack: $stack');
       return SubmissionResult(
         success: false,
         error: 'Submission error: $e',
@@ -98,7 +119,11 @@ class AutomationVM extends ChangeNotifier {
     String message,
     TabManagerVM tabManagerVM,
   ) async {
+    final startTime = DateTime.now();
+    _log('[Stage3-Parallel] START, total tabs=${tabManagerVM.tabs.length}, message.length=${message.length}');
+
     if (tabManagerVM.tabs.isEmpty) {
+      _log('[Stage3-Parallel] SKIP: tabManagerVM.tabs is empty');
       return [];
     }
 
@@ -107,8 +132,13 @@ class AutomationVM extends ChangeNotifier {
       final enabledTabs = tabManagerVM.tabs.where((tab) => tab.isEnabled).toList();
       
       if (enabledTabs.isEmpty) {
-        _log('No enabled tabs to submit to');
+        _log('[Stage3-Parallel] No enabled tabs to submit to');
         return [];
+      }
+
+      _log('[Stage3-Parallel] ${enabledTabs.length} enabled tabs, launching parallel Future.wait:');
+      for (var tab in enabledTabs) {
+        _log('[Stage3-Parallel]   -> ${tab.displayName} (${tab.id})');
       }
 
       // 创建所有提交任务
@@ -117,9 +147,14 @@ class AutomationVM extends ChangeNotifier {
       }).toList();
 
       // 并发执行
-      return await Future.wait(futures);
-    } catch (e) {
-      _log('Error in parallel submission', e);
+      final results = await Future.wait(futures);
+      final elapsed = DateTime.now().difference(startTime).inMilliseconds;
+      _log('[Stage3-Parallel] ALL DONE (${elapsed}ms), ${results.length} results');
+
+      return results;
+    } catch (e, stack) {
+      _log('[Stage3-Parallel] ERROR in parallel submission: $e');
+      _log('[Stage3-Parallel] Stack: $stack');
       return [];
     }
   }

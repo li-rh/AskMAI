@@ -1,5 +1,7 @@
+import 'dart:developer' as developer;
 import 'package:webview_flutter/webview_flutter.dart';
 import '../../models/exports.dart';
+import '../../utils/json_utils.dart';
 import 'injection_strategy.dart';
 
 /// React Fiber + Slate.js 注入策略（针对千问等 React SPA）
@@ -12,10 +14,66 @@ class ReactFiberStrategy extends InjectionStrategy {
     String inputXPath,
     String submitXPath,
     String message,
-    String tabId,
-  ) async {
+    String tabId, {
+    String? displayName,
+  }) async {
+    final name = displayName ?? tabId;
+    final totalStart = DateTime.now();
+    _log('[ReactFiber:$name] ====== STRATEGY START ====== msg.length=${message.length}');
+
     try {
-      // 1. 双重聚焦序列：对抗通义千问的首次失焦保护
+      // Phase 0: 元素预检测（含重试）
+      _log('[ReactFiber:$name] Phase0-Detect: checking input element...');
+      final inputDetect = await waitForElement(
+        controller: controller,
+        xpath: inputXPath,
+        name: name,
+        label: 'input element',
+      );
+      if (inputDetect == null) {
+        _log('[ReactFiber:$name] Phase0-Detect ABORT: input element NOT found after retries');
+        return SubmissionResult(
+          success: false,
+          error: 'Input element not found',
+          timestamp: DateTime.now(),
+          tabId: tabId,
+        );
+      }
+      _log('[ReactFiber:$name] Phase0-Detect: input found, tag=${inputDetect['tag']}');
+
+      // 额外检测 React Fiber 和 Slate
+      final fiberDetectJs = '''
+        $helpersJS
+        (function() {
+          var input = _findElement('${escapeJavaScript(inputXPath)}');
+          if (!input) return JSON.stringify({ hasFiber: false, hasSlate: false });
+          var fiberKey = Object.keys(input).find(function(k) { return k.startsWith('__reactFiber'); });
+          var hasFiber = !!fiberKey;
+          var hasSlate = false;
+          if (hasFiber) {
+            var fiber = input[fiberKey];
+            while (fiber) {
+              if (fiber.memoizedProps && fiber.memoizedProps.editor) { hasSlate = true; break; }
+              fiber = fiber.return;
+            }
+          }
+          return JSON.stringify({ hasFiber: hasFiber, hasSlate: hasSlate });
+        })()
+      ''';
+      final fiberResult = await controller.runJavaScriptReturningResult(fiberDetectJs);
+      final fiberOk = safeParseJsonResult(fiberResult);
+      _log('[ReactFiber:$name] Phase0-Detect: hasFiber=${fiberOk?['hasFiber']}, hasSlate=${fiberOk?['hasSlate']}');
+
+      if (fiberOk?['hasFiber'] != true) {
+        _log('[ReactFiber:$name] Phase0-Detect WARNING: no React Fiber on input element!');
+      }
+      if (fiberOk?['hasSlate'] != true) {
+        _log('[ReactFiber:$name] Phase0-Detect WARNING: no Slate editor instance found!');
+      }
+
+      // Phase 1: 双重聚焦序列
+      _log('[ReactFiber:$name] Phase1-Focus1: focusing editor...');
+      final focus1Start = DateTime.now();
       final focus1Js = '''
         $helpersJS
         (function() {
@@ -26,9 +84,13 @@ class ReactFiberStrategy extends InjectionStrategy {
           return "ok";
         })()
       ''';
-      await controller.runJavaScriptReturningResult(focus1Js);
+      final focus1Result = await controller.runJavaScriptReturningResult(focus1Js);
+      final focus1Ms = DateTime.now().difference(focus1Start).inMilliseconds;
+      _log('[ReactFiber:$name] Phase1-Focus1 result (${focus1Ms}ms): $focus1Result');
       await Future.delayed(const Duration(milliseconds: 200));
 
+      _log('[ReactFiber:$name] Phase1-Focus2: second focus attempt...');
+      final focus2Start = DateTime.now();
       final focus2Js = '''
         $helpersJS
         (function() {
@@ -39,25 +101,27 @@ class ReactFiberStrategy extends InjectionStrategy {
           return "ok";
         })()
       ''';
-      await controller.runJavaScriptReturningResult(focus2Js);
+      final focus2Result = await controller.runJavaScriptReturningResult(focus2Js);
+      final focus2Ms = DateTime.now().difference(focus2Start).inMilliseconds;
+      _log('[ReactFiber:$name] Phase1-Focus2 result (${focus2Ms}ms): $focus2Result');
       await Future.delayed(const Duration(milliseconds: 100));
 
-      // 2. 利用 React Fiber 注入文本：直接调用 Slate API
+      // Phase 2: React Fiber 注入文本
+      _log('[ReactFiber:$name] Phase2-FiberInject: injecting via Slate API...');
+      final injectStart = DateTime.now();
       final injectJs = '''
         $helpersJS
         (function() {
           try {
             var editor = _findElement('${escapeJavaScript(inputXPath)}');
-            if (!editor) return JSON.stringify({ success: false, error: '未找到编辑器' });
+            if (!editor) return JSON.stringify({ success: false, error: '未找到编辑器', found: false });
 
-            // 获取 React Fiber 实例
             var fiberKey = Object.keys(editor).find(k => k.startsWith('__reactFiber'));
-            if (!fiberKey) return JSON.stringify({ success: false, error: '未找到 React Fiber (请刷新页面)' });
+            if (!fiberKey) return JSON.stringify({ success: false, error: '未找到 React Fiber (请刷新页面)', found: true, hasFiber: false });
             
             var fiber = editor[fiberKey];
             var slateEditor = null;
             
-            // 向上回溯查找包含 editor 属性的 Fiber 节点
             while (fiber && !slateEditor) {
                 if (fiber.memoizedProps && fiber.memoizedProps.editor) {
                     slateEditor = fiber.memoizedProps.editor;
@@ -66,39 +130,33 @@ class ReactFiberStrategy extends InjectionStrategy {
             }
             
             if (!slateEditor) {
-                // 如果没找到 Slate 实例，但找到了元素，尝试检查是否是普通的 TEXTAREA 或 INPUT
                 if (editor.tagName === 'TEXTAREA' || editor.tagName === 'INPUT') {
                     editor.value = '${escapeJavaScript(message)}';
                     editor.dispatchEvent(new Event('input', { bubbles: true }));
                     editor.dispatchEvent(new Event('change', { bubbles: true }));
-                    return JSON.stringify({ success: true, method: 'standard_fallback' });
+                    return JSON.stringify({ success: true, method: 'standard_fallback', found: true, hasFiber: true, hasSlate: false });
                 }
-                return JSON.stringify({ success: false, error: '未找到 Slate 内部实例且非标准输入框' });
+                return JSON.stringify({ success: false, error: '未找到 Slate 内部实例且非标准输入框', found: true, hasFiber: true, hasSlate: false });
             }
 
-            // 使用 Slate API 操作内容
             try {
-                // 1. 清空现有内容
-                // 更加鲁棒的清空方式：全选并删除
                 if (slateEditor.children && slateEditor.children.length > 0) {
                     try {
-                        // 尝试选中全部内容
                         slateEditor.select({
                             anchor: slateEditor.start([]),
                             focus: slateEditor.end([])
                         });
                         slateEditor.deleteFragment();
                     } catch (selectError) {
-                        // 如果 start([]) 失败，尝试传统的 [0, 0] 路径
                         try {
                             var lastPath = [slateEditor.children.length - 1];
                             var lastNode = slateEditor.children[slateEditor.children.length - 1];
-                            // 递归找最后一个叶子节点
+                            var maxDepth = 100;
                             while(lastNode.children) {
+                                if (lastNode === lastNode.children || maxDepth-- <= 0) break;
                                 lastPath.push(lastNode.children.length - 1);
                                 lastNode = lastNode.children[lastNode.children.length - 1];
                             }
-                            
                             slateEditor.select({
                                 anchor: { path: [0, 0], offset: 0 },
                                 focus: { path: lastPath, offset: lastNode.text ? lastNode.text.length : 0 }
@@ -113,15 +171,12 @@ class ReactFiberStrategy extends InjectionStrategy {
                 console.error('Slate cleanup error:', e);
             }
             
-            // 2. 插入新文本
             try {
                 slateEditor.insertText('${escapeJavaScript(message)}');
             } catch (insertError) {
-                // 最后的兜底：直接操作 DOM (虽然不推荐，但比失败好)
                 editor.textContent = '${escapeJavaScript(message)}';
             }
             
-            // 3. 触发必要的 DOM 事件同步（确保 React 合成事件捕捉到 input）
             editor.dispatchEvent(new InputEvent('input', { 
                 bubbles: true, 
                 cancelable: true,
@@ -129,7 +184,7 @@ class ReactFiberStrategy extends InjectionStrategy {
                 data: '${escapeJavaScript(message)}'
             }));
 
-            return JSON.stringify({ success: true });
+            return JSON.stringify({ success: true, method: 'slate_api', found: true, hasFiber: true, hasSlate: true });
           } catch (e) {
             return JSON.stringify({ success: false, error: e.message });
           }
@@ -137,54 +192,60 @@ class ReactFiberStrategy extends InjectionStrategy {
       ''';
       
       final injectResult = await controller.runJavaScriptReturningResult(injectJs);
-      final injectOk = parseResult(injectResult);
+      final injectOk = safeParseJsonResult(injectResult);
+      final injectMs = DateTime.now().difference(injectStart).inMilliseconds;
+      _log('[ReactFiber:$name] Phase2-FiberInject result (${injectMs}ms): $injectOk');
 
       if (injectOk == null || injectOk['success'] != true) {
+        final error = (injectOk?['error'] as String?) ?? 'Fiber 注入失败';
+        _log('[ReactFiber:$name] Phase2-FiberInject FAILED: $error');
         return SubmissionResult(
           success: false,
-          error: (injectOk?['error'] as String?) ?? 'Fiber 注入失败',
+          error: error,
           timestamp: DateTime.now(),
           tabId: tabId,
         );
       }
 
-      // 3. 等待 React 完成异步渲染（按钮状态更新）并点击发送
+      // Phase 3: 点击发送按钮（含重试验证）
       await Future.delayed(const Duration(milliseconds: 200));
+      final clickResult = await submitWithRetry(
+        controller: controller,
+        inputXPath: inputXPath,
+        submitXPath: submitXPath,
+        fallbackSubmitXPath: 'button[aria-label="发送消息"]',
+        clickFallbackSelector: 'button[aria-label="发送消息"]',
+        clickJs: '''
+          $helpersJS
+          (function() {
+            try {
+              var btn = _findElement('${escapeJavaScript(submitXPath)}');
+              if (!btn) return JSON.stringify({ success: false, error: '未找到发送按钮' });
 
-      final submitJs = '''
-        $helpersJS
-        (function() {
-          try {
-            var btn = _findElement('${escapeJavaScript(submitXPath)}');
-            // 如果 XPath 没找到，使用备用选择器
-            if (!btn) btn = document.querySelector('button[aria-label="发送消息"]');
-            
-            if (!btn) return JSON.stringify({ success: false, error: '未找到发送按钮' });
+              if (btn.disabled) {
+                  return JSON.stringify({ success: false, error: '发送按钮被禁用，Fiber 注入可能未被 React 状态识别，请重试' });
+              }
 
-            // 检查按钮是否被禁用（React 按钮 disabled 由 state 控制，不能强行移除 attribute）
-            if (btn.disabled) {
-                return JSON.stringify({ success: false, error: '发送按钮被禁用，Fiber 注入可能未被 React 状态识别，请重试' });
+              _simulateSubmit(btn);
+              return JSON.stringify({ success: true });
+            } catch (e) {
+              return JSON.stringify({ success: false, error: e.message });
             }
-
-            _simulateSubmit(btn);
-            return JSON.stringify({ success: true });
-          } catch (e) {
-            return JSON.stringify({ success: false, error: e.message });
-          }
-        })()
-      ''';
-      
-      final submitResult = await controller.runJavaScriptReturningResult(submitJs);
-      final submitOk = parseResult(submitResult);
-
-      return SubmissionResult(
-        success: submitOk?['success'] == true,
-        error: submitOk?['error'] as String?,
-        timestamp: DateTime.now(),
+          })()
+        ''',
         tabId: tabId,
+        displayName: displayName,
       );
 
-    } catch (e) {
+      final totalMs = DateTime.now().difference(totalStart).inMilliseconds;
+      _log('[ReactFiber:$name] ====== STRATEGY END (${totalMs}ms) ======');
+
+      return clickResult;
+
+    } catch (e, stack) {
+      final totalMs = DateTime.now().difference(totalStart).inMilliseconds;
+      _log('[ReactFiber:$name] EXCEPTION (${totalMs}ms): $e');
+      _log('[ReactFiber:$name] Stack: $stack');
       return SubmissionResult(
         success: false,
         error: 'React Fiber 注入发生致命错误: $e',
@@ -192,5 +253,9 @@ class ReactFiberStrategy extends InjectionStrategy {
         tabId: tabId,
       );
     }
+  }
+
+  void _log(String message, [Object? error]) {
+    developer.log(message, name: 'ReactFiberStrategy', error: error);
   }
 }

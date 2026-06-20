@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../models/exports.dart';
+import '../utils/json_utils.dart';
 import 'injection/exports.dart';
 
 /// JavaScript执行服务 - 处理JS注入和自动化
@@ -14,15 +16,39 @@ class JavascriptService {
     String message,
     String tabId, {
     String? strategyName,
+    String? displayName,
   }) async {
+    final name = displayName ?? tabId;
+    final startTime = DateTime.now();
+    _log('[Stage5-JsService] START $name, strategy="$strategyName", inputXPath="$inputXPath", submitXPath="$submitXPath", msg.length=${message.length}');
+
     final strategy = StrategyFactory.getStrategy(strategyName);
-    return strategy.executeSubmit(
-      controller,
-      inputXPath,
-      submitXPath,
-      message,
-      tabId,
-    );
+    _log('[Stage5-JsService] Resolved strategy: ${strategy.runtimeType}');
+
+    try {
+      final result = await strategy.executeSubmit(
+        controller,
+        inputXPath,
+        submitXPath,
+        message,
+        tabId,
+        displayName: displayName,
+      );
+
+      final elapsed = DateTime.now().difference(startTime).inMilliseconds;
+      _log('[Stage5-JsService] DONE $name: ${result.getStatusString()} (${elapsed}ms)');
+      return result;
+    } catch (e, stack) {
+      final elapsed = DateTime.now().difference(startTime).inMilliseconds;
+      _log('[Stage5-JsService] EXCEPTION $name: $e (${elapsed}ms)');
+      _log('[Stage5-JsService] Stack: $stack');
+      return SubmissionResult(
+        success: false,
+        error: 'JavascriptService error: $e',
+        timestamp: DateTime.now(),
+        tabId: tabId,
+      );
+    }
   }
 
   /// 获取页面中的文本内容
@@ -312,22 +338,13 @@ class JavascriptService {
   }
 
   Map<String, dynamic>? _parseResult(dynamic rawResult) {
-    if (rawResult is Map) {
-      return rawResult.map((k, v) => MapEntry(k.toString(), v));
-    }
-    if (rawResult is String && rawResult.isNotEmpty) {
-      try {
-        dynamic parsed = jsonDecode(rawResult);
-        if (parsed is String) {
-          parsed = jsonDecode(parsed);
-        }
-        if (parsed is Map) {
-          return (parsed).map((k, v) => MapEntry(k.toString(), v));
-        }
-      } catch (_) {}
-    }
-    return null;
+    return safeParseJsonResult(rawResult);
   }
+
+  void _log(String message, [Object? error]) {
+    developer.log(message, name: 'JavascriptService', error: error);
+  }
+
   @override
   String toString() => 'JavascriptService()';
 }

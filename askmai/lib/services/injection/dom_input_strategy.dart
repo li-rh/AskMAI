@@ -1,5 +1,7 @@
+import 'dart:developer' as developer;
 import 'package:webview_flutter/webview_flutter.dart';
 import '../../models/exports.dart';
+import '../../utils/json_utils.dart';
 import 'injection_strategy.dart';
 
 /// 标准 DOM 输入策略（针对 <textarea> 和 <input> 元素）
@@ -32,7 +34,8 @@ class DomInputStrategy extends InjectionStrategy {
 
         // 验证写入结果
         var actual = el.value;
-        if (!actual || !actual.includes(messageText.substring(0, Math.min(messageText.length, 10)))) {
+        var prefix = messageText.substring(0, Math.min(messageText.length, 5));
+        if (!actual || actual.length < messageText.length || !actual.includes(prefix)) {
           return JSON.stringify({ success: false, error: 'Fill verification failed: content not reflected in element value', step: 'fill' });
         }
 
@@ -67,10 +70,36 @@ class DomInputStrategy extends InjectionStrategy {
     String inputXPath,
     String submitXPath,
     String message,
-    String tabId,
-  ) async {
+    String tabId, {
+    String? displayName,
+  }) async {
+    final name = displayName ?? tabId;
+    final totalStart = DateTime.now();
+    _log('[DomInput:$name] ====== STRATEGY START ====== msg.length=${message.length}');
+
     try {
-      // 1. 聚焦输入框
+      // Phase 0: 元素预检测（含重试）
+      _log('[DomInput:$name] Phase0-Detect: checking input element...');
+      final inputDetect = await waitForElement(
+        controller: controller,
+        xpath: inputXPath,
+        name: name,
+        label: 'input element',
+      );
+      if (inputDetect == null) {
+        _log('[DomInput:$name] Phase0-Detect ABORT: input element NOT found after retries');
+        return SubmissionResult(
+          success: false,
+          error: 'Input element not found',
+          timestamp: DateTime.now(),
+          tabId: tabId,
+        );
+      }
+      _log('[DomInput:$name] Phase0-Detect: input found, tag=${inputDetect['tag']}');
+
+      // Phase 1: 聚焦输入框
+      _log('[DomInput:$name] Phase1-Focus: focusing input element...');
+      final focusStart = DateTime.now();
       final focusJs = '''
         $helpersJS
         (function() {
@@ -79,28 +108,42 @@ class DomInputStrategy extends InjectionStrategy {
             if (!el) return JSON.stringify({ success: false, error: 'Input not found', step: 'focus' });
             el.focus();
             _simulateClick(el);
-            return JSON.stringify({ success: true, step: 'focus' });
+            return JSON.stringify({ success: true, step: 'focus', tagName: el.tagName });
           } catch (e) {
             return JSON.stringify({ success: false, error: e.message, step: 'focus' });
           }
         })()
       ''';
-      await controller.runJavaScriptReturningResult(focusJs);
+      final focusResult = await controller.runJavaScriptReturningResult(focusJs);
+      final focusOk = safeParseJsonResult(focusResult);
+      final focusMs = DateTime.now().difference(focusStart).inMilliseconds;
+      _log('[DomInput:$name] Phase1-Focus result (${focusMs}ms): $focusOk');
+
+      if (focusOk == null || focusOk['success'] != true) {
+        _log('[DomInput:$name] Phase1-Focus: element not found, continuing anyway...');
+      }
+
       await Future.delayed(const Duration(milliseconds: 200));
 
-      // 2. 填充内容
+      // Phase 2: 填充内容
+      _log('[DomInput:$name] Phase2-Fill: filling input with ${message.length} chars...');
+      final fillStart = DateTime.now();
       final fillJs = '''
         $helpersJS
         $_fillJS
         fillInput('${escapeJavaScript(inputXPath)}', '${escapeJavaScript(message)}');
       ''';
       final fillResult = await controller.runJavaScriptReturningResult(fillJs);
-      final fillOk = parseResult(fillResult);
+      final fillOk = safeParseJsonResult(fillResult);
+      final fillMs = DateTime.now().difference(fillStart).inMilliseconds;
+      _log('[DomInput:$name] Phase2-Fill result (${fillMs}ms): $fillOk');
 
       if (fillOk == null || fillOk['success'] != true) {
+        final error = (fillOk?['error'] as String?) ?? 'Fill input failed';
+        _log('[DomInput:$name] Phase2-Fill FAILED: $error');
         return SubmissionResult(
           success: false,
-          error: (fillOk?['error'] as String?) ?? 'Fill input failed',
+          error: error,
           timestamp: DateTime.now(),
           tabId: tabId,
         );
@@ -108,31 +151,28 @@ class DomInputStrategy extends InjectionStrategy {
 
       await Future.delayed(const Duration(milliseconds: 400));
 
-      // 3. 点击发送按钮
-      final clickJs = '''
-        $helpersJS
-        $_clickJS
-        clickSubmit('${escapeJavaScript(submitXPath)}');
-      ''';
-      final clickResult = await controller.runJavaScriptReturningResult(clickJs);
-      final clickOk = parseResult(clickResult);
-
-      if (clickOk != null) {
-        return SubmissionResult(
-          success: clickOk['success'] as bool? ?? false,
-          error: clickOk['error'] as String?,
-          timestamp: DateTime.now(),
-          tabId: tabId,
-        );
-      }
-
-      return SubmissionResult(
-        success: false,
-        error: 'Unexpected result from click step: ${clickResult.runtimeType}',
-        timestamp: DateTime.now(),
+      // Phase 3: 点击发送按钮（含重试验证）
+      final clickResult = await submitWithRetry(
+        controller: controller,
+        inputXPath: inputXPath,
+        submitXPath: submitXPath,
+        clickJs: '''
+          $helpersJS
+          $_clickJS
+          clickSubmit('${escapeJavaScript(submitXPath)}');
+        ''',
         tabId: tabId,
+        displayName: displayName,
       );
-    } catch (e) {
+
+      final totalMs = DateTime.now().difference(totalStart).inMilliseconds;
+      _log('[DomInput:$name] ====== STRATEGY END (${totalMs}ms) ======');
+
+      return clickResult;
+    } catch (e, stack) {
+      final totalMs = DateTime.now().difference(totalStart).inMilliseconds;
+      _log('[DomInput:$name] EXCEPTION (${totalMs}ms): $e');
+      _log('[DomInput:$name] Stack: $stack');
       return SubmissionResult(
         success: false,
         error: 'DomInputStrategy error: $e',
@@ -140,5 +180,9 @@ class DomInputStrategy extends InjectionStrategy {
         tabId: tabId,
       );
     }
+  }
+
+  void _log(String message, [Object? error]) {
+    developer.log(message, name: 'DomInputStrategy', error: error);
   }
 }

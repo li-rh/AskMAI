@@ -1,6 +1,7 @@
-import 'package:flutter/foundation.dart';
+import 'dart:developer' as developer;
 import 'package:webview_flutter/webview_flutter.dart';
 import '../../models/exports.dart';
+import '../../utils/json_utils.dart';
 import 'injection_strategy.dart';
 
 /// ContentEditable 注入策略（针对 div[contenteditable] 元素）
@@ -158,10 +159,39 @@ class ContentEditableStrategy extends InjectionStrategy {
     String inputXPath,
     String submitXPath,
     String message,
-    String tabId,
-  ) async {
+    String tabId, {
+    String? displayName,
+  }) async {
+    final name = displayName ?? tabId;
+    final totalStart = DateTime.now();
+    _log('[ContentEditable:$name] ====== STRATEGY START ====== msg.length=${message.length}');
+
     try {
-      // 1. 聚焦并准备光标
+      // Phase 0: 元素预检测（含重试）
+      _log('[ContentEditable:$name] Phase0-Detect: checking input element...');
+      final inputDetect = await waitForElement(
+        controller: controller,
+        xpath: inputXPath,
+        name: name,
+        label: 'input element',
+      );
+      if (inputDetect == null) {
+        _log('[ContentEditable:$name] Phase0-Detect ABORT: input element NOT found after retries');
+        return SubmissionResult(
+          success: false,
+          error: 'Input element not found',
+          timestamp: DateTime.now(),
+          tabId: tabId,
+        );
+      }
+      if (inputDetect['editable'] != true) {
+        _log('[ContentEditable:$name] Phase0-Detect WARNING: input element is NOT contenteditable!');
+      }
+      _log('[ContentEditable:$name] Phase0-Detect: input found, tag=${inputDetect['tag']}, editable=${inputDetect['editable']}');
+
+      // Phase 1: 聚焦并准备光标
+      _log('[ContentEditable:$name] Phase1-Focus: focusing element...');
+      final focusStart = DateTime.now();
       final focusJs = '''
         $helpersJS
         (function() {
@@ -170,29 +200,36 @@ class ContentEditableStrategy extends InjectionStrategy {
             if (!el) return JSON.stringify({ success: false, error: 'Element not found', step: 'focus' });
             el.focus();
             _simulateClick(el);
-            return JSON.stringify({ success: true, step: 'focus' });
+            return JSON.stringify({ success: true, step: 'focus', tagName: el.tagName, isContentEditable: el.isContentEditable });
           } catch (e) {
             return JSON.stringify({ success: false, error: e.message, step: 'focus' });
           }
         })()
       ''';
-      await controller.runJavaScriptReturningResult(focusJs);
+      final focusResult = await controller.runJavaScriptReturningResult(focusJs);
+      final focusMs = DateTime.now().difference(focusStart).inMilliseconds;
+      _log('[ContentEditable:$name] Phase1-Focus result (${focusMs}ms): $focusResult');
       await Future.delayed(const Duration(milliseconds: 200));
 
-      // 2. 填充 contenteditable
+      // Phase 2: 填充 contenteditable
+      _log('[ContentEditable:$name] Phase2-Fill: filling contenteditable...');
+      final fillStart = DateTime.now();
       final fillJs = '''
         $helpersJS
         $_fillJS
         fillContentEditable('${escapeJavaScript(inputXPath)}', '${escapeJavaScript(message)}');
       ''';
       final fillResult = await controller.runJavaScriptReturningResult(fillJs);
-      final fillOk = parseResult(fillResult);
-      debugPrint('[ContentEditable] tabId=$tabId fillResult=$fillOk');
+      final fillOk = safeParseJsonResult(fillResult);
+      final fillMs = DateTime.now().difference(fillStart).inMilliseconds;
+      _log('[ContentEditable:$name] Phase2-Fill result (${fillMs}ms): $fillOk');
 
       if (fillOk == null || fillOk['success'] != true) {
+        final error = (fillOk?['error'] as String?) ?? 'ContentEditable fill failed';
+        _log('[ContentEditable:$name] Phase2-Fill FAILED: $error');
         return SubmissionResult(
           success: false,
-          error: (fillOk?['error'] as String?) ?? 'ContentEditable fill failed',
+          error: error,
           timestamp: DateTime.now(),
           tabId: tabId,
         );
@@ -200,31 +237,28 @@ class ContentEditableStrategy extends InjectionStrategy {
 
       await Future.delayed(const Duration(milliseconds: 400));
 
-      // 3. 点击发送按钮
-      final clickJs = '''
-        $helpersJS
-        $_clickJS
-        clickSubmit('${escapeJavaScript(submitXPath)}');
-      ''';
-      final clickResult = await controller.runJavaScriptReturningResult(clickJs);
-      final clickOk = parseResult(clickResult);
-
-      if (clickOk != null) {
-        return SubmissionResult(
-          success: clickOk['success'] as bool? ?? false,
-          error: clickOk['error'] as String?,
-          timestamp: DateTime.now(),
-          tabId: tabId,
-        );
-      }
-
-      return SubmissionResult(
-        success: false,
-        error: 'Unexpected result from click step: ${clickResult.runtimeType}',
-        timestamp: DateTime.now(),
+      // Phase 3: 点击发送按钮（含重试验证）
+      final clickResult = await submitWithRetry(
+        controller: controller,
+        inputXPath: inputXPath,
+        submitXPath: submitXPath,
+        clickJs: '''
+          $helpersJS
+          $_clickJS
+          clickSubmit('${escapeJavaScript(submitXPath)}');
+        ''',
         tabId: tabId,
+        displayName: displayName,
       );
-    } catch (e) {
+
+      final totalMs = DateTime.now().difference(totalStart).inMilliseconds;
+      _log('[ContentEditable:$name] ====== STRATEGY END (${totalMs}ms) ======');
+
+      return clickResult;
+    } catch (e, stack) {
+      final totalMs = DateTime.now().difference(totalStart).inMilliseconds;
+      _log('[ContentEditable:$name] EXCEPTION (${totalMs}ms): $e');
+      _log('[ContentEditable:$name] Stack: $stack');
       return SubmissionResult(
         success: false,
         error: 'ContentEditableStrategy error: $e',
@@ -232,5 +266,9 @@ class ContentEditableStrategy extends InjectionStrategy {
         tabId: tabId,
       );
     }
+  }
+
+  void _log(String message, [Object? error]) {
+    developer.log(message, name: 'ContentEditableStrategy', error: error);
   }
 }

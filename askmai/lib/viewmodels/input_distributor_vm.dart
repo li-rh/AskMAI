@@ -38,26 +38,32 @@ class InputDistributorVM extends ChangeNotifier {
 
   /// 清空提交状态
   void clearSubmissionStatus() {
+    if (_isSubmitting) return;
     _submissionStatus.clear();
     notifyListeners();
   }
 
   /// 广播输入到所有标签页
   Future<void> broadcastInput(String message) async {
+    _log('[Stage2-Broadcast] Received message, length=${message.length}');
+
     // 验证输入
     if (message.trim().isEmpty) {
+      _log('[Stage2-Broadcast] REJECTED: empty message after trim');
       return;
     }
 
     _lastBroadcastMessage = message;
 
     if (_tabManagerVM.tabs.isEmpty) {
+      _log('[Stage2-Broadcast] REJECTED: no tabs in TabManagerVM');
       return;
     }
 
     try {
       _isSubmitting = true;
       notifyListeners();
+      _log('[Stage2-Broadcast] isSubmitting=true, dispatching to AutomationVM.submitToAllTabs...');
 
       // 提交到所有标签页
       final results = await _automationVM.submitToAllTabs(
@@ -65,19 +71,24 @@ class InputDistributorVM extends ChangeNotifier {
         _tabManagerVM,
       );
 
+      _log('[Stage2-Broadcast] Received ${results.length} results from AutomationVM');
+
       // 更新状态
       _submissionStatus.clear();
       for (var result in results) {
         _submissionStatus[result.tabId] = result;
+        _log('[Stage2-Broadcast]   tabId=${result.tabId}: ${result.getStatusString()}');
       }
 
       // 记录统计信息
       _logSubmissionStats();
-    } catch (e) {
-      _log('Error during broadcast', e);
+    } catch (e, stack) {
+      _log('[Stage2-Broadcast] ERROR during broadcast', e);
+      _log('[Stage2-Broadcast] Stack: $stack');
     } finally {
       _isSubmitting = false;
       notifyListeners();
+      _log('[Stage2-Broadcast] isSubmitting=false, flow complete');
     }
   }
 

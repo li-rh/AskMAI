@@ -1,5 +1,7 @@
+import 'dart:developer' as developer;
 import 'package:webview_flutter/webview_flutter.dart';
 import '../../models/exports.dart';
+import '../../utils/json_utils.dart';
 import 'injection_strategy.dart';
 
 /// 清空并粘贴策略（第三种填充方式）
@@ -88,80 +90,114 @@ class ClearAndPasteStrategy extends InjectionStrategy {
     String inputXPath,
     String submitXPath,
     String message,
-    String tabId,
-  ) async {
+    String tabId, {
+    String? displayName,
+  }) async {
+    final name = displayName ?? tabId;
+    final totalStart = DateTime.now();
+    _log('[ClearPaste:$name] ====== STRATEGY START ====== msg.length=${message.length}');
+
     try {
-      // 1. 聚焦与点击
+      // Phase 0: 元素预检测（含重试）
+      _log('[ClearPaste:$name] Phase0-Detect: checking input element...');
+      final inputDetect = await waitForElement(
+        controller: controller,
+        xpath: inputXPath,
+        name: name,
+        label: 'input element',
+      );
+      if (inputDetect == null) {
+        _log('[ClearPaste:$name] Phase0-Detect ABORT: input element NOT found after retries');
+        return SubmissionResult(
+          success: false,
+          error: 'Input element not found',
+          timestamp: DateTime.now(),
+          tabId: tabId,
+        );
+      }
+      _log('[ClearPaste:$name] Phase0-Detect: input found, tag=${inputDetect['tag']}');
+
+      // Phase 1: 聚焦与点击
+      _log('[ClearPaste:$name] Phase1-Focus: focusing input element...');
+      final focusStart = DateTime.now();
       final focusJs = '''
         $helpersJS
         $_focusInputJS
         focusInput('${escapeJavaScript(inputXPath)}');
       ''';
       final focusResult = await controller.runJavaScriptReturningResult(focusJs);
-      final focusOk = parseResult(focusResult);
+      final focusOk = safeParseJsonResult(focusResult);
+      final focusMs = DateTime.now().difference(focusStart).inMilliseconds;
+      _log('[ClearPaste:$name] Phase1-Focus result (${focusMs}ms): $focusOk');
 
       if (focusOk == null || focusOk['success'] != true) {
-        // 聚焦失败可以继续尝试，不阻断流程
+        _log('[ClearPaste:$name] Phase1-Focus: element not found, continuing anyway...');
       }
 
       await Future.delayed(const Duration(milliseconds: 100));
 
-      // 2. Ctrl+A + Delete 清空输入框
+      // Phase 2: Ctrl+A + Delete 清空输入框
+      _log('[ClearPaste:$name] Phase2-Clear: clearing input...');
+      final clearStart = DateTime.now();
       final clearJs = '''
         $helpersJS
         $_clearInputJS
         clearInput('${escapeJavaScript(inputXPath)}');
       ''';
-      await controller.runJavaScriptReturningResult(clearJs);
+      final clearResult = await controller.runJavaScriptReturningResult(clearJs);
+      final clearMs = DateTime.now().difference(clearStart).inMilliseconds;
+      _log('[ClearPaste:$name] Phase2-Clear result (${clearMs}ms): $clearResult');
 
       await Future.delayed(const Duration(milliseconds: 100));
 
-      // 3. 构造 DataTransfer 并触发 paste 事件
+      // Phase 3: 构造 DataTransfer 并触发 paste 事件
+      _log('[ClearPaste:$name] Phase3-Paste: pasting ${message.length} chars...');
+      final pasteStart = DateTime.now();
       final pasteJs = '''
         $helpersJS
         $_pasteInputJS
         pasteInput('${escapeJavaScript(inputXPath)}', '${escapeJavaScript(message)}');
       ''';
       final pasteResult = await controller.runJavaScriptReturningResult(pasteJs);
-      final pasteOk = parseResult(pasteResult);
+      final pasteOk = safeParseJsonResult(pasteResult);
+      final pasteMs = DateTime.now().difference(pasteStart).inMilliseconds;
+      _log('[ClearPaste:$name] Phase3-Paste result (${pasteMs}ms): $pasteOk');
 
       if (pasteOk == null || pasteOk['success'] != true) {
+        final error = (pasteOk?['error'] as String?) ?? 'Paste input failed';
+        _log('[ClearPaste:$name] Phase3-Paste FAILED: $error');
         return SubmissionResult(
           success: false,
-          error: (pasteOk?['error'] as String?) ?? 'Paste input failed',
+          error: error,
           timestamp: DateTime.now(),
           tabId: tabId,
         );
       }
 
-      // 等待粘贴的内容被框架/DOM 识别，同步 UI 状态
       await Future.delayed(const Duration(milliseconds: 500));
 
-      // 4. 点击发送按钮（不使用 Enter 兜底）
-      final clickJs = '''
-        $helpersJS
-        $_clickSubmitJS
-        clickSubmit('${escapeJavaScript(submitXPath)}');
-      ''';
-      final clickResult = await controller.runJavaScriptReturningResult(clickJs);
-      final clickOk = parseResult(clickResult);
-
-      if (clickOk != null) {
-        return SubmissionResult(
-          success: clickOk['success'] as bool? ?? false,
-          error: clickOk['error'] as String?,
-          timestamp: DateTime.now(),
-          tabId: tabId,
-        );
-      }
-
-      return SubmissionResult(
-        success: false,
-        error: 'Unexpected result from click step: ${clickResult.runtimeType}',
-        timestamp: DateTime.now(),
+      // Phase 4: 点击发送按钮（含重试验证）
+      final clickResult = await submitWithRetry(
+        controller: controller,
+        inputXPath: inputXPath,
+        submitXPath: submitXPath,
+        clickJs: '''
+          $helpersJS
+          $_clickSubmitJS
+          clickSubmit('${escapeJavaScript(submitXPath)}');
+        ''',
         tabId: tabId,
+        displayName: displayName,
       );
-    } catch (e) {
+
+      final totalMs = DateTime.now().difference(totalStart).inMilliseconds;
+      _log('[ClearPaste:$name] ====== STRATEGY END (${totalMs}ms) ======');
+
+      return clickResult;
+    } catch (e, stack) {
+      final totalMs = DateTime.now().difference(totalStart).inMilliseconds;
+      _log('[ClearPaste:$name] EXCEPTION (${totalMs}ms): $e');
+      _log('[ClearPaste:$name] Stack: $stack');
       return SubmissionResult(
         success: false,
         error: 'ClearAndPasteStrategy error: $e',
@@ -169,5 +205,9 @@ class ClearAndPasteStrategy extends InjectionStrategy {
         tabId: tabId,
       );
     }
+  }
+
+  void _log(String message, [Object? error]) {
+    developer.log(message, name: 'ClearAndPasteStrategy', error: error);
   }
 }
