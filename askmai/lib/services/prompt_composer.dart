@@ -11,7 +11,9 @@ class PromptComposer {
 {endif}{each_response}【{ai_name} 的回答】
 {response_text}
 
-{endeach}请综合分析以上回答的异同与优劣，给出最终建议。''';
+{endeach}
+---
+请综合分析以上回答的异同与优劣，给出最终建议。''';
 
   final PreferencesService _prefsService;
 
