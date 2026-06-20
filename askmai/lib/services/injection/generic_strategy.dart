@@ -7,9 +7,9 @@ import 'injection_strategy.dart';
 
 /// @deprecated 已拆分为更专注的独立策略，此类仅供向后兼容。
 /// 请迁移到：
-///   - [DomInputFiller]        → strategy: "dom_input"      (textarea/input)
-///   - [ContentEditableFiller] → strategy: "contenteditable" (div[contenteditable])
-///   - [ReactFiberFiller]      → strategy: "react_fiber"     (React + Slate.js SPA)
+///   - [DomInputFiller]       → strategy: "dom_input"       (textarea/input)
+///   - [ExecCommandFiller]    → strategy: "exec_command"     (contenteditable)
+///   - [ReactSlateFiller]     → strategy: "react_slate"      (React + Slate.js SPA)
 ///
 /// GenericStrategy 保留原有逻辑（不再维护），用于向后兼容没有指定 strategy 的旧配置。
 class GenericStrategy extends InjectionStrategy {

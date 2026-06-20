@@ -126,7 +126,7 @@ AskMAI/
 │   │   │   ├── keyboard_visibility_manager.dart # Focus & keyboard management
 │   │   │   └── injection/           # Javascript injection strategies
 │   │   │       ├── generic_strategy.dart # Standard DOM XPath interaction
-│   │   │       └── react_fiber_strategy.dart # SPA bypass (e.g. Qwen / Slate.js)
+│   │   │       └── text_filler.dart          # 各策略 Filler（dom_input, exec_command, react_slate 等）
 │   │   ├── viewmodels/              # State Management / ChangeNotifier ViewModels
 │   │   │   ├── tab_manager_vm.dart  # Handles tab CRUD & persistence
 │   │   │   ├── automation_vm.dart   # Future.wait concurrency coordinator
@@ -187,7 +187,7 @@ AskMAI/
      jsService.executeSubmit(tab2, ...),
    ])
    ```
-5. `JavascriptService` resolves the strategy (`GenericStrategy` vs `ReactFiberStrategy`) and runs:
+5. `JavascriptService` resolves the strategy (`GenericStrategy` vs `ReactSlateFiller`) and runs:
    - Evaluates target XPath in site WebView.
    - Sets input field value and dispatches `input` + `change` events.
    - Dispatches `click` on the submit button.
@@ -229,7 +229,7 @@ function submitForm(inputXPath, submitXPath, messageText) {
 ```
 
 ### React / SPA Interception
-Modern Single Page Applications (e.g. Qwen, ChatGPT) lock input values and ignore plain DOM modifications. The app employs `ReactFiberStrategy` to directly target react fiber keys, locate underlying slate/textarea state, bypass synthetic events, and set values securely.
+Modern Single Page Applications (e.g. Qwen, ChatGPT) lock input values and ignore plain DOM modifications. The app employs `ReactSlateFiller` to directly target react fiber keys, locate underlying slate/textarea state, bypass synthetic events, and set values securely.
 
 ---
 

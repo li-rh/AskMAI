@@ -5,34 +5,28 @@ import 'injection_helpers.dart';
 /// 每种 Filler 只需实现 [buildFillJs]，返回注入到 WebView 中执行的 JavaScript。
 /// Pipeline 负责检测元素、聚焦、提交等公共流程。
 abstract class TextFiller {
-  /// 策略名称（用于日志）
+  /// 策略名称（用于日志和 site_config 配置）
   String get name;
 
   /// 构建填充文本的 JavaScript 代码。
   ///
-  /// 返回的 JS 应定义一个函数并立即调用它，返回 JSON 格式结果：
+  /// 返回的 JS 应定义一个函数并立即调用它，返回 JSON 标式结果：
   /// `{ success: true/false, error: '...', step: 'fill' }`
-  ///
-  /// [inputXPath] 输入元素的 XPath 或 CSS 选择器
-  /// [message] 要填入的文本
   String buildFillJs(String inputXPath, String message);
 
   /// 构建聚焦输入元素的 JavaScript 代码（可选覆盖）。
-  ///
-  /// 默认返回 null，Pipeline 使用标准聚焦流程。
-  /// ReactFiber 需要双重聚焦序列时覆盖此方法。
   String? buildFocusJs(String inputXPath) => null;
 
+  /// 聚焦执行次数。默认 1 次，ReactSlateFiller 等需要 2 次。
+  int get focusAttempts => 1;
+
+  /// 填充后等待时间。默认 400ms，ReactSlateFiller 等可缩短为 200ms。
+  Duration get fillDelay => const Duration(milliseconds: 400);
+
   /// 构建填充前的额外检测 JavaScript 代码（可选覆盖）。
-  ///
-  /// 默认返回 null，Pipeline 跳过额外检测。
-  /// ReactFiber 需要检测 __reactFiber 和 Slate 编辑器时覆盖此方法。
   String? buildPreFillDetectJs(String inputXPath) => null;
 
   /// 构建预检测的诊断日志 JavaScript 代码（可选覆盖）。
-  ///
-  /// 默认返回 null，Pipeline 不输出额外诊断。
-  /// ReactFiber 覆写此方法以输出 hasFiber/hasSlate 等诊断信息。
   String? buildPreFillDetectDiagJs(String inputXPath) => null;
 }
 
@@ -71,7 +65,6 @@ class DomInputFiller extends TextFiller {
           return JSON.stringify({ success: false, error: 'Element is not a textarea or input (got: ' + el.tagName + ')', step: 'fill' });
         }
 
-        // 使用原生 prototype setter 绕过框架的 value 属性拦截
         var proto = el.tagName === 'TEXTAREA'
           ? window.HTMLTextAreaElement.prototype
           : window.HTMLInputElement.prototype;
@@ -81,7 +74,6 @@ class DomInputFiller extends TextFiller {
         el.dispatchEvent(new Event('input',  { bubbles: true }));
         el.dispatchEvent(new Event('change', { bubbles: true }));
 
-        // 验证写入结果
         var actual = el.value;
         var prefix = '${escapeJavaScript(message)}'.substring(0, Math.min('${escapeJavaScript(message)}'.length, 5));
         if (!actual || actual.length < '${escapeJavaScript(message)}'.length || !actual.includes(prefix)) {
@@ -96,19 +88,13 @@ class DomInputFiller extends TextFiller {
   ''';
 }
 
-/// ContentEditable 填充策略（针对 div[contenteditable] 元素）
+/// execCommand insertText 填充策略（针对 contenteditable 元素）
 ///
-/// 适用场景：元宝（Quill 编辑器）、Gemini、ChatGPT、Kimi 等使用 contenteditable div 的 AI 网站。
-/// 6 级回退：
-///   1. Quill 编辑器 API（__quill.setText + insertText）
-///   2. document.execCommand('insertText') — 浏览器原生编辑栈
-///   3. InputEvent('beforeinput' + 'input') — 绕过 execCommand 兼容性问题
-///   4. ClipboardEvent('paste') — 模拟粘贴行为
-///   5. 逐字符键盘事件模拟
-///   6. textContent 直接赋值兜底
-class ContentEditableFiller extends TextFiller {
+/// 适用场景：ChatGPT、Gemini、Kimi 等使用 contenteditable div 的 AI 网站。
+/// 利用浏览器原生编辑栈 document.execCommand('insertText') 插入文本。
+class ExecCommandFiller extends TextFiller {
   @override
-  String get name => 'contenteditable';
+  String get name => 'exec_command';
 
   @override
   String buildFocusJs(String inputXPath) => '''
@@ -130,109 +116,145 @@ class ContentEditableFiller extends TextFiller {
     (function() {
       try {
         var el = _findElement('${escapeJavaScript(inputXPath)}');
-        if (!el) return JSON.stringify({ success: false, error: 'ContentEditable element not found', step: 'fill' });
+        if (!el) return JSON.stringify({ success: false, error: 'Element not found', step: 'fill' });
         if (!el.isContentEditable && el.contentEditable !== 'true') {
-          return JSON.stringify({ success: false, error: 'Element is not contenteditable (got: ' + el.contentEditable + ')', step: 'fill' });
+          return JSON.stringify({ success: false, error: 'Element is not contenteditable', step: 'fill' });
         }
 
         var target = el.querySelector('[contenteditable="true"]') || el;
         var msg = '${escapeJavaScript(message)}';
-        var prefix = msg.substring(0, Math.min(msg.length, 10));
 
-        function _readText(e) {
-          var tc = (e.textContent || '').trim();
-          return tc.length > 0 ? tc : (e.innerText || '').trim();
-        }
-
-        function _check() {
-          var t = _readText(target);
-          return { ok: t.indexOf(prefix) >= 0, el: target };
-        }
-
-        // 方案 1: Quill 编辑器 API 直接注入
-        if (target.closest('.ql-editor')) {
-          var cand = target.parentElement;
-          while (cand && cand !== document.documentElement) {
-            if (cand.__quill) {
-              try {
-                cand.__quill.setText('');
-                cand.__quill.insertText(0, msg, 'user');
-                return JSON.stringify({ success: true, method: 'quill_api', step: 'fill' });
-              } catch (e) { break; }
-            }
-            cand = cand.parentElement;
-          }
-        }
-
-        // 方案 2: execCommand insertText
         target.focus();
         var sel = window.getSelection();
         var rng = document.createRange();
         rng.selectNodeContents(target);
         sel.removeAllRanges();
         sel.addRange(rng);
+
         if (document.execCommand('insertText', false, msg)) {
           return JSON.stringify({ success: true, method: 'execCommand', step: 'fill' });
         }
 
-        // 方案 3: InputEvent insertText
-        var vr = _check();
-        if (!vr.ok) {
-          var cur = vr.el;
-          cur.focus();
-          try {
-            cur.dispatchEvent(new InputEvent('beforeinput', { inputType: 'insertText', data: msg, bubbles: true, cancelable: true, composed: true }));
-            cur.dispatchEvent(new InputEvent('input', { inputType: 'insertText', data: msg, bubbles: true, composed: true }));
-          } catch(e) {}
-          vr = _check();
+        return JSON.stringify({ success: false, error: 'execCommand insertText returned false', step: 'fill' });
+      } catch (e) {
+        return JSON.stringify({ success: false, error: e.message, step: 'fill' });
+      }
+    })()
+  ''';
+}
+
+/// InputEvent beforeinput + input 填充策略（针对 contenteditable 元素）
+///
+/// 适用场景：现代 React contenteditable 应用。
+/// 通过派发 InputEvent('beforeinput' + 'input') 绕过 execCommand 兼容性问题。
+class InputEventFiller extends TextFiller {
+  @override
+  String get name => 'input_event';
+
+  @override
+  String buildFocusJs(String inputXPath) => '''
+    (function() {
+      try {
+        var el = _findElement('${escapeJavaScript(inputXPath)}');
+        if (!el) return JSON.stringify({ success: false, error: 'Element not found', step: 'focus' });
+        el.focus();
+        _simulateClick(el);
+        return JSON.stringify({ success: true, step: 'focus', tagName: el.tagName, isContentEditable: el.isContentEditable });
+      } catch (e) {
+        return JSON.stringify({ success: false, error: e.message, step: 'focus' });
+      }
+    })()
+  ''';
+
+  @override
+  String buildFillJs(String inputXPath, String message) => '''
+    (function() {
+      try {
+        var el = _findElement('${escapeJavaScript(inputXPath)}');
+        if (!el) return JSON.stringify({ success: false, error: 'Element not found', step: 'fill' });
+        if (!el.isContentEditable && el.contentEditable !== 'true') {
+          return JSON.stringify({ success: false, error: 'Element is not contenteditable', step: 'fill' });
         }
 
-        // 方案 4: ClipboardEvent paste
-        if (!vr.ok) {
-          var cur = vr.el;
-          cur.focus();
-          var dt = new DataTransfer();
-          dt.setData('text/plain', msg);
-          cur.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
-          cur.dispatchEvent(new Event('input', { bubbles: true }));
-          cur.dispatchEvent(new Event('change', { bubbles: true }));
-          vr = _check();
+        var target = el.querySelector('[contenteditable="true"]') || el;
+        var msg = '${escapeJavaScript(message)}';
+
+        target.focus();
+        try {
+          target.dispatchEvent(new InputEvent('beforeinput', {
+            inputType: 'insertText', data: msg, bubbles: true, cancelable: true, composed: true
+          }));
+          target.dispatchEvent(new InputEvent('input', {
+            inputType: 'insertText', data: msg, bubbles: true, composed: true
+          }));
+        } catch (e) {}
+
+        var tc = (target.textContent || '').trim();
+        var prefix = msg.substring(0, Math.min(msg.length, 10));
+        if (tc.indexOf(prefix) >= 0) {
+          return JSON.stringify({ success: true, method: 'input_event', step: 'fill' });
         }
 
-        // 方案 5: 逐字符键盘事件模拟
-        if (!vr.ok) {
-          var cur = vr.el;
-          cur.focus();
-          sel = window.getSelection();
-          rng = document.createRange();
-          rng.selectNodeContents(cur);
-          sel.removeAllRanges();
-          sel.addRange(rng);
-          for (var ci = 0; ci < msg.length; ci++) {
-            var ch = msg[ci];
-            cur.dispatchEvent(new KeyboardEvent('keydown', { key: ch, bubbles: true }));
-            cur.dispatchEvent(new KeyboardEvent('keypress', { key: ch, bubbles: true }));
-            document.execCommand('insertText', false, ch);
-            cur.dispatchEvent(new InputEvent('input', { inputType: 'insertText', data: ch, bubbles: true }));
-            cur.dispatchEvent(new KeyboardEvent('keyup', { key: ch, bubbles: true }));
-          }
-          vr = _check();
+        return JSON.stringify({ success: false, error: 'InputEvent did not update element text content', step: 'fill' });
+      } catch (e) {
+        return JSON.stringify({ success: false, error: e.message, step: 'fill' });
+      }
+    })()
+  ''';
+}
+
+/// ClipboardEvent paste 填充策略（针对 contenteditable 元素）
+///
+/// 适用场景：需要通过粘贴触发编辑器状态更新的富文本编辑器。
+/// 模拟 ClipboardEvent('paste') 将文本粘贴到输入框。
+class ClipboardPasteFiller extends TextFiller {
+  @override
+  String get name => 'clipboard_paste';
+
+  @override
+  String buildFocusJs(String inputXPath) => '''
+    (function() {
+      try {
+        var el = _findElement('${escapeJavaScript(inputXPath)}');
+        if (!el) return JSON.stringify({ success: false, error: 'Element not found', step: 'focus' });
+        el.focus();
+        _simulateClick(el);
+        return JSON.stringify({ success: true, step: 'focus', tagName: el.tagName, isContentEditable: el.isContentEditable });
+      } catch (e) {
+        return JSON.stringify({ success: false, error: e.message, step: 'focus' });
+      }
+    })()
+  ''';
+
+  @override
+  String buildFillJs(String inputXPath, String message) => '''
+    (function() {
+      try {
+        var el = _findElement('${escapeJavaScript(inputXPath)}');
+        if (!el) return JSON.stringify({ success: false, error: 'Element not found', step: 'fill' });
+        if (!el.isContentEditable && el.contentEditable !== 'true') {
+          return JSON.stringify({ success: false, error: 'Element is not contenteditable', step: 'fill' });
         }
 
-        // 方案 6: 直接 DOM 赋值最终兜底
-        if (!vr.ok) {
-          var cur = vr.el;
-          cur.textContent = msg;
-          cur.dispatchEvent(new Event('input', { bubbles: true }));
-          cur.dispatchEvent(new Event('change', { bubbles: true }));
-          vr = _check();
+        var target = el.querySelector('[contenteditable="true"]') || el;
+        var msg = '${escapeJavaScript(message)}';
+
+        target.focus();
+        var dt = new DataTransfer();
+        dt.setData('text/plain', msg);
+        target.dispatchEvent(new ClipboardEvent('paste', {
+          clipboardData: dt, bubbles: true, cancelable: true
+        }));
+        target.dispatchEvent(new Event('input', { bubbles: true }));
+        target.dispatchEvent(new Event('change', { bubbles: true }));
+
+        var tc = (target.textContent || '').trim();
+        var prefix = msg.substring(0, Math.min(msg.length, 10));
+        if (tc.indexOf(prefix) >= 0) {
+          return JSON.stringify({ success: true, method: 'clipboard_paste', step: 'fill' });
         }
 
-        if (!vr.ok) {
-          return JSON.stringify({ success: false, error: 'Fill verification failed: text not found in contenteditable element', step: 'fill' });
-        }
-
-        return JSON.stringify({ success: true, step: 'fill' });
+        return JSON.stringify({ success: false, error: 'Clipboard paste did not update element text content', step: 'fill' });
       } catch (e) {
         return JSON.stringify({ success: false, error: e.message, step: 'fill' });
       }
@@ -244,9 +266,16 @@ class ContentEditableFiller extends TextFiller {
 ///
 /// 利用 React Fiber 直接访问 Slate Editor 实例，绕过所有 DOM 拦截。
 /// 需要额外的 __reactFiber 和 Slate 检测（通过 [buildPreFillDetectJs]）。
-class ReactFiberFiller extends TextFiller {
+/// 如果未找到 Slate 实例，直接失败（不做标准 input 回退）。
+class ReactSlateFiller extends TextFiller {
   @override
-  String get name => 'react_fiber';
+  String get name => 'react_slate';
+
+  @override
+  int get focusAttempts => 2;
+
+  @override
+  Duration get fillDelay => const Duration(milliseconds: 200);
 
   @override
   String buildFocusJs(String inputXPath) => '''
@@ -305,10 +334,10 @@ class ReactFiberFiller extends TextFiller {
     (function() {
       try {
         var editor = _findElement('${escapeJavaScript(inputXPath)}');
-        if (!editor) return JSON.stringify({ success: false, error: '未找到编辑器', found: false });
+        if (!editor) return JSON.stringify({ success: false, error: 'Editor element not found', found: false });
 
         var fiberKey = Object.keys(editor).find(k => k.startsWith('__reactFiber'));
-        if (!fiberKey) return JSON.stringify({ success: false, error: '未找到 React Fiber (请刷新页面)', found: true, hasFiber: false });
+        if (!fiberKey) return JSON.stringify({ success: false, error: 'React Fiber not found (try refreshing the page)', found: true, hasFiber: false });
 
         var fiber = editor[fiberKey];
         var slateEditor = null;
@@ -321,13 +350,7 @@ class ReactFiberFiller extends TextFiller {
         }
 
         if (!slateEditor) {
-            if (editor.tagName === 'TEXTAREA' || editor.tagName === 'INPUT') {
-                editor.value = '${escapeJavaScript(message)}';
-                editor.dispatchEvent(new Event('input', { bubbles: true }));
-                editor.dispatchEvent(new Event('change', { bubbles: true }));
-                return JSON.stringify({ success: true, method: 'standard_fallback', found: true, hasFiber: true, hasSlate: false });
-            }
-            return JSON.stringify({ success: false, error: '未找到 Slate 内部实例且非标准输入框', found: true, hasFiber: true, hasSlate: false });
+            return JSON.stringify({ success: false, error: 'Slate editor instance not found', found: true, hasFiber: true, hasSlate: false });
         }
 
         try {
@@ -365,7 +388,7 @@ class ReactFiberFiller extends TextFiller {
         try {
             slateEditor.insertText('${escapeJavaScript(message)}');
         } catch (insertError) {
-            editor.textContent = '${escapeJavaScript(message)}';
+            return JSON.stringify({ success: false, error: 'Slate insertText failed: ' + insertError.message, found: true, hasFiber: true, hasSlate: true });
         }
 
         editor.dispatchEvent(new InputEvent('input', {

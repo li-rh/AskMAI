@@ -41,7 +41,7 @@ class SiteConfig {
   /// 是否启用视口调整
   final bool viewportEnabled;
 
-  /// 注入策略名称 (例如: 'generic', 'react_fiber')
+  /// 注入策略名称 (例如: 'dom_input', 'exec_command', 'react_slate')
   final String? strategy;
 
   /// 自定义 UserAgent (为空时使用全局 UserAgent)

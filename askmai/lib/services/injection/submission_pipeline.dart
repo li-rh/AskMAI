@@ -46,7 +46,7 @@ class SubmissionPipeline {
           tabId: tabId,
         );
       }
-      if (filler.name == 'contenteditable' && inputDetect['editable'] != true) {
+      if (filler.name != 'dom_input' && inputDetect['editable'] != true) {
         _log('[Pipeline:$name] Phase0-Detect WARNING: input element is NOT contenteditable!');
       }
       _log('[Pipeline:$name] Phase0-Detect: input found, tag=${inputDetect['tag']}, editable=${inputDetect['editable']}');
@@ -85,16 +85,15 @@ class SubmissionPipeline {
         _log('[Pipeline:$name] Phase1-Focus: element not found, continuing anyway...');
       }
 
-      final focusDelay = filler.name == 'react_fiber' ? 200 : 200;
-      await Future.delayed(Duration(milliseconds: focusDelay));
+      await Future.delayed(const Duration(milliseconds: 200));
 
-      // ReactFiber 需要双重聚焦
-      if (filler.name == 'react_fiber') {
-        _log('[Pipeline:$name] Phase1-Focus2: second focus attempt...');
-        final focus2Result = await controller.runJavaScriptReturningResult(
+      // Filler 可能需要多次聚焦（如 ReactSlateFiller 需要 2 次）
+      for (int i = 1; i < filler.focusAttempts; i++) {
+        _log('[Pipeline:$name] Phase1-Focus${i + 1}: extra focus attempt $i...');
+        final extraFocusResult = await controller.runJavaScriptReturningResult(
           '$helpersJS\n$focusJs',
         );
-        _log('[Pipeline:$name] Phase1-Focus2 result: $focus2Result');
+        _log('[Pipeline:$name] Phase1-Focus${i + 1} result: $extraFocusResult');
         await Future.delayed(const Duration(milliseconds: 100));
       }
 
@@ -120,8 +119,7 @@ class SubmissionPipeline {
         );
       }
 
-      final fillDelay = filler.name == 'react_fiber' ? 200 : 400;
-      await Future.delayed(Duration(milliseconds: fillDelay));
+      await Future.delayed(filler.fillDelay);
 
       // Phase 3: 点击发送按钮（含重试验证）
       final clickResult = await submitWithRetryShared(
