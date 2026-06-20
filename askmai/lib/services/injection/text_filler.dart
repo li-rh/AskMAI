@@ -17,11 +17,11 @@ abstract class TextFiller {
   /// 构建聚焦输入元素的 JavaScript 代码（可选覆盖）。
   String? buildFocusJs(String inputXPath) => null;
 
-  /// 聚焦执行次数。默认 1 次，ReactSlateFiller 等需要 2 次。
-  int get focusAttempts => 1;
+  /// 聚焦执行次数。统一为 2 次。
+  int get focusAttempts => 2;
 
-  /// 填充后等待时间。默认 400ms，ReactSlateFiller 等可缩短为 200ms。
-  Duration get fillDelay => const Duration(milliseconds: 400);
+  /// 填充后等待时间。统一为 500ms。
+  Duration get fillDelay => const Duration(milliseconds: 500);
 
   /// 构建填充前的额外检测 JavaScript 代码（可选覆盖）。
   String? buildPreFillDetectJs(String inputXPath) => null;
@@ -270,12 +270,6 @@ class ClipboardPasteFiller extends TextFiller {
 class ReactSlateFiller extends TextFiller {
   @override
   String get name => 'react_slate';
-
-  @override
-  int get focusAttempts => 2;
-
-  @override
-  Duration get fillDelay => const Duration(milliseconds: 200);
 
   @override
   String buildFocusJs(String inputXPath) => '''

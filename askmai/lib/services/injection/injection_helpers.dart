@@ -103,7 +103,7 @@ Future<Map<String, dynamic>?> waitForElementShared({
   required String name,
   String label = 'element',
   int maxRetries = 5,
-  int intervalMs = 200,
+  int intervalMs = 500,
   required void Function(String) log,
 }) async {
   final detectJs = '''
@@ -145,7 +145,7 @@ Future<SubmissionResult> submitWithRetryShared({
   String? displayName,
   String? fallbackSubmitXPath,
   String? clickFallbackSelector,
-  int maxRetries = 10,
+  int maxRetries = 5,
   required void Function(String) log,
 }) async {
   final name = displayName ?? tabId;
@@ -176,8 +176,8 @@ Future<SubmissionResult> submitWithRetryShared({
 
     if (attempt < maxRetries) {
       final reason = preCheckOk?['found'] != true ? 'not found' : 'disabled';
-      log('[$name] Submit $reason, retry $attempt/$maxRetries: waiting 200ms...');
-      await Future.delayed(const Duration(milliseconds: 200));
+      log('[$name] Submit $reason, retry $attempt/$maxRetries: waiting 500ms...');
+      await Future.delayed(const Duration(milliseconds: 500));
     }
   }
   if (!buttonReady) {
@@ -209,23 +209,35 @@ Future<SubmissionResult> submitWithRetryShared({
       : clickJs;
 
   var clickOk = <String, dynamic>{'success': false};
+  var hasClicked = false;
   for (int attempt = 1; attempt <= maxRetries; attempt++) {
     final clickStart = DateTime.now();
     final clickResult = await controller.runJavaScriptReturningResult(resolvedClickJs);
-    clickOk = safeParseJsonResult(clickResult) ?? clickOk;
+    final currentResult = safeParseJsonResult(clickResult) ?? clickOk;
     final clickMs = DateTime.now().difference(clickStart).inMilliseconds;
-    log('[$name] Submit click attempt $attempt (${clickMs}ms): $clickOk');
+    log('[$name] Submit click attempt $attempt (${clickMs}ms): $currentResult');
 
-    await Future.delayed(const Duration(milliseconds: 200));
+    if (currentResult['success'] == true) {
+      hasClicked = true;
+      clickOk = currentResult;
+    }
+
+    await Future.delayed(const Duration(milliseconds: 500));
 
     final verifyResult = await controller.runJavaScriptReturningResult(verifyJs);
     final verifyOk = safeParseJsonResult(verifyResult);
 
     if (verifyOk == null || verifyOk['hasContent'] != true) {
       log('[$name] Submit verify: input is empty, click succeeded');
-      if (clickOk['success'] != true) {
+      if (!hasClicked) {
         clickOk = {'success': true, 'error': null, 'step': 'verify'};
       }
+      break;
+    }
+
+    if (hasClicked && currentResult['error']?.toString().contains('disabled') == true) {
+      log('[$name] Submit button disabled after successful click, likely sending');
+      clickOk = {'success': true, 'error': null, 'step': 'disabled_after_click'};
       break;
     }
 

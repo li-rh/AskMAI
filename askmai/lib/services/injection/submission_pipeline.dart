@@ -70,31 +70,25 @@ class SubmissionPipeline {
         }
       }
 
-      // Phase 1: 聚焦输入框
-      _log('[Pipeline:$name] Phase1-Focus: focusing input element...');
-      final focusStart = DateTime.now();
+      // Phase 1: 聚焦输入框（可能需要多次聚焦，如 ReactSlateFiller 需要 2 次）
       final focusJs = filler.buildFocusJs(inputXPath);
-      final focusResult = await controller.runJavaScriptReturningResult(
-        '$helpersJS\n$focusJs',
-      );
-      final focusOk = safeParseJsonResult(focusResult);
-      final focusMs = DateTime.now().difference(focusStart).inMilliseconds;
-      _log('[Pipeline:$name] Phase1-Focus result (${focusMs}ms): $focusOk');
-
-      if (focusOk == null || focusOk['success'] != true) {
-        _log('[Pipeline:$name] Phase1-Focus: element not found, continuing anyway...');
-      }
-
-      await Future.delayed(const Duration(milliseconds: 200));
-
-      // Filler 可能需要多次聚焦（如 ReactSlateFiller 需要 2 次）
-      for (int i = 1; i < filler.focusAttempts; i++) {
-        _log('[Pipeline:$name] Phase1-Focus${i + 1}: extra focus attempt $i...');
-        final extraFocusResult = await controller.runJavaScriptReturningResult(
+      for (int i = 0; i < filler.focusAttempts; i++) {
+        _log('[Pipeline:$name] Phase1-Focus${i + 1}: focusing input element (attempt $i)...');
+        final focusStart = DateTime.now();
+        final focusResult = await controller.runJavaScriptReturningResult(
           '$helpersJS\n$focusJs',
         );
-        _log('[Pipeline:$name] Phase1-Focus${i + 1} result: $extraFocusResult');
-        await Future.delayed(const Duration(milliseconds: 100));
+        final focusOk = safeParseJsonResult(focusResult);
+        final focusMs = DateTime.now().difference(focusStart).inMilliseconds;
+        _log('[Pipeline:$name] Phase1-Focus${i + 1} result (${focusMs}ms): $focusOk');
+
+        if (focusOk == null || focusOk['success'] != true) {
+          _log('[Pipeline:$name] Phase1-Focus${i + 1}: element not found, continuing anyway...');
+        }
+
+        if (i < filler.focusAttempts - 1) {
+          await Future.delayed(const Duration(milliseconds: 500));
+        }
       }
 
       // Phase 2: 填充内容
