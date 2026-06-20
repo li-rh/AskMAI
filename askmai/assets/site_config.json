@@ -158,7 +158,7 @@
       "viewportLeft": 0,
       "viewportRight": 0,
       "viewportEnabled": true,
-      "strategy": "clear_and_paste",
+      "strategy": "contenteditable",
       "userAgent": null,
       "copyButtonXPath": "(//div[contains(@class, 'chat-content-item-assistant')])[last()]//div[contains(@class, 'segment-assistant-actions')]//div[contains(@class, 'icon-button')][1]",
       "responseXPath": "TODO_FILL_ME"

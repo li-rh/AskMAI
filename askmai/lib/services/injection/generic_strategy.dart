@@ -2,14 +2,14 @@ import 'dart:developer' as developer;
 import 'package:webview_flutter/webview_flutter.dart';
 import '../../models/exports.dart';
 import '../../utils/json_utils.dart';
+import 'injection_helpers.dart';
 import 'injection_strategy.dart';
 
 /// @deprecated 已拆分为更专注的独立策略，此类仅供向后兼容。
 /// 请迁移到：
-///   - [DomInputStrategy]       → strategy: "dom_input"      (textarea/input)
-///   - [ContentEditableStrategy] → strategy: "contenteditable" (div[contenteditable])
-///   - [ClearAndPasteStrategy]  → strategy: "clear_and_paste" (粘贴注入)
-///   - [ReactFiberStrategy]     → strategy: "react_fiber"     (React + Slate.js SPA)
+///   - [DomInputFiller]        → strategy: "dom_input"      (textarea/input)
+///   - [ContentEditableFiller] → strategy: "contenteditable" (div[contenteditable])
+///   - [ReactFiberFiller]      → strategy: "react_fiber"     (React + Slate.js SPA)
 ///
 /// GenericStrategy 保留原有逻辑（不再维护），用于向后兼容没有指定 strategy 的旧配置。
 class GenericStrategy extends InjectionStrategy {
