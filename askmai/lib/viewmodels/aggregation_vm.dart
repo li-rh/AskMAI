@@ -88,6 +88,8 @@ class AggregationVM extends ChangeNotifier {
       final skipped = sources.length - successful.length;
 
       if (submitResult.success) {
+        _tabManagerVM.setWebStatus(targetTabId, WebLoadingStatus.loaded);
+        _inputDistributorVM.clearTabSubmissionStatus(targetTabId);
         await _prefsService.setLastAggregateTargetId(targetTabId);
         final msg = skipped > 0
             ? '已聚合 ${successful.length} 个回答到 ${target.displayName}（$skipped 个跳过）'
