@@ -5,12 +5,17 @@ import 'package:flutter/material.dart';
 class KeyboardVisibilityManager extends ChangeNotifier
     with WidgetsBindingObserver {
   bool _isVisible = false;
+  FocusNode? _inputFocusNode;
 
   bool get isVisible => _isVisible;
 
   KeyboardVisibilityManager() {
     WidgetsBinding.instance.addObserver(this);
     _check();
+  }
+
+  void setInputFocusNode(FocusNode focusNode) {
+    _inputFocusNode = focusNode;
   }
 
   @override
@@ -24,6 +29,11 @@ class KeyboardVisibilityManager extends ChangeNotifier
     final visible = bottom > 100;
     if (visible != _isVisible) {
       _isVisible = visible;
+
+      if (!visible && _inputFocusNode?.hasFocus == true) {
+        _inputFocusNode?.unfocus();
+      }
+
       notifyListeners();
     }
   }

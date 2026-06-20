@@ -39,10 +39,10 @@ class _InputAreaState extends State<InputArea> {
     _controller = TextEditingController();
     _focusNode = FocusNode();
 
-    // 注册焦点节点到全局InputFocusManager
     Future.microtask(() {
       if (mounted) {
         context.read<InputFocusManager>().setInputFocusNode(_focusNode);
+        context.read<KeyboardVisibilityManager>().setInputFocusNode(_focusNode);
       }
     });
   }
