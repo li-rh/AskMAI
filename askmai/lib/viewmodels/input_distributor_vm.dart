@@ -43,6 +43,13 @@ class InputDistributorVM extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 清除指定标签页的提交状态（如刷新时）
+  void clearTabSubmissionStatus(String tabId) {
+    if (_submissionStatus.remove(tabId) != null) {
+      notifyListeners();
+    }
+  }
+
   /// 广播输入到所有标签页
   Future<void> broadcastInput(String message) async {
     _log('[Stage2-Broadcast] Received message, length=${message.length}');

@@ -355,6 +355,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void _onRefreshTab(String tabId) {
     final tab = _tabManagerVM.getTab(tabId);
+    context.read<InputDistributorVM>().clearTabSubmissionStatus(tabId);
     context.read<WebViewService>().reloadWebView(tabId, originalUrl: tab?.url);
   }
 
@@ -383,6 +384,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
     if (confirmed != true) return;
     if (!mounted) return;
+
+    context.read<InputDistributorVM>().clearSubmissionStatus();
 
     final tabVM = context.read<TabManagerVM>();
     final webViewService = context.read<WebViewService>();
