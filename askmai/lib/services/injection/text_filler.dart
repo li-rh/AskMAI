@@ -20,8 +20,8 @@ abstract class TextFiller {
   /// 聚焦执行次数。统一为 2 次。
   int get focusAttempts => 2;
 
-  /// 填充后等待时间。统一为 500ms。
-  Duration get fillDelay => const Duration(milliseconds: 500);
+  /// 填充后等待时间。统一为 1000ms。
+  Duration get fillDelay => const Duration(milliseconds: 1000);
 
   /// 构建填充前的额外检测 JavaScript 代码（可选覆盖）。
   String? buildPreFillDetectJs(String inputXPath) => null;

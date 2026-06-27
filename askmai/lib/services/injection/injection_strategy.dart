@@ -31,7 +31,7 @@ abstract class InjectionStrategy {
     required String name,
     String label = 'element',
     int maxRetries = 5,
-    int intervalMs = 200,
+    int intervalMs = 500,
   }) =>
       waitForElementShared(
         controller: controller,

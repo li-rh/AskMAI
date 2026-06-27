@@ -179,7 +179,7 @@ class GenericStrategy extends InjectionStrategy {
         );
       }
 
-      await Future.delayed(const Duration(milliseconds: 500));
+      await Future.delayed(const Duration(milliseconds: 1000));
 
       // Phase 3: 点击发送按钮（含重试验证）
       final clickResult = await submitWithRetry(

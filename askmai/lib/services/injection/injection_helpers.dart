@@ -176,8 +176,8 @@ Future<SubmissionResult> submitWithRetryShared({
 
     if (attempt < maxRetries) {
       final reason = preCheckOk?['found'] != true ? 'not found' : 'disabled';
-      log('[$name] Submit $reason, retry $attempt/$maxRetries: waiting 500ms...');
-      await Future.delayed(const Duration(milliseconds: 500));
+      log('[$name] Submit $reason, retry $attempt/$maxRetries: waiting 1000ms...');
+      await Future.delayed(const Duration(milliseconds: 1000));
     }
   }
   if (!buttonReady) {
@@ -222,7 +222,7 @@ Future<SubmissionResult> submitWithRetryShared({
       clickOk = currentResult;
     }
 
-    await Future.delayed(const Duration(milliseconds: 500));
+    await Future.delayed(const Duration(milliseconds: 1000));
 
     final verifyResult = await controller.runJavaScriptReturningResult(verifyJs);
     final verifyOk = safeParseJsonResult(verifyResult);
