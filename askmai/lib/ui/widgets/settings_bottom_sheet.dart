@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/exports.dart';
 import '../../services/exports.dart';
+import '../../utils/top_toast.dart';
 import '../../viewmodels/exports.dart';
 import 'tab_bar.dart';
 
@@ -953,21 +954,13 @@ class _SettingsTabItemState extends State<_SettingsTabItem> {
                     final name = nameController.text.trim();
 
                     if (url.isEmpty || name.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('请填写 URL 和显示名称'),
-                        ),
-                      );
+                      TopToast.show(context, '请填写 URL 和显示名称');
                       return;
                     }
 
                     if (!url.startsWith('http://') &&
                         !url.startsWith('https://')) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('URL 必须以 http:// 或 https:// 开头'),
-                        ),
-                      );
+                      TopToast.show(context, 'URL 必须以 http:// 或 https:// 开头');
                       return;
                     }
 
@@ -1227,9 +1220,7 @@ void _showSiteConfigEditor(BuildContext context, TabManagerVM tabManagerVM) {
                 
                 tabManagerVM.updateCustomSiteConfig(jsonStr).then((_) {
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('网站配置已保存，WebView 已重新加载')),
-                    );
+                    TopToast.show(context, '网站配置已保存，WebView 已重新加载');
                   }
                 });
                 
@@ -1238,9 +1229,7 @@ void _showSiteConfigEditor(BuildContext context, TabManagerVM tabManagerVM) {
                 }
               } catch (e) {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('配置错误: $e')),
-                  );
+                  TopToast.show(context, '配置错误: $e');
                 }
               }
             },
@@ -1337,25 +1326,19 @@ void _showPromptTemplateEditor(BuildContext context, AppSettingsVM appSettingsVM
               final promptTemplate = promptController.text.trim();
               
               if (promptTemplate.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('模版内容不能为空')),
-                );
+                TopToast.show(context, '模版内容不能为空');
                 return;
               }
               
               if (!promptTemplate.contains('{each_response}') || !promptTemplate.contains('{endeach}')) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('模版中必须包含循环占位符 {each_response} 和 {endeach}')),
-                );
+                TopToast.show(context, '模版中必须包含循环占位符 {each_response} 和 {endeach}');
                 return;
               }
               
               await appSettingsVM.setPromptTemplate(promptTemplate);
               
               if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('聚合模版已保存')),
-                );
+                TopToast.show(context, '聚合模版已保存');
                 Navigator.pop(context);
               }
             },

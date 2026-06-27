@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/exports.dart';
+import '../../utils/top_toast.dart';
 import '../../viewmodels/exports.dart';
 
 void showAggregateDialog(BuildContext context) {
@@ -108,15 +109,7 @@ class _AggregateDialogContentState extends State<_AggregateDialogContent> {
                                 await aggVM.aggregate(_selectedTabId!);
                             if (context.mounted) {
                               Navigator.of(context).pop();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(result.message),
-                                  duration: const Duration(seconds: 3),
-                                  backgroundColor: result.success
-                                      ? Colors.green
-                                      : Colors.orange,
-                                ),
-                              );
+                              TopToast.show(context, result.message, duration: const Duration(seconds: 3), backgroundColor: result.success ? Colors.green : Colors.orange);
                             }
                           },
                     child: aggVM.isAggregating

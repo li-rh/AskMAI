@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
 import 'package:provider/provider.dart';
 import '../../utils/theme_config.dart';
+import '../../utils/top_toast.dart';
 import '../../services/exports.dart';
 import '../../viewmodels/exports.dart';
 import '../widgets/exports.dart';
@@ -45,7 +46,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
     _toastOverlayEntry = OverlayEntry(
       builder: (context) => const Positioned(
-        bottom: 140,
+        top: 100,
         left: 0,
         right: 0,
         child: Align(
@@ -307,24 +308,14 @@ class _ChatScreenState extends State<ChatScreen> {
                     final name = nameController.text.trim();
 
                     if (url.isEmpty || name.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('请填写 URL 和显示名称'),
-                        ),
-                      );
+                      TopToast.show(context, '请填写 URL 和显示名称');
                       return;
                     }
 
                     // 验证URL格式
                     if (!url.startsWith('http://') &&
                         !url.startsWith('https://')) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'URL 必须以 http:// 或 https:// 开头',
-                          ),
-                        ),
-                      );
+                      TopToast.show(context, 'URL 必须以 http:// 或 https:// 开头');
                       return;
                     }
 
@@ -415,9 +406,7 @@ class _ChatScreenState extends State<ChatScreen> {
     await tabVM.persistTabs();
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('已开始新对话'), duration: Duration(seconds: 2)),
-      );
+      TopToast.show(context, '已开始新对话', duration: const Duration(seconds: 2));
     }
   }
 

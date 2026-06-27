@@ -6,11 +6,13 @@ import 'package:flutter/material.dart';
 class ToastBubble extends StatefulWidget {
   final String message;
   final Duration duration;
+  final Color? backgroundColor;
 
   const ToastBubble({
     Key? key,
     required this.message,
     this.duration = const Duration(milliseconds: 1500),
+    this.backgroundColor,
   }) : super(key: key);
 
   @override
@@ -49,9 +51,10 @@ class _ToastBubbleState extends State<ToastBubble> {
     final isDark = theme.brightness == Brightness.dark;
 
     // 采用黑白灰轻盈质感色调，透明度设为66%配合毛玻璃
-    final backgroundColor = isDark
+    // 如果提供了自定义背景颜色，则使用它；否则使用默认的主题色
+    final backgroundColor = widget.backgroundColor ?? (isDark
         ? const Color(0xFF2A2A2A).withValues(alpha: 0.66) // 极简深灰，夜间模式更柔和
-        : Colors.white.withValues(alpha: 0.66);          // 纯净白色，浅色模式更通透
+        : Colors.white.withValues(alpha: 0.66));          // 纯净白色，浅色模式更通透
         
     final textColor = isDark
         ? const Color(0xFFE2E2E2)  // 轻量浅灰白

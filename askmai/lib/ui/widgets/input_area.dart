@@ -3,6 +3,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/exports.dart';
+import '../../utils/top_toast.dart';
 import '../../viewmodels/exports.dart';
 import 'aggregate_dialog.dart';
 
@@ -63,12 +64,7 @@ class _InputAreaState extends State<InputArea> {
 
     if (message.isEmpty) {
       _log('[Stage1-Input] REJECTED: empty message');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a message'),
-          duration: Duration(seconds: 2),
-        ),
-      );
+      TopToast.show(context, '请输入消息', duration: const Duration(seconds: 2));
       return;
     }
 
@@ -83,12 +79,7 @@ class _InputAreaState extends State<InputArea> {
 
     if (enabledTabs.isEmpty) {
       _log('[Stage1-Input] REJECTED: no enabled tabs');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enable at least one tab'),
-          duration: Duration(seconds: 2),
-        ),
-      );
+      TopToast.show(context, '请至少启用一个标签页', duration: const Duration(seconds: 2));
       return;
     }
 
@@ -105,21 +96,9 @@ class _InputAreaState extends State<InputArea> {
       _log('[Stage1-Input] Broadcast complete. success=$successCount, failed=$failureCount');
 
       if (successCount > 0 && failureCount == 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Sent to $successCount tab(s)'),
-            duration: const Duration(seconds: 2),
-            backgroundColor: Colors.green,
-          ),
-        );
+        TopToast.show(context, '已发送到 $successCount 个标签页', duration: const Duration(seconds: 2), backgroundColor: Colors.green);
       } else if (failureCount > 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('$successCount sent, $failureCount failed'),
-            duration: const Duration(seconds: 2),
-            backgroundColor: Colors.orange,
-          ),
-        );
+        TopToast.show(context, '已发送 $successCount 个，$failureCount 个失败', duration: const Duration(seconds: 2), backgroundColor: Colors.orange);
       }
     }
   }
