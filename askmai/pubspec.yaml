@@ -2,7 +2,7 @@ name: askmai
 description: "Multi-LLM Chat Client - Flutter. Send queries to multiple LLMs simultaneously and compare responses."
 publish_to: 'none'
 
-version: 1.2.0+9
+version: 1.3.0+10
 
 environment:
   sdk: ">=3.8.0 <4.0.0"
