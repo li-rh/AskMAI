@@ -53,6 +53,9 @@ class SiteConfig {
   /// AI回答内容的XPath表达式（innerText回退方案）
   final String? responseXPath;
 
+  /// AI回答内容DOM的XPath，用于监听内容变化判断是否回答完毕
+  final String? answerContentXPath;
+
   SiteConfig({
     required this.id,
     required this.urlPattern,
@@ -70,6 +73,7 @@ class SiteConfig {
     this.userAgent,
     this.copyButtonXPath,
     this.responseXPath,
+    this.answerContentXPath,
   });
 
   /// 从JSON创建SiteConfig

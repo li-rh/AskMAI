@@ -164,6 +164,9 @@ class SiteRegistry {
           if (matchingTab.customStrategy != null) {
             jsonVal['strategy'] = matchingTab.customStrategy;
           }
+          if (matchingTab.customAnswerContentXPath != null) {
+            jsonVal['answerContentXPath'] = matchingTab.customAnswerContentXPath;
+          }
         } catch (_) {
           // 未匹配到则保留原样
         }
@@ -197,6 +200,7 @@ class SiteRegistry {
             'urlPattern': tab.url,
             'inputXPath': tab.customInputXPath ?? '',
             'submitXPath': tab.customSubmitXPath ?? '',
+            'answerContentXPath': tab.customAnswerContentXPath ?? '',
             'displayName': tab.displayName,
             'isDisplay': tab.isDisplayed,
             'isEnabled': tab.isEnabled,

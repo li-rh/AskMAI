@@ -23,6 +23,7 @@ SiteConfig _$SiteConfigFromJson(Map<String, dynamic> json) => SiteConfig(
   userAgent: json['userAgent'] as String?,
   copyButtonXPath: json['copyButtonXPath'] as String?,
   responseXPath: json['responseXPath'] as String?,
+  answerContentXPath: json['answerContentXPath'] as String?,
 );
 
 Map<String, dynamic> _$SiteConfigToJson(SiteConfig instance) =>
@@ -43,4 +44,5 @@ Map<String, dynamic> _$SiteConfigToJson(SiteConfig instance) =>
       'userAgent': instance.userAgent,
       'copyButtonXPath': instance.copyButtonXPath,
       'responseXPath': instance.responseXPath,
+      'answerContentXPath': instance.answerContentXPath,
     };

@@ -53,11 +53,12 @@ class AutomationVM extends ChangeNotifier {
       // 获取网站配置或使用自定义XPath
       String inputXPath = tab.customInputXPath ?? '';
       String submitXPath = tab.customSubmitXPath ?? '';
+      String? answerContentXPath = tab.customAnswerContentXPath;
       String? strategyName;
 
-      // 如果没有自定义XPath，尝试从site_config获取
+      final siteConfig = _siteRegistry.getConfigByUrl(tab.url);
+
       if (inputXPath.isEmpty || submitXPath.isEmpty) {
-        final siteConfig = _siteRegistry.getConfigByUrl(tab.url);
         if (siteConfig == null) {
           _log('[Stage4-SingleTab] FAIL tab=${tab.displayName}: Site config NOT found for URL=${tab.url}');
           return SubmissionResult(
@@ -73,14 +74,19 @@ class AutomationVM extends ChangeNotifier {
         _log('[Stage4-SingleTab] XPath from site_config: strategy=$strategyName');
       } else {
         // 如果使用了自定义配置，仍尝试获取strategy用于匹配策略
-        final siteConfig = _siteRegistry.getConfigByUrl(tab.url);
         strategyName = tab.customStrategy ?? siteConfig?.strategy;
         _log('[Stage4-SingleTab] XPath from tab custom: strategy=$strategyName');
+      }
+
+      answerContentXPath ??= siteConfig?.answerContentXPath;
+      if (answerContentXPath == 'TODO_FILL_ME') {
+        answerContentXPath = null;
       }
 
       _log('[Stage4-SingleTab] Resolved XPaths for tab=${tab.displayName}:');
       _log('[Stage4-SingleTab]   inputXPath="$inputXPath"');
       _log('[Stage4-SingleTab]   submitXPath="$submitXPath"');
+      _log('[Stage4-SingleTab]   answerContentXPath="$answerContentXPath"');
       _log('[Stage4-SingleTab]   strategy="$strategyName"');
 
       // 执行JavaScript提交
@@ -93,6 +99,7 @@ class AutomationVM extends ChangeNotifier {
         tabId,
         strategyName: strategyName,
         displayName: tab.displayName,
+        answerContentXPath: answerContentXPath,
       );
 
       final elapsed = DateTime.now().difference(startTime).inMilliseconds;

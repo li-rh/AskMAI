@@ -111,6 +111,7 @@ class GenericStrategy extends InjectionStrategy {
     String message,
     String tabId, {
     String? displayName,
+    String? answerContentXPath,
   }) async {
     final name = displayName ?? tabId;
     final totalStart = DateTime.now();
@@ -194,6 +195,16 @@ class GenericStrategy extends InjectionStrategy {
         tabId: tabId,
         displayName: displayName,
       );
+
+      if (clickResult.success) {
+        _log('[Generic:$name] Submission succeeded. Injecting answer status observer...');
+        await injectAnswerStatusObserverShared(
+          controller: controller,
+          answerContentXPath: answerContentXPath,
+          name: name,
+          log: _log,
+        );
+      }
 
       final totalMs = DateTime.now().difference(totalStart).inMilliseconds;
       _log('[Generic:$name] ====== STRATEGY END (${totalMs}ms) ======');

@@ -17,7 +17,8 @@
       "strategy": "exec_command",
       "userAgent": null,
       "copyButtonXPath": "(//section[@data-turn='assistant'])[last()]//button[@data-testid='copy-turn-action-button']",
-      "responseXPath": "TODO_FILL_ME"
+      "responseXPath": "TODO_FILL_ME",
+      "answerContentXPath": "(//div[@data-message-author-role='assistant'])[last()]"
     },
     "claude": {
       "id": "claude",
@@ -35,7 +36,8 @@
       "strategy": "dom_input",
       "userAgent": null,
       "copyButtonXPath": "TODO_FILL_ME",
-      "responseXPath": "TODO_FILL_ME"
+      "responseXPath": "TODO_FILL_ME",
+      "answerContentXPath": "TODO_FILL_ME"
     },
     "gemini": {
       "id": "gemini",
@@ -53,7 +55,8 @@
       "strategy": "exec_command",
       "userAgent": null,
       "copyButtonXPath": "(//button[@aria-label='Copy' and contains(@class, 'mdc-icon-button')])[last()]",
-      "responseXPath": "TODO_FILL_ME"
+      "responseXPath": "TODO_FILL_ME",
+      "answerContentXPath": "TODO_FILL_ME"
     },
     "doubao": {
       "id": "doubao",
@@ -71,7 +74,8 @@
       "strategy": "dom_input",
       "userAgent": null,
       "copyButtonXPath": "(//div[@data-foundation-type='receive-message-action-bar'])[last()]//div[contains(@class, 'message-action-button-main')]/button[1]",
-      "responseXPath": "TODO_FILL_ME"
+      "responseXPath": "TODO_FILL_ME",
+      "answerContentXPath": "(//div[contains(@class, 'v_list_row')]//div[@data-message-id])[last()]"
     },
     "deepseek": {
       "id": "deepseek",
@@ -89,7 +93,8 @@
       "strategy": "dom_input",
       "userAgent": null,
       "copyButtonXPath": "(//div[contains(@class, '_4f9bf79')])[last()]//div[contains(@class, '_0a3d93b')]//div[@role='button'][1]",
-      "responseXPath": "TODO_FILL_ME"
+      "responseXPath": "TODO_FILL_ME",
+      "answerContentXPath": "(//div[contains(@class, 'ds-assistant-message-main-content')])[last()]"
     },
     "qianwen": {
       "id": "qianwen",
@@ -107,7 +112,8 @@
       "strategy": "react_slate",
       "userAgent": null,
       "copyButtonXPath": "TODO_FILL_ME",
-      "responseXPath": "(//div[contains(@class, 'answer-common-card')])[last()]"
+      "responseXPath": "(//div[contains(@class, 'answer-common-card')])[last()]",
+      "answerContentXPath": "(//div[contains(@class, 'answer-common-card')])[last()]"
     },
     "qwen": {
       "id": "qianwen",
@@ -125,7 +131,8 @@
       "strategy": "dom_input",
       "userAgent": null,
       "copyButtonXPath": "(//div[contains(@class, 'qwen-chat-message-assistant')]//div[contains(@class, 'qwen-chat-package-comp-new-action-control-container-copy')])[last()]",
-      "responseXPath": "TODO_FILL_ME"
+      "responseXPath": "TODO_FILL_ME",
+      "answerContentXPath": "(//div[contains(@class, 'qwen-chat-message-assistant')])[last()]"
     },
     "yuanbao": {
       "id": "yuanbao",
@@ -143,7 +150,8 @@
       "strategy": "exec_command",
       "userAgent": null,
       "copyButtonXPath": "(//div[@data-conv-speaker='ai'])[last()]//div[@aria-label='复制']",
-      "responseXPath": "TODO_FILL_ME"
+      "responseXPath": "TODO_FILL_ME",
+      "answerContentXPath": "(//div[@data-conv-speaker='ai'])[last()]"
     },
     "kimi": {
       "id": "kimi",
@@ -161,7 +169,8 @@
       "strategy": "exec_command",
       "userAgent": null,
       "copyButtonXPath": "(//div[contains(@class, 'chat-content-item-assistant')])[last()]//div[contains(@class, 'segment-assistant-actions')]//div[contains(@class, 'icon-button')][1]",
-      "responseXPath": "TODO_FILL_ME"
+      "responseXPath": "(//div[contains(@class, 'segment-assistant')]//div[contains(@class, 'markdown')])[last()]",
+      "answerContentXPath": "(//div[contains(@class, 'chat-content-item')])[last()]"
     },
     "zhipu": {
       "id": "zhipu",
@@ -179,7 +188,8 @@
       "strategy": "dom_input",
       "userAgent": null,
       "copyButtonXPath": "TODO_FILL_ME",
-      "responseXPath": "(//div[contains(@class, 'answer')])[last()]"
+      "responseXPath": "(//div[contains(@class, 'answer')])[last()]",
+      "answerContentXPath": "(//div[contains(@class, 'answer')])[last()]"
     }
   }
 }

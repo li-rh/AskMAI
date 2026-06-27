@@ -18,6 +18,7 @@ abstract class InjectionStrategy {
     String message,
     String tabId, {
     String? displayName,
+    String? answerContentXPath,
   });
 
   void _log(String message, [Object? error]) {
@@ -85,6 +86,7 @@ class FillerInjectionStrategy extends InjectionStrategy {
     String message,
     String tabId, {
     String? displayName,
+    String? answerContentXPath,
   }) {
     return SubmissionPipeline().execute(
       controller: controller,
@@ -94,6 +96,7 @@ class FillerInjectionStrategy extends InjectionStrategy {
       filler: filler,
       tabId: tabId,
       displayName: displayName,
+      answerContentXPath: answerContentXPath,
     );
   }
 }

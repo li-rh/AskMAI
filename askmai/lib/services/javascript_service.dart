@@ -17,6 +17,7 @@ class JavascriptService {
     String tabId, {
     String? strategyName,
     String? displayName,
+    String? answerContentXPath,
   }) async {
     final name = displayName ?? tabId;
     final startTime = DateTime.now();
@@ -33,6 +34,7 @@ class JavascriptService {
         message,
         tabId,
         displayName: displayName,
+        answerContentXPath: answerContentXPath,
       );
 
       final elapsed = DateTime.now().difference(startTime).inMilliseconds;

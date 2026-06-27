@@ -743,6 +743,9 @@ class _SettingsTabItemState extends State<_SettingsTabItem> {
     final submitXPathController = TextEditingController(
       text: widget.tab.customSubmitXPath ?? siteConfig?.submitXPath ?? '',
     );
+    final answerContentXPathController = TextEditingController(
+      text: widget.tab.customAnswerContentXPath ?? siteConfig?.answerContentXPath ?? '',
+    );
     final viewportTopController = TextEditingController(
       text: widget.tab.viewportTop.toString(),
     );
@@ -808,6 +811,15 @@ class _SettingsTabItemState extends State<_SettingsTabItem> {
                       decoration: const InputDecoration(
                         labelText: '提交按钮 XPath',
                         hintText: '//button[@id="send"]',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: answerContentXPathController,
+                      decoration: const InputDecoration(
+                        labelText: '回答内容检测 XPath',
+                        hintText: '(//div[contains(@class, "answer")])[last()]',
                         border: OutlineInputBorder(),
                       ),
                     ),
@@ -979,6 +991,9 @@ class _SettingsTabItemState extends State<_SettingsTabItem> {
                       customSubmitXPath: submitXPathController.text.trim().isEmpty
                           ? null
                           : submitXPathController.text.trim(),
+                      customAnswerContentXPath: answerContentXPathController.text.trim().isEmpty
+                          ? null
+                          : answerContentXPathController.text.trim(),
                       customStrategy: selectedStrategy == siteConfig?.strategy
                           ? null
                           : selectedStrategy,

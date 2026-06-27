@@ -209,6 +209,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final nameController = TextEditingController();
     final inputXPathController = TextEditingController();
     final submitXPathController = TextEditingController();
+    final answerContentXPathController = TextEditingController();
     bool isEnabled = true;
     bool isDisplayed = true;
 
@@ -256,6 +257,15 @@ class _ChatScreenState extends State<ChatScreen> {
                       decoration: const InputDecoration(
                         labelText: '提交按钮 XPath',
                         hintText: '//button[@id="send"]',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: answerContentXPathController,
+                      decoration: const InputDecoration(
+                        labelText: '回答内容检测 XPath',
+                        hintText: '(//div[contains(@class, "answer")])[last()]',
                         border: OutlineInputBorder(),
                       ),
                     ),
@@ -329,6 +339,10 @@ class _ChatScreenState extends State<ChatScreen> {
                           submitXPathController.text.trim().isEmpty
                               ? null
                               : submitXPathController.text.trim(),
+                      customAnswerContentXPath:
+                          answerContentXPathController.text.trim().isEmpty
+                              ? null
+                              : answerContentXPathController.text.trim(),
                       isEnabled: isEnabled,
                       isDisplayed: isDisplayed,
                     );

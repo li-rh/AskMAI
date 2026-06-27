@@ -251,3 +251,172 @@ Future<SubmissionResult> submitWithRetryShared({
     tabId: tabId,
   );
 }
+
+/// 注入回答状态监听脚本（共享的 DOM 观察器）
+Future<void> injectAnswerStatusObserverShared({
+  required WebViewController controller,
+  required String? answerContentXPath,
+  required String name,
+  required void Function(String) log,
+}) async {
+  final answerXPath = answerContentXPath ?? '';
+  final js = '''
+    (function() {
+      if (window.AskMAIAnswerObserver) {
+        try { window.AskMAIAnswerObserver.disconnect(); } catch(e) {}
+      }
+      if (window.AskMAIAnswerCheckInterval) {
+        try { clearInterval(window.AskMAIAnswerCheckInterval); } catch(e) {}
+      }
+      if (window.AskMAIAnswerTimer) {
+        try { clearTimeout(window.AskMAIAnswerTimer); } catch(e) {}
+        window.AskMAIAnswerTimer = null;
+      }
+      if (window.AskMAIAnswerSafetyTimer) {
+        try { clearTimeout(window.AskMAIAnswerSafetyTimer); } catch(e) {}
+        window.AskMAIAnswerSafetyTimer = null;
+      }
+      
+      var answerXPath = '${escapeJavaScript(answerXPath)}';
+      if (answerXPath === 'TODO_FILL_ME') answerXPath = ''; // Filter out placeholder
+      
+      var lastAnswerText = '';
+      var lastChangeTime = Date.now();
+      var active = false;
+      var checkInterval = null;
+      
+      function post(status) {
+        try {
+          if (window.AskMAIDomChangeChannel) {
+            window.AskMAIDomChangeChannel.postMessage(status);
+          } else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.AskMAIDomChangeChannel) {
+            window.webkit.messageHandlers.AskMAIDomChangeChannel.postMessage(status);
+          } else if (typeof AskMAIDomChangeChannel !== 'undefined') {
+            AskMAIDomChangeChannel.postMessage(status);
+          }
+        } catch(e) {}
+      }
+      
+      function getAnswerText() {
+        if (!answerXPath) return '';
+        try {
+          var el = document.evaluate(answerXPath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+          return el ? (el.innerText || el.textContent || '') : '';
+        } catch(e) {
+          return '';
+        }
+      }
+
+      function isGeneratingOrThinking() {
+        var stopButtons = document.querySelectorAll('button, [role="button"]');
+        for (var i = 0; i < stopButtons.length; i++) {
+          var btn = stopButtons[i];
+          var label = (btn.getAttribute('aria-label') || btn.getAttribute('title') || btn.innerText || '').toLowerCase();
+          if (label.indexOf('stop') !== -1 || label.indexOf('停止') !== -1 || label.indexOf('中断') !== -1 || label.indexOf('cancel') !== -1) {
+            if (btn.offsetWidth > 0 && btn.offsetHeight > 0 && !btn.disabled) return true;
+          }
+        }
+        var docText = document.body ? document.body.innerText : '';
+        if (docText.indexOf('正在思考') !== -1 || 
+            docText.indexOf('正在搜索') !== -1 || 
+            docText.indexOf('正在联网') !== -1 || 
+            docText.indexOf('Thinking...') !== -1 || 
+            docText.indexOf('Searching...') !== -1) {
+          return true;
+        }
+        var selectors = [
+          '.ds-markdown--thought', '.thought-block', '.thinking', '.searching', 
+          '[data-testid="search-status"]', '.search-pill', '.result-streaming', 
+          '.streaming', '.typing-indicator', '.loading-indicator'
+        ];
+        for (var j = 0; j < selectors.length; j++) {
+          var el = document.querySelector(selectors[j]);
+          if (el && el.offsetWidth > 0 && el.offsetHeight > 0) return true;
+        }
+        var cursors = document.querySelectorAll('.cursor, .blink, .pulse');
+        for (var k = 0; k < cursors.length; k++) {
+          var cursor = cursors[k];
+          if (cursor.offsetWidth > 0 && cursor.offsetHeight > 0 && cursor.tagName !== 'INPUT' && cursor.tagName !== 'TEXTAREA') {
+            return true;
+          }
+        }
+        return false;
+      }
+      
+      function disconnectObserver() {
+        if (observer) observer.disconnect();
+        if (checkInterval) clearInterval(checkInterval);
+        if (window.AskMAIAnswerTimer) {
+          clearTimeout(window.AskMAIAnswerTimer);
+          window.AskMAIAnswerTimer = null;
+        }
+        if (window.AskMAIAnswerSafetyTimer) {
+          clearTimeout(window.AskMAIAnswerSafetyTimer);
+          window.AskMAIAnswerSafetyTimer = null;
+        }
+      }
+
+      function updateState() {
+        var generating = isGeneratingOrThinking();
+        var currentText = getAnswerText();
+        var hasContentChanged = (currentText !== lastAnswerText);
+        
+        if (hasContentChanged) {
+          lastAnswerText = currentText;
+          lastChangeTime = Date.now();
+        }
+        
+        if (generating || (hasContentChanged && currentText.trim().length > 0)) {
+          if (!active) {
+            active = true;
+            post("active");
+          }
+          if (window.AskMAIAnswerTimer) {
+            clearTimeout(window.AskMAIAnswerTimer);
+            window.AskMAIAnswerTimer = null;
+          }
+        } else {
+          if (active && !window.AskMAIAnswerTimer) {
+            var elapsedSinceChange = Date.now() - lastChangeTime;
+            var timeoutDelay = Math.max(0, 3000 - elapsedSinceChange);
+            window.AskMAIAnswerTimer = setTimeout(function() {
+              var currentGenerating = isGeneratingOrThinking();
+              var currentText2 = getAnswerText();
+              if (!currentGenerating && currentText2 === lastAnswerText) {
+                active = false;
+                post("idle");
+                disconnectObserver();
+              }
+              window.AskMAIAnswerTimer = null;
+            }, timeoutDelay);
+          }
+        }
+      }
+
+      var observer = new MutationObserver(updateState);
+      observer.observe(document.body || document.documentElement, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        characterData: true
+      });
+      
+      checkInterval = setInterval(updateState, 500);
+      
+      window.AskMAIAnswerObserver = observer;
+      window.AskMAIAnswerCheckInterval = checkInterval;
+
+      // Overall safety timeout (120s max lifetime)
+      window.AskMAIAnswerSafetyTimer = setTimeout(function() {
+        post("idle");
+        disconnectObserver();
+      }, 120000);
+    })();
+  ''';
+  try {
+    await controller.runJavaScript(js);
+    log('Answer status observer injected successfully');
+  } catch (e) {
+    log('Error injecting answer status observer: $e');
+  }
+}

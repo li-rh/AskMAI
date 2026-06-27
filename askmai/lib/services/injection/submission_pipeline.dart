@@ -22,6 +22,7 @@ class SubmissionPipeline {
     String? displayName,
     String? fallbackSubmitXPath,
     String? clickFallbackSelector,
+    String? answerContentXPath,
   }) async {
     final name = displayName ?? tabId;
     final totalStart = DateTime.now();
@@ -127,6 +128,16 @@ class SubmissionPipeline {
         clickFallbackSelector: clickFallbackSelector,
         log: _log,
       );
+
+      if (clickResult.success) {
+        _log('[Pipeline:$name] Submission succeeded. Injecting answer status observer...');
+        await injectAnswerStatusObserverShared(
+          controller: controller,
+          answerContentXPath: answerContentXPath,
+          name: name,
+          log: _log,
+        );
+      }
 
       final totalMs = DateTime.now().difference(totalStart).inMilliseconds;
       _log('[Pipeline:$name] ====== ${filler.name.toUpperCase()} END (${totalMs}ms) ======');

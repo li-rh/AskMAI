@@ -515,11 +515,6 @@ class _WebViewContainerState extends State<WebViewContainer> with AutomaticKeepA
             try { clearInterval(window.AskMAICheckInterval); } catch(e) {}
           }
           
-          var timer = null;
-          var safetyTimer = null;
-          var active = false;
-          var checkInterval = null;
-          
           function post(status) {
             try {
               if (window.AskMAIDomChangeChannel) {
@@ -532,106 +527,21 @@ class _WebViewContainerState extends State<WebViewContainer> with AutomaticKeepA
             } catch(e) {}
           }
           
-          function isGeneratingOrThinking() {
-            // 1. Check for visible stop/cancel buttons
-            var stopButtons = document.querySelectorAll('button, [role="button"]');
-            for (var i = 0; i < stopButtons.length; i++) {
-              var btn = stopButtons[i];
-              var label = (btn.getAttribute('aria-label') || btn.getAttribute('title') || btn.innerText || '').toLowerCase();
-              if (label.indexOf('stop') !== -1 || label.indexOf('停止') !== -1 || label.indexOf('中断') !== -1 || label.indexOf('cancel') !== -1) {
-                if (btn.offsetWidth > 0 && btn.offsetHeight > 0 && !btn.disabled) {
-                  return true;
-                }
-              }
-            }
-
-            // 2. Check for text indicators
-            var docText = document.body ? document.body.innerText : '';
-            if (docText.indexOf('正在思考') !== -1 || 
-                docText.indexOf('正在搜索') !== -1 || 
-                docText.indexOf('正在联网') !== -1 || 
-                docText.indexOf('Thinking...') !== -1 || 
-                docText.indexOf('Searching...') !== -1) {
-              return true;
-            }
-
-            // 3. Check for specific selectors (thinking/searching/streaming)
-            var selectors = [
-              '.ds-markdown--thought', 
-              '.thought-block', 
-              '.thinking', 
-              '.searching', 
-              '[data-testid="search-status"]',
-              '.search-pill',
-              '.result-streaming',
-              '.streaming',
-              '.typing-indicator',
-              '.loading-indicator'
-            ];
-            for (var j = 0; j < selectors.length; j++) {
-              var el = document.querySelector(selectors[j]);
-              if (el && el.offsetWidth > 0 && el.offsetHeight > 0) {
-                return true;
-              }
-            }
-
-            // 4. Check for active cursor elements
-            var cursors = document.querySelectorAll('.cursor, .blink, .pulse');
-            for (var k = 0; k < cursors.length; k++) {
-              var cursor = cursors[k];
-              if (cursor.offsetWidth > 0 && cursor.offsetHeight > 0 && cursor.tagName !== 'INPUT' && cursor.tagName !== 'TEXTAREA') {
-                return true;
-              }
-            }
-
-            return false;
-          }
+          var settleTimer = null;
           
-          function updateState() {
-            var generating = isGeneratingOrThinking();
-            
-            if (generating) {
-              if (safetyTimer) {
-                clearTimeout(safetyTimer);
-                safetyTimer = null;
-              }
-              if (!active) {
-                active = true;
-                post("active");
-              }
-              if (timer) {
-                clearTimeout(timer);
-                timer = null;
-              }
-            } else {
-              if (active && !timer) {
-                timer = setTimeout(function() {
-                  if (!isGeneratingOrThinking()) {
-                    active = false;
-                    post("idle");
-                  }
-                  timer = null;
-                }, 1000);
-              }
+          function onMutation() {
+            if (settleTimer) {
+              clearTimeout(settleTimer);
             }
-          }
-          
-          safetyTimer = setTimeout(function() {
-            if (!active) {
+            settleTimer = setTimeout(function() {
               post("idle");
-            }
-            safetyTimer = null;
-          }, 3000);
+              if (observer) {
+                observer.disconnect();
+              }
+            }, 1500);
+          }
           
-          var observer = new MutationObserver(function(mutations) {
-            if (safetyTimer) {
-              clearTimeout(safetyTimer);
-              safetyTimer = null;
-            }
-            
-            updateState();
-          });
-          
+          var observer = new MutationObserver(onMutation);
           observer.observe(document.body || document.documentElement, {
             childList: true,
             subtree: true,
@@ -639,11 +549,18 @@ class _WebViewContainerState extends State<WebViewContainer> with AutomaticKeepA
             characterData: true
           });
           
-          checkInterval = setInterval(updateState, 500);
+          // Run once initially to trigger settle check on static pages
+          onMutation();
+          
+          // Safety fallback: 3 seconds timeout
+          var safetyTimer = setTimeout(function() {
+            post("idle");
+            if (observer) {
+              observer.disconnect();
+            }
+          }, 3000);
           
           window.AskMAIDomObserver = observer;
-          window.AskMAICheckInterval = checkInterval;
-
           return "initialized";
         })();
       ''';
